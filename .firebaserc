@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "juku-point"
+  },
+  "targets": {
+    "jukupoint": {
+      "hosting": {
+        "jukupoint": [
+          "juku-point"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,128 @@
+/* === 🎨 Settings Page Style (Improved) === */
+
+.settings-container {
+  padding: 20px;
+  max-width: 680px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease;
+}
+
+.settings-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+/* ===== セクションカード ===== */
+.settings-card {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  margin-bottom: 25px;
+  animation: fadeIn 0.4s ease;
+}
+
+.settings-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.settings-desc {
+  color: #555;
+  font-size: 15px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+/* ===== 入力フォーム ===== */
+.settings-input {
+  width: 100%;
+  padding: 13px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1.8px solid #d1d5db;
+  outline: none;
+  transition: 0.2s;
+  background: #fafafa;
+}
+
+.settings-input:focus {
+  border-color: #2563eb;
+  background: #f0f8ff;
+}
+
+/* ===== 保存ボタン ===== */
+.settings-save-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  background: #2563eb;
+  border: none;
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.settings-save-btn:hover {
+  background: #1e4fc9;
+}
+
+.settings-save-btn:disabled {
+  background: #94a3b8;
+}
+
+/* ===== アバタープレビュー ===== */
+.settings-preview-title {
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.settings-preview-box {
+  height: 300px;
+  border-radius: 12px;
+  background: #f8fafc;
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.05);
+  margin-top: 10px;
+}
+
+/* Ready Player Me へのリンク */
+.settings-link {
+  margin-top: 22px;
+  display: inline-block;
+  text-align: center;
+  width: 100%;
+  font-size: 16px;
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+/* ===== レスポンシブ ===== */
+@media (max-width: 600px) {
+  .settings-container {
+    padding: 15px;
+  }
+
+  .settings-card {
+    padding: 18px;
+  }
+
+  .settings-title {
+    font-size: 22px;
+  }
+
+  .settings-section-title {
+    font-size: 18px;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

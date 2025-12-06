@@ -1,0 +1,211 @@
+/* ===== 全体レイアウト ===== */
+.rewards-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+  background-color: #fafafa;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  position: relative;
+}
+
+/* ===== タイトル・ポイント ===== */
+.title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.points-text {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  color: #444;
+}
+
+.points-value {
+  font-weight: bold;
+  color: #007bff;
+}
+
+/* ===== フィルタバー ===== */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  width: 200px;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  border-color: #007bff;
+}
+
+/* ===== 景品グリッド（横2カラム） ===== */
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  justify-items: center;
+  margin-top: 10px;
+}
+
+/* ===== 景品カード ===== */
+.reward-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  padding: 14px;
+  width: 100%;
+  max-width: 180px;
+  text-align: center;
+  transition: .2s;
+}
+
+.reward-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+}
+
+.reward-image-container {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 10px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.reward-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.reward-icon {
+  font-size: 2.6rem;
+}
+
+/* ===== 交換ボタン ===== */
+.redeem-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.redeem-button:hover {
+  background-color: #1e7e34;
+}
+
+.redeem-button:disabled {
+  background: #ccc;
+}
+
+/* 📱 スマホ調整 */
+@media (max-width: 600px) {
+  .rewards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .reward-card {
+    padding: 12px;
+    max-width: 160px;
+  }
+
+  .reward-image-container {
+    width: 80px;
+    height: 80px;
+  }
+}
+
+/* ============================
+   ℹ️ 説明アイコン
+============================ */
+.info-icon {
+  cursor: pointer;
+  font-size: 20px;
+  padding: 4px;
+  color: #555;
+  transition: 0.2s ease;
+}
+
+.info-icon:hover {
+  color: #000;
+  transform: scale(1.1);
+}
+
+/* ============================
+   モーダル
+============================ */
+.reward-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+}
+
+.reward-modal {
+  background: white;
+  width: 92%;
+  max-width: 420px;
+  padding: 24px 22px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.modal-description {
+  background: #f3f4f6;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  margin-bottom: 14px;
+}
+
+.reward-icon {
+  font-size: 40px;
+}
+
+/* 文房具 */
+.reward-icon.note { color: #4f9fff; }       /* ノート → 青 */
+.reward-icon.pen { color: #ff0000; }        /* ペン → コーラル */
+.reward-icon.highlighter { color: #ffd700; }/* 蛍光ペン → 黄色 */
+.reward-icon.pencil { color: #ffa500; }     /* シャーペン → オレンジ */
+.reward-icon.ruler { color: #8a2be2; }      /* 定規 → 紫 */
+.reward-icon.sticky { color: #ffcc00; }     /* ふせん → ゴールド */
+.reward-icon.eraser { color: #4f9fff; }     /* 消しゴム → ピンク */
+
+/* お菓子 */
+.reward-icon.snack { color: #8b4513; }      /* ブラウン */
+
+/* 限定報酬 */
+.reward-icon.dinner { color: #e63946; }     /* ご飯奢り → 赤 */
+.reward-icon.costco { color: #1d3557; }     /* コストコ商品/買い出し → 紺 */
+
+/* その他 */
+.reward-icon.game { color: #32cd32; }
+.reward-icon.apple { color: #d00000; }
+.reward-icon.shirt { color: #2a9d8f; }
+.reward-icon.music { color: #6a4c93; }
+
+/* デフォルト */
+.reward-icon.default { color: #666; }
+.reward-icon.unknown { color: #999; }

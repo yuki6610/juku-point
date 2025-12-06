@@ -1,0 +1,214 @@
+/* ----------------------------------------------------
+   🎁 管理者 景品管理ページ（PC向け）
+---------------------------------------------------- */
+
+/* 全体 */
+.rewards-admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* タイトル */
+.admin-title {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  border-left: 6px solid #4CAF50;
+  padding-left: 12px;
+}
+
+/* ----------------------------------------------------
+   追加フォーム部分
+---------------------------------------------------- */
+
+.admin-form-card {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 40px;
+}
+
+.admin-form-card h3 {
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.admin-form-grid input,
+.admin-form-grid select,
+.description-input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  background: #fafafa;
+}
+
+.description-input {
+  height: 80px;
+  resize: vertical;
+}
+
+.add-button {
+  grid-column: 1 / -1;
+  padding: 12px 20px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.add-button:hover {
+  background: #45a446;
+}
+
+/* ----------------------------------------------------
+   景品カード一覧
+---------------------------------------------------- */
+
+.rewards-grid-admin {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.reward-card-admin {
+  background: #ffffff;
+  padding: 18px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0px 3px 10px rgba(0,0,0,0.1);
+  transition: 0.2s;
+}
+
+.reward-card-admin:hover {
+  transform: translateY(-4px);
+}
+
+.reward-image-admin {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.reward-card-admin h4 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+/* ボタン */
+.detail-button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.detail-button:hover {
+  background: #1484d6;
+}
+
+.delete-button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  background: #e34c4c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.delete-button:hover {
+  background: #d03f3f;
+}
+
+/* ----------------------------------------------------
+   モーダル（詳細 + 編集）
+---------------------------------------------------- */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #fff;
+  width: 600px;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 14px rgba(0,0,0,0.25);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.modal-content h2 {
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.save-button {
+  padding: 10px 16px;
+  background: #4CAF50;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.close-button {
+  padding: 10px 16px;
+  background: #999;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.save-button:hover { background: #46a148; }
+.close-button:hover { background: #888; }
+
+/* アニメーション */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}

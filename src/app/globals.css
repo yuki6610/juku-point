@@ -1,0 +1,37 @@
+/* === 全体のベーススタイル === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  background: #f5f5f5; /* 柔らかい灰色の背景 */
+  font-family: "Noto Sans JP", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === 中央配置 === */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 20px;
+}
+
+/* === スクロールバーを非表示（スマート見せ）=== */
+::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+
+/* === レスポンシブ === */
+@media (max-width: 600px) {
+  .app-container {
+    padding: 10px;
+  }
+}

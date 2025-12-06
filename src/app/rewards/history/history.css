@@ -1,0 +1,127 @@
+/* === 全体レイアウト === */
+.history-container {
+  padding: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+  background-color: #fafafa;
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 20px;
+  color: #1e293b;
+}
+
+/* === テーブルデザイン === */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* ヘッダー */
+.history-table th {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 10px;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* データ部分 */
+.history-table td {
+  color: #334155;
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+}
+
+/* 交互に背景を変えて見やすく */
+.history-table tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+/* === スマホ対応 === */
+@media (max-width: 700px) {
+  .history-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-radius: 8px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .bottom-buttons {
+    position: static;
+    margin-top: 30px;
+  }
+
+  .back-button {
+    width: 100%;
+  }
+}
+
+/* === テキスト === */
+.no-history,
+.loading-text {
+  text-align: center;
+  font-size: 15px;
+  color: #6b7280;
+  margin-top: 40px;
+}
+
+/* === ボタン === */
+.bottom-buttons {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+}
+
+.back-button {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: background 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: #1e40af;
+}
+
+/* === ステータス表示（確認中・確認済） === */
+.status-pending {
+  color: #d97706;
+  font-weight: 600;
+}
+
+.status-verified {
+  color: #22c55e;
+  font-weight: 600;
+}

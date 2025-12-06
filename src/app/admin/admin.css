@@ -1,0 +1,64 @@
+.admin-page {
+  padding: 40px 60px;
+  width: 100%;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.admin-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.admin-subtitle {
+  font-size: 14px;
+  color: #475569;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 24px;
+}
+
+/* --- カード共通 --- */
+.admin-card {
+  background: white;
+  border-radius: 14px;
+  padding: 24px 20px;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  transition: 0.15s ease-in-out;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+}
+
+.admin-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+
+.admin-card-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.admin-card-desc {
+  font-size: 13px;
+  color: #475569;
+}
+
+/* --- カラー別（Tailwind風） --- */
+.admin-blue   { border-left: 6px solid #38bdf8; }
+.admin-purple { border-left: 6px solid #8b5cf6; }
+.admin-indigo { border-left: 6px solid #6366f1; }
+.admin-orange { border-left: 6px solid #f97316; }
+.admin-teal   { border-left: 6px solid #14b8a6; }
+.admin-red    { border-left: 6px solid #ef4444; }
+.admin-green  { border-left: 6px solid #10b981; }
+.admin-amber  { border-left: 6px solid #f59e0b; }
+.admin-slate  { border-left: 6px solid #64748b; }

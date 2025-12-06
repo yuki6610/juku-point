@@ -1,0 +1,114 @@
+.studylog-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 20px;
+}
+
+.studylog-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* レイアウト：2カラム */
+.studylog-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 30px;
+}
+
+/* ---------------------------
+   左：生徒一覧
+---------------------------- */
+.student-list-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  height: 650px;
+  overflow-y: auto;
+}
+
+.student-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.student-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.student-item:hover {
+  background: #e2e8f0;
+}
+
+.student-item.active {
+  background: #cbd5e1;
+  font-weight: 600;
+}
+
+/* ---------------------------
+   右：自習ログ
+---------------------------- */
+.log-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.log-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
+/* ログ行 */
+.log-row {
+  display: flex;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 12px 15px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.log-date {
+  font-weight: 600;
+}
+
+.log-detail {
+  text-align: right;
+  color: #555;
+}
+
+.empty-log {
+  padding: 40px 0;
+  text-align: center;
+  color: #777;
+  font-size: 14px;
+}
+
+/* 戻るボタン */
+.back-btn {
+  margin-top: 30px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #475569;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  background: #334155;
+}

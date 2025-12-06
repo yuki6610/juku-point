@@ -1,0 +1,63 @@
+.admin-history-container {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.admin-history-title {
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.admin-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.admin-history-table th,
+.admin-history-table td {
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  padding: 10px;
+}
+
+.admin-history-table th {
+  background: #f3f4f6;
+}
+
+.verify-button {
+  background-color: #4caf50;
+  color: white;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.verify-button:hover {
+  background-color: #3e8e41;
+}
+
+.bottom-buttons {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+}
+
+.back-button {
+  background-color: #2563eb;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: #1e40af;
+}

@@ -1,0 +1,113 @@
+.hw-page {
+  padding: 30px 60px;
+  width: 100%;
+  margin: 0;
+}
+
+.hw-title {
+  font-size: 30px;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.hw-filters {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.hw-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.hw-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.hw-name {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.hw-grade {
+  margin-bottom: 10px;
+}
+
+.hw-status {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.hw-buttons {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.hw-btn-submit {
+  background: #4caf50;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hw-btn-done {
+  background: #888;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+}
+
+.hw-btn-undo {
+  background: #e53935;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hw-back-btn {
+  margin-top: 30px;
+  padding: 12px 20px;
+  background: #ff9800;
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.hw-levelup-popup {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff8d6;
+  padding: 25px 40px;
+  border-radius: 15px;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.25);
+  font-size: 26px;
+  font-weight: bold;
+  z-index: 1000;
+}

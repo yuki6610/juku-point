@@ -1,0 +1,296 @@
+/* -----------------------------------------------------
+   📌 生徒管理ページ（PC 管理画面向け）
+----------------------------------------------------- */
+
+.students-page {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 30px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.students-header {
+  margin-bottom: 25px;
+}
+
+.students-title {
+  font-size: 2rem;
+  border-left: 6px solid #4CAF50;
+  padding-left: 12px;
+  margin-bottom: 10px;
+}
+
+.students-subtitle {
+  font-size: 14px;
+  color: #666;
+}
+
+/* -----------------------------------------------------
+   📌 生徒カード一覧（4列グリッド）
+----------------------------------------------------- */
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px;
+}
+
+/* 生徒カード全体 */
+.student-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  padding: 20px;
+  transition: 0.25s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.student-card:hover {
+  transform: translateY(-4px);
+}
+
+/* 上部（名前 + 学年） */
+.student-card-header {
+  margin-bottom: 12px;
+}
+
+.student-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.student-grade {
+  font-size: 0.95rem;
+  margin-top: 4px;
+  color: #666;
+}
+
+/* -----------------------------------------------------
+   🌸 講習タグ
+----------------------------------------------------- */
+.course-tags-area {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.course-tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #eef4ff;
+  border: 1px solid #b9d7ff;
+  color: #0b4f91;
+}
+
+.course-tag.spring_course {
+  background: #ffe6f3;
+  border-color: #ffbcd8;
+  color: #992e6b;
+}
+
+.course-tag.summer_course {
+  background: #fff4ce;
+  border-color: #ffe188;
+  color: #8c6a00;
+}
+
+.course-tag.winter_course {
+  background: #e4f2ff;
+  border-color: #c1dfff;
+  color: #0a3474;
+}
+
+/* -----------------------------------------------------
+   📊 数値ステータス（Lv / XP / Pt）
+----------------------------------------------------- */
+
+.student-stats {
+  margin-top: 14px;
+  border-top: 1px solid #eee;
+  padding-top: 14px;
+}
+
+.stat-block {
+  margin-bottom: 14px;
+}
+
+.stat-label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.stat-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-btn {
+  width: 40px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: #e0e7ff;
+  cursor: pointer;
+  font-size: 16px;
+  transition: 0.2s;
+}
+
+.stat-btn:hover {
+  background: #c7d4ff;
+}
+
+.stat-value {
+  width: 70px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 6px 0;
+  border-radius: 6px;
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+}
+
+/* -----------------------------------------------------
+   🧩 下部ボタン（称号・講習タグ）
+----------------------------------------------------- */
+
+.student-card-footer {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title-modal-open-btn,
+.course-modal-btn {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #4CAF50;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.title-modal-open-btn:hover,
+.course-modal-btn:hover {
+  background: #46a148;
+}
+
+/* -----------------------------------------------------
+   🪟 モーダル共通
+----------------------------------------------------- */
+.students-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.students-modal {
+  background: #fff;
+  width: 600px;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 5px 16px rgba(0,0,0,0.25);
+  animation: fadeIn 0.3s ease-out;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.students-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-close-x {
+  font-size: 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* -----------------------------------------------------
+   🏷 称号モーダル
+----------------------------------------------------- */
+.titles-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.title-pill {
+  background: #f2f8ff;
+  border: 1px solid #b9d9ff;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.title-pill:hover {
+  background: #dcecff;
+}
+
+.title-pill-name {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+/* -----------------------------------------------------
+   🌸 講習タグモーダル
+----------------------------------------------------- */
+
+.course-tag-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background: #fafafa;
+  text-align: left;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.course-tag-btn:hover {
+  background: #f0f0f0;
+}
+
+.course-tag-btn.active {
+  background: #1976d2;
+  color: white;
+  border-color: #145ca8;
+}
+
+/* -----------------------------------------------------
+   ✨ アニメーション
+----------------------------------------------------- */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

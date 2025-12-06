@@ -1,0 +1,119 @@
+.wt-page {
+  padding: 30px 60px;
+  width: 100%;
+  margin: 0;
+}
+
+.wt-title {
+  font-size: 30px;
+  margin-bottom: 20px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.wt-filters {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.wt-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wt-week-label {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.wt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.wt-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.wt-name {
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+.wt-grade {
+  margin-bottom: 10px;
+}
+
+.wt-status {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.wt-input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.wt-input-row input {
+  width: 50%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+}
+
+.wt-btn-submit {
+  background: #38bdf8;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.wt-btn-undo {
+  background: #e53935;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.wt-back-btn {
+  margin-top: 30px;
+  padding: 12px 20px;
+  background: #ff9800;
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.wt-levelup-popup {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff8d6;
+  padding: 25px 40px;
+  border-radius: 15px;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.25);
+  font-size: 26px;
+  font-weight: bold;
+  z-index: 1000;
+}
