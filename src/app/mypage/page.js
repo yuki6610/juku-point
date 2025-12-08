@@ -130,12 +130,14 @@ export default function MyPage() {
         </div>
       )}
 
-      {/* 🟡 イエローカード表示 */}
-      <div className="yellowcard-box">
-        ⚠️ イエローカード
-          <br />
-        次に自習室で話しているところを見かけたら出禁にします。
-      </div>
+          {/* 🟡 イエローカード表示（yellowCardがtrueのときのみ） */}
+          {data.yellowCard === true && (
+            <div className="yellowcard-box">
+              ⚠️ イエローカード
+              <br />
+              次に自習室で話しているところを見かけたら出禁にします。
+            </div>
+          )}
 
       {/* 👤 回転アバター */}
       <div
