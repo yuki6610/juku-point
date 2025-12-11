@@ -133,7 +133,7 @@ export default function MyPage() {
           {/* 🟡 イエローカード（1枚以上のとき表示） */}
           {data.yellowCard > 0 && (
             <div className="yellowcard-box">
-              ⚠️ イエローカード（{data.yellowCard}枚）
+              ⚠️ イエローカード
               <br />
               次に自習室で話しているところを見かけたら出禁にします。
             </div>

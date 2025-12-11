@@ -69,6 +69,13 @@ export default function AdminPage() {
           path: '/admin/study-log',
         },
     
+    {
+      title: '✅ 出席確認',
+      desc: '高校生の出席確認',
+      color: 'orange',
+      path: '/admin/NewFolder',
+    },
+    
   ]
 
   return (
