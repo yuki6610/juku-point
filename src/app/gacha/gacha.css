@@ -1,0 +1,86 @@
+.gacha-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+  text-align: center;
+}
+
+.gacha-title {
+  font-size: 1.8rem;
+  margin-bottom: 16px;
+}
+
+.gacha-status p {
+  margin: 4px 0;
+}
+
+.gacha-points {
+  font-weight: bold;
+}
+
+.gacha-cost {
+  font-weight: bold;
+  color: #e67e22;
+}
+
+.gacha-error {
+  margin: 8px 0 12px;
+  color: #e74c3c;
+  font-size: 0.9rem;
+}
+
+.gacha-button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 999px;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #ffaf00, #ff5f6d);
+  color: white;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.gacha-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gacha-result {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f7f9fc;
+}
+
+.gacha-result-name {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.gacha-rarity {
+  font-size: 0.95rem;
+}
+
+.rarity-normal {
+  color: #555;
+}
+
+.rarity-rare {
+  color: #2980b9;
+}
+
+.rarity-sr {
+  color: #9b59b6;
+}
+
+.gacha-back {
+  margin-top: 24px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+}

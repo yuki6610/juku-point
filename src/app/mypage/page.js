@@ -178,6 +178,7 @@ export default function MyPage() {
       <div className="button-group">
         <button onClick={() => router.push("/checkin")} className="btn blue">🕒 チェックイン</button>
         <button onClick={() => router.push("/rewards")} className="btn green">🎁 景品交換</button>
+        <button onClick={() => router.push("/gacha")} className="btn orange">🎰 景品ガチャ</button>
         <button onClick={() => router.push("/ranking")} className="btn purple">📊 ランキング</button>
         <button onClick={() => router.push("/points")} className="btn cyan">🅿️ ポイント履歴</button>
         <button onClick={() => router.push("/settings")} className="btn gray">⚙️ 設定</button>

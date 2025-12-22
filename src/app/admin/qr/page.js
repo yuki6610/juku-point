@@ -37,7 +37,7 @@ export default function SelfStudyList() {
       if (!checkSnap.exists()) continue;
       const c = checkSnap.data();
 
-      // ⭐ 新方式：currentSessionActive=true なら今まさに自習中
+      // ⭐ currentSessionActive === true の生徒のみ表示
       if (c.currentSessionActive === true) {
         const enterAt = c.enterAt || c.lastEnterAt;
         if (!enterAt) continue;
@@ -60,7 +60,7 @@ export default function SelfStudyList() {
     setLoading(false);
   }
 
-  // ⭐ 強制退出（このままでOK）
+  // ⭐ 強制退出（ポイント・経験値は付与しない）
   async function forceExit(uid) {
     const todayId = getTodayId();
     const ref = doc(db, `users/${uid}/checkins/${todayId}`);
@@ -76,12 +76,18 @@ export default function SelfStudyList() {
 
     const sessions = Array.isArray(data.sessions) ? [...data.sessions] : [];
 
-    // ⭐ 強制退出は「exitAt のない最終セッションを強制終了」
+    const enterAt = data.enterAt || data.lastEnterAt;
+    if (!enterAt) {
+      alert("入室時刻が取得できません");
+      return;
+    }
+
+    // ❗ minutes は 0 固定（ポイント付与防止）
     sessions.push({
-      enterAt: data.enterAt || data.lastEnterAt,
+      enterAt,
       exitAt: now,
       forced: true,
-      minutes: Math.floor((now - (data.enterAt || data.lastEnterAt)) / 60000),
+      minutes: 0,
     });
 
     await updateDoc(ref, {
@@ -89,12 +95,13 @@ export default function SelfStudyList() {
       sessions,
     });
 
-    alert("強制退出しました");
+    alert("強制退出しました（ポイントは付与されません）");
     loadSelfStudyStudents();
   }
 
-  if (loading)
+  if (loading) {
     return <div className="ss-loading">読み込み中…</div>;
+  }
 
   return (
     <div className="ss-container">

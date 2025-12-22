@@ -1,0 +1,184 @@
+.gadmin-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.gadmin-title {
+  font-size: 1.8rem;
+  margin-bottom: 12px;
+}
+
+.gadmin-note {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.gadmin-subtitle {
+  font-size: 1.2rem;
+  margin: 16px 0 8px;
+}
+
+/* 新規フォーム */
+.gadmin-form {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 24px;
+  background: #fafafa;
+}
+
+.gadmin-form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gadmin-form-row label {
+  min-width: 80px;
+  font-size: 0.9rem;
+}
+
+.gadmin-form-row input,
+.gadmin-form-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.gadmin-help {
+  font-size: 0.75rem;
+  color: #777;
+}
+
+.gadmin-add-btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #27ae60;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.gadmin-add-btn:hover {
+  opacity: 0.9;
+}
+
+/* リストテーブル */
+.gadmin-empty {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.gadmin-table {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.gadmin-header,
+.gadmin-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 2fr;
+  gap: 8px;
+  padding: 8px 12px;
+  align-items: center;
+}
+
+.gadmin-header {
+  background: #f0f0f0;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.gadmin-row:nth-child(odd) {
+  background: #fafafa;
+}
+
+.gadmin-row:nth-child(even) {
+  background: #ffffff;
+}
+
+.gadmin-cell input,
+.gadmin-cell select {
+  width: 100%;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 0.9rem;
+}
+
+.gadmin-input-number {
+  max-width: 80px;
+}
+
+.gadmin-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.gadmin-save-btn,
+.gadmin-delete-btn {
+  border-radius: 999px;
+  border: none;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.gadmin-save-btn {
+  background: #3498db;
+  color: #fff;
+}
+
+.gadmin-delete-btn {
+  background: #e74c3c;
+  color: #fff;
+}
+
+/* 戻るボタン */
+.gadmin-back-btn {
+  margin-top: 24px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* スマホ対応 */
+@media (max-width: 640px) {
+  .gadmin-header {
+    display: none;
+  }
+
+  .gadmin-row {
+    grid-template-columns: 1fr;
+  }
+
+  .gadmin-cell {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.9rem;
+  }
+
+  .gadmin-cell::before {
+    content: attr(data-label);
+    font-weight: bold;
+    color: #555;
+  }
+
+  .gadmin-actions {
+    justify-content: flex-start;
+  }
+}

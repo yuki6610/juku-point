@@ -75,6 +75,12 @@ export default function AdminPage() {
       color: 'orange',
       path: '/admin/NewFolder',
     },
+    {
+      title: '🎰 ガチャ管理',
+      desc: 'ガチャ景品管理',
+      color: 'indigo',
+      path: '/admin/gacha',
+    },
     
   ]
 
