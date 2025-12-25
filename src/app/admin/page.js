@@ -82,6 +82,13 @@ export default function AdminPage() {
       path: '/admin/gacha',
     },
     
+    {
+      title: '🎰 ガチャ履歴',
+      desc: 'ガチャ景品履歴',
+      color: 'indigo',
+      path: '/admin/gacha-history',
+    },
+    
   ]
 
   return (

@@ -95,7 +95,6 @@ export default function GachaAdminPage() {
 
     const ref = await addDoc(collection(db, "gachaItems"), {
       name: newName.trim(),
-      rarity: newRarity,
       weight: weightNum,
       stock: stockNum,
       createdAt: serverTimestamp(),
@@ -203,19 +202,6 @@ export default function GachaAdminPage() {
             onChange={(e) => setNewName(e.target.value)}
             placeholder="例：お菓子セット / ドリンク無料券"
           />
-        </div>
-
-        <div className="gadmin-form-row">
-          <label>レアリティ</label>
-          <select
-            value={newRarity}
-            onChange={(e) => setNewRarity(e.target.value)}
-          >
-            <option value="normal">normal（普通）</option>
-            <option value="rare">rare（レア）</option>
-            <option value="sr">SR</option>
-            <option value="ur">UR</option>
-          </select>
         </div>
 
         <div className="gadmin-form-row">

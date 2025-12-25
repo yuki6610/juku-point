@@ -178,3 +178,30 @@
     font-size: 1.35rem;
   }
 }
+
+.mypage-gacha-box {
+  margin: 20px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, #fff7cc, #ffe066);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.mypage-gacha-message {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.mypage-gacha-btn {
+  padding: 10px 18px;
+  font-size: 16px;
+  border: none;
+  border-radius: 999px;
+  background: #ff9800;
+  color: white;
+  cursor: pointer;
+}
+
+.mypage-gacha-btn:hover {
+  opacity: 0.9;
+}

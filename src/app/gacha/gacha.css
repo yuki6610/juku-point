@@ -1,86 +1,100 @@
 .gacha-container {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 16px;
   text-align: center;
+  padding: 24px;
 }
 
 .gacha-title {
-  font-size: 1.8rem;
+  font-size: 24px;
   margin-bottom: 16px;
 }
 
-.gacha-status p {
-  margin: 4px 0;
+.gacha-status {
+  margin-bottom: 16px;
 }
 
 .gacha-points {
   font-weight: bold;
+  color: #2563eb;
 }
 
 .gacha-cost {
   font-weight: bold;
-  color: #e67e22;
-}
-
-.gacha-error {
-  margin: 8px 0 12px;
-  color: #e74c3c;
-  font-size: 0.9rem;
 }
 
 .gacha-button {
-  width: 100%;
-  padding: 12px;
-  border-radius: 999px;
+  padding: 12px 24px;
+  font-size: 16px;
+  background: linear-gradient(135deg, #facc15, #f97316);
   border: none;
-  font-size: 1.1rem;
-  font-weight: bold;
-  background: linear-gradient(135deg, #ffaf00, #ff5f6d);
-  color: white;
+  border-radius: 999px;
   cursor: pointer;
-  margin-top: 12px;
 }
 
 .gacha-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
+.gacha-error {
+  color: #dc2626;
+  margin-bottom: 12px;
+}
+
+/* 🎬 演出 */
+.gacha-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  z-index: 1000;
+}
+
+.gacha-spinner {
+  width: 80px;
+  height: 80px;
+  border: 6px solid rgba(255,255,255,0.3);
+  border-top: 6px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 🎉 結果演出 */
 .gacha-result {
   margin-top: 24px;
   padding: 16px;
   border-radius: 12px;
-  background: #f7f9fc;
+  background: #fff7ed;
+}
+
+.animate-pop {
+  animation: pop 0.6s ease-out;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .gacha-result-name {
-  font-size: 1.4rem;
+  font-size: 22px;
   font-weight: bold;
-  margin: 8px 0;
 }
 
 .gacha-rarity {
-  font-size: 0.95rem;
+  margin-top: 8px;
+  font-weight: bold;
 }
 
-.rarity-normal {
-  color: #555;
-}
-
-.rarity-rare {
-  color: #2980b9;
-}
-
-.rarity-sr {
-  color: #9b59b6;
-}
-
-.gacha-back {
-  margin-top: 24px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid #ccc;
-  background: white;
-  cursor: pointer;
-}
+.rarity-ur { color: #facc15; }
+.rarity-sr { color: #f97316; }
+.rarity-rare { color: #3b82f6; }
