@@ -40,16 +40,19 @@ export default function MyPage() {
   const [gachaEnabled, setGachaEnabled] = useState(false);
   const [gachaMessage, setGachaMessage] = useState("");
 
-  /* ---------- ガチャ状態 ---------- */
+  /* ---------- ガチャ状態（安全版） ---------- */
   const loadGachaStatus = async () => {
-    const ref = doc(db, "admin_data", "gacha");
-    const snap = await getDoc(ref);
-
-    if (snap.exists()) {
-      const d = snap.data();
-      setGachaEnabled(!!d.enabled);
-      setGachaMessage(d.message || "");
-    } else {
+    try {
+      const snap = await getDoc(doc(db, "admin_data", "gacha"));
+      if (snap.exists()) {
+        const d = snap.data();
+        setGachaEnabled(!!d.enabled);
+        setGachaMessage(d.message || "");
+      } else {
+        setGachaEnabled(false);
+      }
+    } catch (e) {
+      console.warn("gacha status load failed:", e);
       setGachaEnabled(false);
     }
   };
@@ -68,52 +71,67 @@ export default function MyPage() {
         isBanned: false,
         banUntil: null,
       });
-      userData.isBanned = false;
-      userData.banUntil = null;
     }
   };
 
-  /* ---------- 初期処理 ---------- */
+  /* ---------- 初期処理（完成形） ---------- */
   useEffect(() => {
     const auth = getAuth();
 
+    // ⏱ 起動不能保険
+    const timeoutId = setTimeout(() => {
+      console.warn("Auth timeout fallback");
+      setLoading(false);
+    }, 5000);
+
     const unsub = onAuthStateChanged(auth, async (currentUser) => {
+      clearTimeout(timeoutId);
+
       if (!currentUser) {
+        setLoading(false);
         router.push("/login");
         return;
       }
 
       setUser(currentUser);
 
-      const ref = doc(db, "users", currentUser.uid);
-      const snap = await getDoc(ref);
+      try {
+        const snap = await getDoc(doc(db, "users", currentUser.uid));
 
-      if (snap.exists()) {
-        const d = snap.data();
+        if (snap.exists()) {
+          const d = snap.data();
+          await autoUnbanIfExpired(currentUser.uid, d);
+          setData(d);
 
-        await autoUnbanIfExpired(currentUser.uid, d);
-        setData(d);
+          if (d.currentTitle) {
+            const tSnap = await getDoc(doc(db, "titles", d.currentTitle));
+            if (tSnap.exists()) {
+              setTitleName(tSnap.data().name || "");
+            }
+          }
 
-        // 称号
-        if (d.currentTitle) {
-          const tSnap = await getDoc(doc(db, "titles", d.currentTitle));
-          if (tSnap.exists()) setTitleName(tSnap.data().name || "");
+          const lastLevel = parseInt(localStorage.getItem("lastLevel") || "0");
+          if ((d.level ?? 1) > lastLevel) {
+            setLevelUpVisible(true);
+            setTimeout(() => setLevelUpVisible(false), 1800);
+          }
+          localStorage.setItem("lastLevel", d.level ?? 1);
         }
-
-        // レベルアップ演出
-        const lastLevel = parseInt(localStorage.getItem("lastLevel") || "0");
-        if ((d.level ?? 1) > lastLevel) {
-          setLevelUpVisible(true);
-          setTimeout(() => setLevelUpVisible(false), 1800);
-        }
-        localStorage.setItem("lastLevel", d.level ?? 1);
+      } catch (e) {
+        console.error("user load failed:", e);
       }
 
-      await loadGachaStatus();
+      // ✅ ここで必ず画面を出す
       setLoading(false);
+
+      // 🎰 ガチャは後追い（失敗してもOK）
+      loadGachaStatus();
     });
 
-    return () => unsub();
+    return () => {
+      clearTimeout(timeoutId);
+      unsub();
+    };
   }, [router]);
 
   if (loading) return <p className="loading-text">読み込み中...</p>;
@@ -132,14 +150,7 @@ export default function MyPage() {
     <div className="mypage-container" style={{ background: getSeasonBackground() }}>
       <AnimatePresence>
         {levelUpVisible && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="levelup-banner"
-          >
-            🎉 LEVEL UP!
-          </motion.div>
+          <motion.div className="levelup-banner">🎉 LEVEL UP!</motion.div>
         )}
       </AnimatePresence>
 
