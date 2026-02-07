@@ -8,8 +8,6 @@ import {
   getDocs,
   doc,
   updateDoc,
-  setDoc,
-  serverTimestamp,
   getDoc,
 } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -21,28 +19,23 @@ export default function StudentsPage() {
   const [students, setStudents] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [filterGrade, setFilterGrade] = useState('ALL');
-
-  const [titles, setTitles] = useState([]);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-
   const [courseModalOpen, setCourseModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ⭐ 追加：編集中の値を保持
+  // ⭐ 編集中の値
   const [editValues, setEditValues] = useState({});
 
   const auth = getAuth();
   const router = useRouter();
 
-  // ⭐ 管理者チェック
+  /* ---------- 管理者チェック ---------- */
   const checkAdmin = async (uid) => {
-    const adminRef = doc(db, 'admins', uid);
-    const adminSnap = await getDoc(adminRef);
-    return adminSnap.exists();
+    const snap = await getDoc(doc(db, 'admins', uid));
+    return snap.exists();
   };
 
-  // ⭐ 初期ロード
+  /* ---------- 初期ロード ---------- */
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -57,34 +50,21 @@ export default function StudentsPage() {
         return;
       }
 
-      const studentsSnap = await getDocs(collection(db, 'users'));
-      const studentList = studentsSnap.docs.map((d) => ({
+      const snap = await getDocs(collection(db, 'users'));
+      const list = snap.docs.map((d) => ({
         uid: d.id,
         ...d.data(),
       }));
 
-      const titlesSnap = await getDocs(collection(db, 'titles'));
-      const titleList = titlesSnap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-
-      setStudents(studentList);
-      setFiltered(studentList);
-      setTitles(titleList);
+      setStudents(list);
+      setFiltered(list);
       setLoading(false);
     });
   }, []);
 
-  // ⭐ 学年ラベル
+  /* ---------- 学年ラベル（中高生） ---------- */
   const gradeLabel = (g) =>
     ({
-      1: '小1',
-      2: '小2',
-      3: '小3',
-      4: '小4',
-      5: '小5',
-      6: '小6',
       7: '中1',
       8: '中2',
       9: '中3',
@@ -93,75 +73,25 @@ export default function StudentsPage() {
       12: '高3',
     }[g] || '-');
 
-  // ⭐ 学年変更
+  /* ---------- 学年変更 ---------- */
   const updateGrade = async (uid, newGrade) => {
     await updateDoc(doc(db, 'users', uid), { grade: newGrade });
-
     setStudents((prev) =>
       prev.map((s) => (s.uid === uid ? { ...s, grade: newGrade } : s))
     );
   };
-    
-    // ⭐ イエローカード付与
-    const addYellowCard = async (uid, current) => {
-      const newValue = (current || 0) + 1;
-      await updateDoc(doc(db, "users", uid), { yellowCard: newValue });
 
-      setStudents(prev =>
-        prev.map(s => (s.uid === uid ? { ...s, yellowCard: newValue } : s))
-      );
-    };
-
-    // ⭐ イエローカードリセット
-    const resetYellowCard = async (uid) => {
-      await updateDoc(doc(db, "users", uid), { yellowCard: 0 });
-
-      setStudents(prev =>
-        prev.map(s => (s.uid === uid ? { ...s, yellowCard: 0 } : s))
-      );
-    };
-
-    // ⭐ 出禁（1週間）
-    const banStudent = async (uid) => {
-      const banUntil = new Date();
-      banUntil.setDate(banUntil.getDate() + 7);
-
-      await updateDoc(doc(db, "users", uid), {
-        isBanned: true,
-        banUntil: banUntil,
-      });
-
-      setStudents(prev =>
-        prev.map(s => (s.uid === uid ? { ...s, isBanned: true, banUntil } : s))
-      );
-    };
-
-    // ⭐ 出禁の自動解除（マイページ・ログイン時などでチェック）
-    const checkBanStatus = async (uid, userData) => {
-      if (!userData.banUntil) return;
-
-      const now = new Date();
-      const end = userData.banUntil.toDate ? userData.banUntil.toDate() : userData.banUntil;
-
-      if (now > end) {
-        await updateDoc(doc(db, "users", uid), {
-          isBanned: false,
-          banUntil: null
-        });
-      }
-    };
-
-  // ⭐ フィルタ
+  /* ---------- フィルタ ---------- */
   const applyFilter = (grade) => {
     setFilterGrade(grade);
     if (grade === 'ALL') {
       setFiltered(students);
-      return;
+    } else {
+      setFiltered(students.filter((s) => s.grade === Number(grade)));
     }
-    setFiltered(students.filter((s) => s.grade === Number(grade)));
   };
 
-  // ⭐ 値保存（直接入力版）
+  /* ---------- 値直接編集 ---------- */
   const updateUserValue = async (uid, field, value) => {
     const safe = Math.max(0, Number(value));
     await updateDoc(doc(db, 'users', uid), { [field]: safe });
@@ -170,48 +100,59 @@ export default function StudentsPage() {
       prev.map((s) => (s.uid === uid ? { ...s, [field]: safe } : s))
     );
 
-    // 入力欄の一時値を消す
     setEditValues((prev) => ({
       ...prev,
       [uid]: { ...prev[uid], [field]: undefined },
     }));
   };
 
-  // ⭐ ±1 ボタン
   const changeValue = (uid, field, delta) => {
     const target = students.find((s) => s.uid === uid);
     const current = target?.[field] ?? 0;
     updateUserValue(uid, field, current + delta);
   };
 
-  // ⭐ 称号付与
-  const handleGrantTitle = async (student, title) => {
-    await setDoc(
-      doc(db, `users/${student.uid}/titles/${title.id}`),
-      {
-        name: title.name,
-        description: title.description || '',
-        earnedAt: serverTimestamp(),
-      },
-      { merge: true }
+  /* ---------- イエローカード ---------- */
+  const addYellowCard = async (uid, current) => {
+    const v = (current || 0) + 1;
+    await updateDoc(doc(db, 'users', uid), { yellowCard: v });
+    setStudents((prev) =>
+      prev.map((s) => (s.uid === uid ? { ...s, yellowCard: v } : s))
     );
-
-    await updateDoc(doc(db, 'users', student.uid), {
-      currentTitle: title.name,
-    });
-
-    alert(`「${title.name}」を付与しました`);
-    setShowModal(false);
-    setSelectedStudent(null);
   };
 
+  const resetYellowCard = async (uid) => {
+    await updateDoc(doc(db, 'users', uid), { yellowCard: 0 });
+    setStudents((prev) =>
+      prev.map((s) => (s.uid === uid ? { ...s, yellowCard: 0 } : s))
+    );
+  };
+
+  /* ---------- 出禁 ---------- */
+  const banStudent = async (uid) => {
+    const until = new Date();
+    until.setDate(until.getDate() + 7);
+
+    await updateDoc(doc(db, 'users', uid), {
+      isBanned: true,
+      banUntil: until,
+    });
+
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.uid === uid ? { ...s, isBanned: true, banUntil: until } : s
+      )
+    );
+  };
+
+  /* ---------- 講習タグ ---------- */
   const courseTagLabel = {
     spring_course: '🌸 春期',
     summer_course: '☀ 夏期',
     winter_course: '❄ 冬期',
+      past_exam: '📄 公立過去問',
   };
 
-  // ⭐ 講習タグ
   const toggleCourseTag = async (tag) => {
     const s = selectedStudent;
     const current = s.courseTags || [];
@@ -223,184 +164,157 @@ export default function StudentsPage() {
     await updateDoc(doc(db, 'users', s.uid), { courseTags: updated });
 
     setStudents((prev) =>
-      prev.map((st) => (st.uid === s.uid ? { ...st, courseTags: updated } : st))
+      prev.map((st) =>
+        st.uid === s.uid ? { ...st, courseTags: updated } : st
+      )
     );
   };
-    
-    
 
   if (loading) return <div className="students-loading">読み込み中...</div>;
 
   return (
     <div className="students-page">
-      <div className="students-header">
-        <h1 className="students-title">生徒管理</h1>
-        <p className="students-subtitle">
-          経験値・ポイント・称号・講習タグ・学年を管理できます
-        </p>
-      </div>
+      <h1 className="students-title">生徒管理</h1>
 
       {/* フィルタ */}
       <div className="grade-filter">
-        <button
-          className={filterGrade === 'ALL' ? 'filter-btn active' : 'filter-btn'}
-          onClick={() => applyFilter('ALL')}
-        >
-          全員
-        </button>
-
+        <button onClick={() => applyFilter('ALL')}>全員</button>
         {[7, 8, 9, 10, 11, 12].map((g) => (
-          <button
-            key={g}
-            className={filterGrade === g ? 'filter-btn active' : 'filter-btn'}
-            onClick={() => applyFilter(g)}
-          >
+          <button key={g} onClick={() => applyFilter(g)}>
             {gradeLabel(g)}
           </button>
         ))}
       </div>
 
-          {/* 生徒一覧 */}
-          <div className="students-grid">
-            {filtered.map((s) => {
-              const ev = editValues[s.uid] || {};
+      {/* 生徒一覧 */}
+      <div className="students-grid">
+        {filtered.map((s) => {
+          const ev = editValues[s.uid] || {};
+          return (
+            <div key={s.uid} className="student-card">
+              <div className="student-name">{s.realName}</div>
+                  
+                  <div className="student-status-badges">
+                    {/* イエローカード */}
+                    {(s.yellowCard ?? 0) > 0 && (
+                      <span className="yellowcard-badge">
+                        ⚠️ {s.yellowCard}
+                      </span>
+                    )}
 
-              return (
-                <div key={s.uid} className="student-card">
-                  <div className="student-card-header">
-                    <div className="student-name">{s.realName}</div>
-
-                    <GradeTag
-                      grade={gradeLabel(s.grade)}
-                      onChange={(newGrade) => updateGrade(s.uid, newGrade)}
-                    />
-
-                    <div className="course-tags-area">
-                      {(s.courseTags || []).map((t) => (
-                        <span key={t} className="course-tag">
-                          {courseTagLabel[t]}
-                        </span>
-                      ))}
-                    </div>
+                    {/* 出禁 */}
+                    {s.isBanned && (
+                      <span className="ban-badge">
+                        🚫 出禁中
+                      </span>
+                    )}
                   </div>
 
-                  {/* ✔ ここにステータス管理（レベル・経験値・ポイント）がある */}
+              <GradeTag
+                grade={gradeLabel(s.grade)}
+                onChange={(g) => updateGrade(s.uid, g)}
+              />
 
-                  {/* ⭐⭐ ここに追記（正しい位置） ⭐⭐ */}
-                  <div className="discipline-buttons">
-                    {/* イエローカード追加 */}
-                    <button
-                      className="yellow-btn"
-                      onClick={() => addYellowCard(s.uid, s.yellowCard)}
-                    >
-                      ⚠ イエローカード +1
-                    </button>
-
-                    {/* リセット */}
-                    <button
-                      className="yellow-reset-btn"
-                      onClick={() => resetYellowCard(s.uid)}
-                    >
-                      カードリセット
-                    </button>
-
-                    {/* 出禁 1週間 */}
-                    <button
-                      className="ban-btn"
-                      onClick={() => banStudent(s.uid)}
-                    >
-                      🚫 出禁（1週間）
-                    </button>
-                  </div>
-                  {/* ⭐⭐ ここまで ⭐⭐ */}
-
-                  <div className="student-card-footer">
-                    <button
-                      className="title-modal-open-btn"
-                      onClick={() => {
-                        setSelectedStudent(s);
-                        setShowModal(true);
-                      }}
-                    >
-                      称号を付与
-                    </button>
-
-                    <button
-                      className="course-modal-btn"
-                      onClick={() => {
-                        setSelectedStudent(s);
-                        setCourseModalOpen(true);
-                      }}
-                    >
-                      講習タグを編集
-                    </button>
-                  </div>
+              {/* 数値編集 */}
+              <div className="status-edit">
+                <div>
+                  Lv：
+                  <button onClick={() => changeValue(s.uid, 'level', -1)}>-</button>
+                  <input
+                    type="number"
+                    value={ev.level ?? s.level ?? 1}
+                    onChange={(e) =>
+                      setEditValues((p) => ({
+                        ...p,
+                        [s.uid]: { ...p[s.uid], level: e.target.value },
+                      }))
+                    }
+                    onBlur={(e) =>
+                      updateUserValue(s.uid, 'level', e.target.value)
+                    }
+                  />
+                  <button onClick={() => changeValue(s.uid, 'level', 1)}>+</button>
                 </div>
-              );
-            })}
-          </div>
-          
 
-      {/* 称号モーダル */}
-      {showModal && selectedStudent && (
-        <div className="students-modal-overlay">
-          <div className="students-modal">
-            <div className="students-modal-header">
-              <h2>称号を付与：{selectedStudent.realName}</h2>
-              <button className="modal-close-x" onClick={() => setShowModal(false)}>
-                ×
+                <div>
+                  XP：
+                  <input
+                    type="number"
+                    value={ev.experience ?? s.experience ?? 0}
+                    onChange={(e) =>
+                      setEditValues((p) => ({
+                        ...p,
+                        [s.uid]: { ...p[s.uid], experience: e.target.value },
+                      }))
+                    }
+                    onBlur={(e) =>
+                      updateUserValue(s.uid, 'experience', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div>
+                  Pt：
+                  <input
+                    type="number"
+                    value={ev.points ?? s.points ?? 0}
+                    onChange={(e) =>
+                      setEditValues((p) => ({
+                        ...p,
+                        [s.uid]: { ...p[s.uid], points: e.target.value },
+                      }))
+                    }
+                    onBlur={(e) =>
+                      updateUserValue(s.uid, 'points', e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* 規律 */}
+              <div className="discipline-buttons">
+                <button onClick={() => addYellowCard(s.uid, s.yellowCard)}>
+                  ⚠ +1
+                </button>
+                <button onClick={() => resetYellowCard(s.uid)}>
+                  リセット
+                </button>
+                <button onClick={() => banStudent(s.uid)}>
+                  🚫 出禁
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedStudent(s);
+                  setCourseModalOpen(true);
+                }}
+              >
+                講習タグ
               </button>
             </div>
-            <div className="students-modal-body">
-              <div className="titles-grid">
-                {titles.map((t) => (
-                  <button
-                    key={t.id}
-                    className="title-pill"
-                    onClick={() => handleGrantTitle(selectedStudent, t)}
-                  >
-                    <div className="title-pill-name">{t.name}</div>
-                    <div className="title-pill-desc">{t.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       {/* 講習タグモーダル */}
       {courseModalOpen && selectedStudent && (
         <div className="students-modal-overlay">
           <div className="students-modal">
-            <div className="students-modal-header">
-              <h2>講習タグ：{selectedStudent.realName}</h2>
-              <button className="modal-close-x" onClick={() => setCourseModalOpen(false)}>
-                ×
+            {Object.keys(courseTagLabel).map((tag) => (
+              <button
+                key={tag}
+                className={
+                  (selectedStudent.courseTags || []).includes(tag)
+                    ? 'course-tag-btn active'
+                    : 'course-tag-btn'
+                }
+                onClick={() => toggleCourseTag(tag)}
+              >
+                {courseTagLabel[tag]}
               </button>
-            </div>
-
-            <div className="students-modal-body">
-              {Object.keys(courseTagLabel).map((tag) => (
-                <button
-                  key={tag}
-                  className={
-                    (selectedStudent.courseTags || []).includes(tag)
-                      ? 'course-tag-btn active'
-                      : 'course-tag-btn'
-                  }
-                  onClick={() => toggleCourseTag(tag)}
-                >
-                  {courseTagLabel[tag]}
-                </button>
-              ))}
-            </div>
-
-            <div className="students-modal-footer">
-              <button className="modal-close-btn" onClick={() => setCourseModalOpen(false)}>
-                閉じる
-              </button>
-            </div>
+            ))}
+            <button onClick={() => setCourseModalOpen(false)}>閉じる</button>
           </div>
         </div>
       )}

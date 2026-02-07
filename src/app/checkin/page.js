@@ -61,7 +61,7 @@ export default function CheckinPage() {
       if (!user) return;
 
       const todayId = getTodayId();
-      const ref = doc(db, `users/${user.uid}/checkins/${todayId}`);
+      const ref = doc(db, 'users/${user.uid}/checkins/${todayId}');
       const snap = await getDoc(ref);
 
       if (snap.exists() && snap.data().currentSessionActive) {
@@ -98,7 +98,7 @@ export default function CheckinPage() {
       }
 
       const todayId = getTodayId();
-      const checkRef = doc(db, `users/${user.uid}/checkins/${todayId}`);
+      const checkRef = doc(db, 'users/${user.uid}/checkins/${todayId}');
       const now = new Date();
 
         // 管理画面で設定された PIN を取得
@@ -190,11 +190,11 @@ export default function CheckinPage() {
       await addDoc(collection(db, "users", user.uid, "pointHistory"), {
         type: "selfstudy",
         amount: ptGain,
-        note: `自習 ${minutes} 分`,
+        note: '自習 ${minutes} 分',
         createdAt: new Date(),
       });
 
-      alert(`退出しました（${minutes}分）`);
+      alert('退出しました（${minutes}分）');
       router.push("/mypage");
       return;
     }
@@ -226,3 +226,4 @@ export default function CheckinPage() {
     </div>
   );
 }
+

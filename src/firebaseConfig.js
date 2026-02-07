@@ -21,4 +21,5 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
-export { app, firebaseConfig }; // ← 🔥 これを追加！
+export { app, firebaseConfig };
+

@@ -60,7 +60,7 @@
 }
 
 .hw-btn-submit {
-  background: #4caf50;
+  background: #33CC33;
   color: white;
   padding: 8px 14px;
   border-radius: 6px;
@@ -70,8 +70,8 @@
 }
 
 .hw-btn-done {
-  background: #888;
-  color: white;
+  background: #15ed2b;
+  color: red;
   padding: 8px 14px;
   border-radius: 6px;
   border: none;

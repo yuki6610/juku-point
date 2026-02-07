@@ -55,12 +55,7 @@ export default function AdminPage() {
       color: 'amber',
       path: '/admin/rewardHistory',
     },
-    {
-      title: '🏅 称号設定',
-      desc: '称号一覧・条件編集',
-      color: 'slate',
-      path: '/admin/titles',
-    },
+    
     
     {
           title: '📘 自習履歴',
@@ -75,19 +70,20 @@ export default function AdminPage() {
       color: 'orange',
       path: '/admin/NewFolder',
     },
-    {
-      title: '🎰 ガチャ管理',
-      desc: 'ガチャ景品管理',
-      color: 'indigo',
-      path: '/admin/gacha',
-    },
     
     {
-      title: '🎰 ガチャ履歴',
-      desc: 'ガチャ景品履歴',
-      color: 'indigo',
-      path: '/admin/gacha-history',
+      title: '📝 成績承認',
+      desc: '五教科・内申の承認と修正',
+      color: 'pink',
+      path: '/admin/approve',
     },
+    {
+      title: '🏫 志望校判定',
+      desc: '生徒別の志望校判定確認',
+      color: 'sky',
+      path: '/admin/judge',
+    },
+    
     
   ]
 

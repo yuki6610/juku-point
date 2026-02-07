@@ -36,27 +36,6 @@ export default function MyPage() {
   const [levelUpVisible, setLevelUpVisible] = useState(false);
   const [titleName, setTitleName] = useState("");
 
-  // 🎰 ガチャ表示制御
-  const [gachaEnabled, setGachaEnabled] = useState(false);
-  const [gachaMessage, setGachaMessage] = useState("");
-
-  /* ---------- ガチャ状態（安全版） ---------- */
-  const loadGachaStatus = async () => {
-    try {
-      const snap = await getDoc(doc(db, "admin_data", "gacha"));
-      if (snap.exists()) {
-        const d = snap.data();
-        setGachaEnabled(!!d.enabled);
-        setGachaMessage(d.message || "");
-      } else {
-        setGachaEnabled(false);
-      }
-    } catch (e) {
-      console.warn("gacha status load failed:", e);
-      setGachaEnabled(false);
-    }
-  };
-
   /* ---------- 出禁自動解除 ---------- */
   const autoUnbanIfExpired = async (uid, userData) => {
     if (!userData.banUntil) return;
@@ -74,13 +53,11 @@ export default function MyPage() {
     }
   };
 
-  /* ---------- 初期処理（完成形） ---------- */
+  /* ---------- 初期処理 ---------- */
   useEffect(() => {
     const auth = getAuth();
 
-    // ⏱ 起動不能保険
     const timeoutId = setTimeout(() => {
-      console.warn("Auth timeout fallback");
       setLoading(false);
     }, 5000);
 
@@ -97,7 +74,6 @@ export default function MyPage() {
 
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid));
-
         if (snap.exists()) {
           const d = snap.data();
           await autoUnbanIfExpired(currentUser.uid, d);
@@ -118,14 +94,10 @@ export default function MyPage() {
           localStorage.setItem("lastLevel", d.level ?? 1);
         }
       } catch (e) {
-        console.error("user load failed:", e);
+        console.error(e);
       }
 
-      // ✅ ここで必ず画面を出す
       setLoading(false);
-
-      // 🎰 ガチャは後追い（失敗してもOK）
-      loadGachaStatus();
     });
 
     return () => {
@@ -137,14 +109,11 @@ export default function MyPage() {
   if (loading) return <p className="loading-text">読み込み中...</p>;
   if (!user) return null;
 
-  /* ---------- 表示用計算 ---------- */
   const level = data.level ?? 1;
   const points = data.points ?? 0;
   const exp = data.experience ?? 0;
   const expNeeded = 100 + (level - 1) * 10;
   const expPercent = Math.min((exp / expNeeded) * 100, 100);
-
-  /* ---------------- JSX ---------------- */
 
   return (
     <div className="mypage-container" style={{ background: getSeasonBackground() }}>
@@ -154,11 +123,6 @@ export default function MyPage() {
         )}
       </AnimatePresence>
 
-      <h2 className="user-name">
-        {titleName ? `${titleName}${data.displayName}` : data.displayName}
-      </h2>
-
-      {/* 出禁表示 */}
       {data.isBanned && data.banUntil && (
         <div className="ban-warning">
           🚫 自習室出禁<br />
@@ -169,7 +133,6 @@ export default function MyPage() {
         </div>
       )}
 
-      {/* イエローカード */}
       {data.yellowCard > 0 && (
         <div className="yellowcard-box">
           ⚠️ イエローカード<br />
@@ -177,29 +140,33 @@ export default function MyPage() {
         </div>
       )}
 
-      {/* アバター */}
-      <div
-        className="avatar-frame"
-        style={{
-          backgroundImage: `url(${getSeasonImage()})`,
-          height: "320px",
-        }}
-      >
-        <Canvas camera={{ position: [0, 1.35, 2.2] }} style={{ pointerEvents: "none" }}>
-          <ambientLight intensity={1.4} />
-          <directionalLight position={[3, 5, 2]} intensity={1.2} />
-          <Suspense fallback={null}>
-            <RotatingAvatar
-              url={data.avatarUrl}
-              position={[0, 1, 0]}
-              scale={1.5}
-            />
-          </Suspense>
-          <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
-        </Canvas>
-      </div>
+          <div className="avatar-name-outside">
+            {titleName ? `${titleName}${data.displayName}` : data.displayName}
+          </div>
 
-      {/* ステータス */}
+          
+          <div
+            className="avatar-frame"
+            style={{
+              backgroundImage: `url(${getSeasonImage()})`,
+              height: "320px",
+            }}
+          >
+          
+          <Canvas camera={{ position: [0, 1.35, 2.2] }} style={{ pointerEvents: "none" }}>
+              <ambientLight intensity={1.4} />
+              <directionalLight position={[3, 5, 2]} intensity={1.2} />
+              <Suspense fallback={null}>
+                <RotatingAvatar
+                  url={data.avatarUrl}
+                  position={[0, 1, 0]}
+                  scale={1.5}
+                />
+              </Suspense>
+              <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
+            </Canvas>
+          </div>
+
       <div className="status-card">
         <p>🎯 レベル：{level}</p>
         <p>💎 ポイント：{points}</p>
@@ -209,26 +176,13 @@ export default function MyPage() {
         <p className="exp-text">{exp} / {expNeeded} XP</p>
       </div>
 
-      {/* 🎰 ガチャ（任意表示） */}
-      {gachaEnabled && (
-        <div className="mypage-gacha-box">
-          <p className="mypage-gacha-message">
-            🎰 {gachaMessage || "救済ガチャ解放中！"}
-          </p>
-          <button
-            className="mypage-gacha-btn"
-            onClick={() => router.push("/gacha")}
-          >
-            景品ガチャを回す
-          </button>
-        </div>
-      )}
-
-      {/* ボタン群 */}
       <div className="button-group">
         <button onClick={() => router.push("/checkin")} className="btn blue">🕒 チェックイン</button>
         <button onClick={() => router.push("/rewards")} className="btn green">🎁 景品交換</button>
         <button onClick={() => router.push("/ranking")} className="btn purple">📊 ランキング</button>
+          <button onClick={() => router.push("/student/scores")} className="btn pink">
+              📝 成績入力・志望校判定
+            </button>
         <button onClick={() => router.push("/points")} className="btn cyan">🅿️ ポイント履歴</button>
         <button onClick={() => router.push("/settings")} className="btn gray">⚙️ 設定</button>
         <button onClick={() => router.push("/guide")} className="btn orange">📘 アプリの使い方</button>

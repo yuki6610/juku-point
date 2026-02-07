@@ -2,16 +2,16 @@
 
 import { useGLTF } from "@react-three/drei";
 
-/**
- * Ready Player Me アバターを読み込むモデルコンポーネント
- * - Canvas は含まない（外側で描画する）
- * - scale / position は適宜調整可能
- */
+const DEFAULT_AVATAR_URL = "https://models.readyplayer.me/698697a06eb4878bb8524841.glb";
+
 export default function RpmAvatar({ url, scale = 1.2 }) {
-  const { scene } = useGLTF(url);
+  const safeUrl = url || DEFAULT_AVATAR_URL;
+  if (!safeUrl) return null;
 
-  // モデルが巨大なので下にオフセット
+  const { scene } = useGLTF(safeUrl);
+
   scene.position.set(0, -1.2, 0);
+  scene.scale.setScalar(scale);
 
-  return <primitive object={scene} scale={scale} />;
+  return <primitive object={scene} />;
 }

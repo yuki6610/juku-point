@@ -1,0 +1,224 @@
+/* =====================
+   ページ全体
+===================== */
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.page h1 {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.page h2 {
+  margin: 20px 0 12px;
+}
+
+/* =====================
+   セレクト
+===================== */
+.page select {
+  width: 100%;
+  max-width: 320px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+/* =====================
+   承認カード
+===================== */
+.approve-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+  border-left: 6px solid #4f6ef7;
+}
+
+/* =====================
+   カードヘッダー
+===================== */
+.approve-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.student-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.student-name .grade {
+  font-size: 13px;
+  color: #666;
+  margin-left: 4px;
+}
+
+.score-meta {
+  font-size: 13px;
+  color: #555;
+  margin-top: 2px;
+}
+
+/* 種別バッジ */
+.score-type {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.score-type.exam {
+  background: #e7ecff;
+  color: #3a4fd8;
+}
+
+.score-type.internal {
+  background: #e8f7ef;
+  color: #1e8e5a;
+}
+
+/* =====================
+   点数グリッド（五教科）
+===================== */
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.score-cell {
+  background: #f7f8fb;
+  border-radius: 8px;
+  padding: 8px 0;
+  text-align: center;
+}
+
+.score-cell .label {
+  font-size: 12px;
+  color: #666;
+}
+
+.score-cell .value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* =====================
+   合計表示
+===================== */
+.score-summary {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin: 8px 0 12px;
+}
+
+.score-summary strong {
+  font-size: 16px;
+}
+
+.score-summary.internal {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.score-summary.internal .total {
+  grid-column: 1 / -1;
+  font-weight: 700;
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* =====================
+   操作ボタン
+===================== */
+.approve-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.approve-actions button {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* 承認 */
+.approve-actions .approve {
+  background: #4f6ef7;
+  color: #fff;
+}
+
+/* 修正 */
+.approve-actions .edit {
+  background: #f5f6fa;
+  color: #333;
+}
+
+/* 削除 */
+.approve-actions .delete {
+  background: #fdeaea;
+  color: #c62828;
+}
+
+/* =====================
+   修正UI
+===================== */
+.admin-edit {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.admin-edit h3 {
+  margin-bottom: 12px;
+}
+
+.admin-edit input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.admin-edit button {
+  margin-right: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+}
+
+/* =====================
+   スマホ最適化
+===================== */
+@media (max-width: 600px) {
+  .score-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .score-summary {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .approve-actions {
+    flex-direction: column;
+  }
+}

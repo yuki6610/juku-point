@@ -6,6 +6,15 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import "./points.css";
 
+/* =====================
+   ポイント値取得（互換）
+===================== */
+const getPointValue = (h) => {
+  if (typeof h.amount === "number") return h.amount;
+  if (typeof h.point === "number") return h.point;
+  return 0;
+};
+
 export default function PointHistoryPage() {
   const [grouped, setGrouped] = useState({});
   const [loading, setLoading] = useState(true);
@@ -24,25 +33,24 @@ export default function PointHistoryPage() {
       const qd = query(ref, orderBy("createdAt", "desc"));
       const snap = await getDocs(qd);
 
-      const list = snap.docs.map((d) => {
-        const data = d.data();
+      const list = snap.docs
+        .map((d) => {
+          const data = d.data();
+          const createdAt =
+            data.createdAt?.toDate?.() ??
+            (data.createdAt instanceof Date ? data.createdAt : null);
 
-        let createdAt = null;
-
-        if (data.createdAt && typeof data.createdAt.toDate === "function") {
-          createdAt = data.createdAt.toDate();
-        } else if (data.timestamp && typeof data.timestamp.toDate === "function") {
-          createdAt = data.timestamp.toDate();
-        } else if (data.createdAt instanceof Date) {
-          createdAt = data.createdAt;
-        } else if (typeof data.createdAt === "string") {
-          createdAt = new Date(data.createdAt);
-        } else {
-          createdAt = null;
-        }
-
-        return { id: d.id, ...data, createdAt };
-      });
+          return {
+            id: d.id,
+            ...data,
+            createdAt,
+          };
+        })
+        // 念のため最終ソート（createdAt がズレても安全）
+        .sort((a, b) => {
+          if (!a.createdAt || !b.createdAt) return 0;
+          return b.createdAt - a.createdAt;
+        });
 
       setGrouped(groupByDate(list));
       setLoading(false);
@@ -51,28 +59,56 @@ export default function PointHistoryPage() {
     return () => unsub();
   }, []);
 
+  /* =====================
+     日付ごとにグループ化
+  ===================== */
   const groupByDate = (list) => {
     const groups = {};
 
     list.forEach((item) => {
-      const d = item.createdAt
+      const key = item.createdAt
         ? item.createdAt.toISOString().split("T")[0]
         : "不明";
 
-      if (!groups[d]) groups[d] = [];
-      groups[d].push(item);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
     });
 
     return groups;
   };
 
-  const typeLabel = {
-    selfstudy: "⏱ 自習",
-    wordtest: "✏️ 単語テスト",
-    homework: "📘 宿題提出",
-    reward: "🎁 景品交換（ポイント消費）",
-    undo_homework: "❌ 宿題取消",
-    undotest: "❌ 単語テスト取消",
+  /* =====================
+     種類ラベル
+  ===================== */
+  const typeLabel = (h) => {
+    if (h.type === "score") {
+      return h.scoreType === "exam"
+        ? "📝 五教科テスト"
+        : "📊 内申点";
+    }
+
+    return {
+      selfstudy: "⏱ 自習",
+      wordtest: "✏️ 単語テスト",
+      homework: "📘 宿題提出",
+      reward: "🎁 景品交換",
+      undo_homework: "❌ 宿題取消",
+      undotest: "❌ 単語テスト取消",
+    }[h.type] || "その他";
+  };
+
+  /* =====================
+     説明文
+  ===================== */
+  const description = (h) => {
+    if (h.type === "score") {
+      if (h.scoreType === "exam") {
+        return `テスト成績承認（${h.point}pt）`;
+      }
+      return `内申点承認（${h.point}pt）`;
+    }
+
+    return h.description || h.note || "(説明なし)";
   };
 
   const toggle = (date) => {
@@ -103,26 +139,30 @@ export default function PointHistoryPage() {
 
               {isOpen && (
                 <div className="date-body">
-                  {grouped[date].map((h) => (
-                    <div key={h.id} className="point-item">
-                      <div className="point-left">
-                        <div className="point-type">
-                          {typeLabel[h.type] || "その他"}
-                        </div>
-                        <div className="point-desc">
-                          {h.description || h.note || "(説明なし)"}
-                        </div>
-                      </div>
+                  {grouped[date].map((h) => {
+                    const point = getPointValue(h);
 
-                      <div
-                        className={
-                          "point-amount " + (h.amount >= 0 ? "plus" : "minus")
-                        }
-                      >
-                        {h.amount >= 0 ? `+${h.amount}` : h.amount} pt
+                    return (
+                      <div key={h.id} className="point-item">
+                        <div className="point-left">
+                          <div className="point-type">
+                            {typeLabel(h)}
+                          </div>
+                          <div className="point-desc">
+                            {description(h)}
+                          </div>
+                        </div>
+
+                        <div
+                          className={
+                            "point-amount " + (point >= 0 ? "plus" : "minus")
+                          }
+                        >
+                          {point >= 0 ? `+${point}` : point} pt
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

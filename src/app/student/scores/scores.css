@@ -1,0 +1,289 @@
+/* =========================
+   全体
+========================= */
+.page {
+  padding: 10px;
+}
+
+/* =========================
+   成績入力ブロック（現状維持）
+========================= */
+.score-block {
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin-bottom: 14px;
+  max-width: 640px;
+  font-size: 14px;
+}
+
+/* =========================
+   学年・学期・テスト
+========================= */
+.row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.row select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px;
+  font-size: 12px;
+}
+
+/* =========================
+   五教科・内申 共通（超圧縮）
+========================= */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.grid > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.grid label {
+  font-size: 10px;
+  margin-bottom: 2px;
+  line-height: 1;
+}
+
+.grid input,
+.grid select {
+  width: 100%;
+  padding: 4px 2px;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* =========================
+   副教科（4列）
+========================= */
+.grid-sub {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.grid-sub select {
+  width: 100%;
+  padding: 4px 2px;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* =========================
+   見出し圧縮
+========================= */
+h1 { font-size: 18px; margin-bottom: 8px; }
+h2 { font-size: 15px; margin: 10px 0 6px; }
+h3 { font-size: 13px; margin: 6px 0; }
+
+p {
+  font-size: 12px;
+  margin: 6px 0;
+}
+
+/* =========================
+   ボタン
+========================= */
+button {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: none;
+  background: #4f6ef7;
+  color: #fff;
+}
+
+/* =========================
+   志望校判定 全体を大きく
+========================= */
+.judge-block {
+  max-width: 960px;
+  margin: 32px auto 0;
+  padding: 24px 28px;
+  background: #f7f9ff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.judge-block h2 {
+  font-size: 20px;
+  margin-bottom: 16px;
+}
+
+/* =========================
+   志望校比較 表（表構造を維持）
+========================= */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 15px;              /* ★ 表全体を拡大 */
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 10px 8px;            /* ★ セルを大きく */
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 高校名 */
+.compare-table th:first-child,
+.compare-table td:first-child {
+  text-align: left;
+  width: 32%;
+}
+
+/* 数値列 */
+.compare-table th:nth-child(2),
+.compare-table td:nth-child(2),
+.compare-table th:nth-child(3),
+.compare-table td:nth-child(3),
+.compare-table th:nth-child(4),
+.compare-table td:nth-child(4) {
+  width: 14%;
+}
+
+/* 判定列 */
+.compare-table th:last-child,
+.compare-table td:last-child {
+  width: 12%;
+}
+
+/* 判定色 */
+.compare-table .ok {
+  color: #1a7f37;
+  font-weight: 700;
+}
+
+.compare-table .ng {
+  color: #c62828;
+  font-weight: 700;
+}
+/* =========================
+   スマホ調整
+========================= */
+@media (max-width: 600px) {
+  .judge-block {
+    max-width: 100%;
+    padding: 16px;
+  }
+  
+  
+  /* 入力と同じ見た目の表示用 */
+  .score-view {
+    width: 100%;
+    padding: 4px 2px;
+    font-size: 12px;
+    text-align: center;
+    background: #f5f6fa;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+  }
+
+}
+
+/* =========================
+   成績内訳 全体
+========================= */
+.score-breakdown {
+  margin: 16px 0 24px;
+}
+
+/* ブロックを入力欄と同じ見た目に */
+.score-breakdown .score-block {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* 見出し */
+.score-breakdown h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+/* 五教科 / 副教科 見出し */
+.score-breakdown p {
+  font-size: 11px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+  color: #444;
+}
+
+/* =========================
+   五教科：横5列固定
+========================= */
+.score-breakdown .grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+/* =========================
+   副教科：横4列固定
+========================= */
+.score-breakdown .grid-sub {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+/* =========================
+   各教科セル
+========================= */
+.score-breakdown .grid > div,
+.score-breakdown .grid-sub > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 教科名 */
+.score-breakdown label {
+  font-size: 10px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+/* 点数表示（入力欄と完全統一） */
+.score-breakdown .score-view {
+  width: 100%;
+  padding: 8px 0;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  background: #f9fafb;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+}
+
+.safe {
+  color: #1565c0;
+  font-weight: 700;
+}
+.ok {
+  color: #1a7f37;
+  font-weight: 700;
+}
+.warn {
+  color: #ef6c00;
+  font-weight: 700;
+}
+.ng {
+  color: #c62828;
+  font-weight: 700;
+}

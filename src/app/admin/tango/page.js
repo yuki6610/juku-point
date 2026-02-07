@@ -32,7 +32,21 @@ export default function WordTestPage() {
     loadStudents()
   }, [selectedWeek])
 
-  // 🧮 経験値 & ポイント計算
+  // ================================
+  // 学年表示ラベル
+  // ================================
+  const gradeLabel = (g) => ({
+    7: '中1',
+    8: '中2',
+    9: '中3',
+    10: '高1',
+    11: '高2',
+    12: '高3',
+  }[Number(g)] || '未設定')
+
+  // ================================
+  // 経験値 & ポイント計算
+  // ================================
   const calcScoreRewards = (correct, total) => {
     if (!total || total <= 0 || correct < 0) return { exp: 0, points: 0 }
 
@@ -60,7 +74,7 @@ export default function WordTestPage() {
         return {
           id: d.id,
           name: data.realName || data.displayName || '名無し',
-          grade: data.grade ?? '未設定',
+          grade: Number(data.grade) || null,
           level: data.level ?? 1,
           experience: data.experience ?? 0,
           points: data.points ?? 0,
@@ -78,16 +92,15 @@ export default function WordTestPage() {
     setLoading(false)
   }
 
-  // =========================================================
-  // 📝 単語テスト提出（累計得点は increment に統合）
-  // =========================================================
+  // ================================
+  // 提出処理
+  // ================================
   const submitTest = async (studentId, correct, total) => {
     if (!correct || !total) return alert('正答数と問題数を入力してください')
 
     const { exp, points } = calcScoreRewards(correct, total)
     const ref = doc(db, `users/${studentId}/wordtests/${selectedWeek}`)
 
-    // 個別週データ保存
     await setDoc(ref, {
       correct,
       total,
@@ -98,32 +111,25 @@ export default function WordTestPage() {
       submittedAt: new Date().toISOString(),
     })
 
-    // XP & ポイント加算
     const result = await updateExperience(studentId, exp, 'wordtest', points)
 
-    // ★ ポイント履歴
     await addDoc(collection(db, `users/${studentId}/pointHistory`), {
       type: "wordtest",
       amount: points,
-      exp: exp,
+      exp,
       correct,
       total,
       week: selectedWeek,
       createdAt: new Date()
     })
 
-    // ★ 累計単語テスト得点（increment方式）
     await updateDoc(doc(db, "users", studentId), {
       totalWordTestScore: increment(correct)
     })
 
-    // ★ テスト回数カウント
     await incrementCounter(studentId, "wordTestCount")
-
-    // 称号付与
     await checkAndGrantTitles(studentId)
 
-    // UI 反映
     setStudents(prev =>
       prev.map(s =>
         s.id === studentId
@@ -132,7 +138,6 @@ export default function WordTestPage() {
       )
     )
 
-    // レベルアップ演出
     if (result.levelUps > 0) {
       const before = result.newLevel - result.levelUps
       const after = result.newLevel
@@ -142,17 +147,16 @@ export default function WordTestPage() {
     }
   }
 
-  // =========================================================
-  // 🔄 取消処理（累計得点は decrement）
-  // =========================================================
+  // ================================
+  // 取消処理
+  // ================================
   const undoTest = async (studentId) => {
-    const ref = doc(db, `users/${studentId}/wordtests/${selectedWeek}`);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return;
+    const ref = doc(db, `users/${studentId}/wordtests/${selectedWeek}`)
+    const snap = await getDoc(ref)
+    if (!snap.exists()) return
 
-    const { exp, points, correct } = snap.data();
+    const { exp, points, correct } = snap.data()
 
-    // 個別週データリセット
     await setDoc(ref, {
       submitted: false,
       correct: 0,
@@ -161,49 +165,26 @@ export default function WordTestPage() {
       exp: 0,
       points: 0,
       submittedAt: null,
-    });
+    })
 
-    // 経験値・ポイント巻き戻し
-    await updateExperience(studentId, -exp, "wordtest_undo", -points);
+    await updateExperience(studentId, -exp, "wordtest_undo", -points)
 
-    // 元の履歴削除
-    const historyRef = collection(db, `users/${studentId}/pointHistory`);
-    const historySnap = await getDocs(historyRef);
-
-    const deleteTargets = historySnap.docs.filter(
-      (d) => d.data().type === "wordtest" && d.data().week === selectedWeek
-    );
-
-    for (const h of deleteTargets) {
-      await deleteDoc(doc(db, `users/${studentId}/pointHistory/${h.id}`));
-    }
-
-    // 取消履歴の追加
-    await addDoc(historyRef, {
-      type: "undotest",
-      amount: -points,
-      exp: -exp,
-      week: selectedWeek,
-      createdAt: new Date(),
-      message: "単語テスト取消",
-    });
-
-    // ★ 累計得点を decrement
     await updateDoc(doc(db, "users", studentId), {
       totalWordTestScore: increment(-correct)
     })
 
-    // UI 反映
     setStudents(prev =>
-      prev.map((s) =>
+      prev.map(s =>
         s.id === studentId
           ? { ...s, submitted: false, correct: "", total: "", accuracy: null }
           : s
       )
-    );
-  };
+    )
+  }
 
-  // 週処理などはそのまま維持
+  // ================================
+  // 週関連
+  // ================================
   function getCurrentWeek() {
     const now = new Date()
     const year = now.getFullYear()
@@ -212,31 +193,34 @@ export default function WordTestPage() {
   }
 
   function getWeekLabel(weekStr) {
-    const [yearStr, w] = weekStr.split('-W')
-    const year = Number(yearStr)
+    const [y, w] = weekStr.split('-W')
+    const year = Number(y)
     const week = Number(w)
-    const firstDay = new Date(year, 0, 1)
-    const monday = new Date(firstDay.setDate(firstDay.getDate() - firstDay.getDay() + 1 + (week - 1) * 7))
+    const first = new Date(year, 0, 1)
+    const monday = new Date(first.setDate(first.getDate() - first.getDay() + 1 + (week - 1) * 7))
     return `${year}-${String(monday.getMonth() + 1).padStart(2, '0')}/${String(monday.getDate()).padStart(2, '0')}`
   }
 
   function getPastWeeks(n = 8) {
-    const result = []
-    const current = new Date()
+    const res = []
+    const now = new Date()
     for (let i = 0; i < n; i++) {
-      const temp = new Date(current)
-      temp.setDate(current.getDate() - i * 7)
-      const y = temp.getFullYear()
-      const w = Math.ceil(((temp - new Date(y, 0, 1)) / 86400000 + new Date(y, 0, 1).getDay() + 1) / 7)
-      result.push(`${y}-W${w}`)
+      const d = new Date(now)
+      d.setDate(now.getDate() - i * 7)
+      const y = d.getFullYear()
+      const w = Math.ceil(((d - new Date(y, 0, 1)) / 86400000 + new Date(y, 0, 1).getDay() + 1) / 7)
+      res.push(`${y}-W${w}`)
     }
-    return result
+    return res
   }
 
+  // ================================
+  // 学年フィルタ
+  // ================================
   const filteredStudents =
     selectedGrade === 'all'
       ? students
-      : students.filter((s) => s.grade === selectedGrade)
+      : students.filter(s => s.grade === Number(selectedGrade))
 
   return (
     <div className="wt-page">
@@ -246,7 +230,7 @@ export default function WordTestPage() {
         <div className="wt-filter-group">
           <label>週：</label>
           <select value={selectedWeek} onChange={(e) => setSelectedWeek(e.target.value)}>
-            {getPastWeeks(16).map((w) => (
+            {getPastWeeks(16).map(w => (
               <option key={w} value={w}>{getWeekLabel(w)}</option>
             ))}
           </select>
@@ -256,9 +240,12 @@ export default function WordTestPage() {
           <label>学年：</label>
           <select value={selectedGrade} onChange={(e) => setSelectedGrade(e.target.value)}>
             <option value="all">すべて</option>
-            <option value="中1">中1</option>
-            <option value="中2">中2</option>
-            <option value="中3">中3</option>
+            <option value="7">中1</option>
+            <option value="8">中2</option>
+            <option value="9">中3</option>
+            <option value="10">高1</option>
+            <option value="11">高2</option>
+            <option value="12">高3</option>
           </select>
         </div>
       </div>
@@ -269,12 +256,12 @@ export default function WordTestPage() {
         <p>読み込み中...</p>
       ) : (
         <div className="wt-grid">
-          {filteredStudents.map((s) => (
+          {filteredStudents.map(s => (
             <div key={s.id} className="wt-card">
               <h3 className="wt-name">{s.name}</h3>
 
               <div className="wt-grade">
-                <GradeTag grade={s.grade ?? '未設定'} />
+                <GradeTag grade={gradeLabel(s.grade)} />
               </div>
 
               <p className="wt-status">Lv.{s.level}（Exp：{s.experience}）</p>
@@ -288,8 +275,8 @@ export default function WordTestPage() {
                       placeholder="正答数"
                       value={s.correct}
                       onChange={(e) =>
-                        setStudents((prev) =>
-                          prev.map((x) =>
+                        setStudents(prev =>
+                          prev.map(x =>
                             x.id === s.id ? { ...x, correct: Number(e.target.value) } : x
                           )
                         )
@@ -300,8 +287,8 @@ export default function WordTestPage() {
                       placeholder="問題数"
                       value={s.total}
                       onChange={(e) =>
-                        setStudents((prev) =>
-                          prev.map((x) =>
+                        setStudents(prev =>
+                          prev.map(x =>
                             x.id === s.id ? { ...x, total: Number(e.target.value) } : x
                           )
                         )
@@ -309,10 +296,7 @@ export default function WordTestPage() {
                     />
                   </div>
 
-                  <button
-                    onClick={() => submitTest(s.id, s.correct, s.total)}
-                    className="wt-btn-submit"
-                  >
+                  <button onClick={() => submitTest(s.id, s.correct, s.total)} className="wt-btn-submit">
                     登録・反映
                   </button>
                 </>
@@ -320,7 +304,6 @@ export default function WordTestPage() {
                 <>
                   <p>✅ {s.correct} / {s.total} 問（{(s.accuracy * 100).toFixed(1)}%）</p>
                   <p>＋{s.exp}XP / ＋{s.pointsEarned}Pt</p>
-
                   <button onClick={() => undoTest(s.id)} className="wt-btn-undo">取消</button>
                 </>
               )}
@@ -333,9 +316,7 @@ export default function WordTestPage() {
         ⬅ 管理ページに戻る
       </button>
 
-      {showLevelUp && (
-        <div className="wt-levelup-popup">{levelText}</div>
-      )}
+      {showLevelUp && <div className="wt-levelup-popup">{levelText}</div>}
     </div>
   )
 }

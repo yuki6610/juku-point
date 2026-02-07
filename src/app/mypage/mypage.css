@@ -27,14 +27,17 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* 👤 名前 */
-.user-name {
-  font-weight: 800;
-  font-size: 1.5rem;
-  color: #111827;
-  margin: 8px 0 12px;
+.avatar-name-outside {
   text-align: center;
+  margin-bottom: 8px;
+
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+
+  color: #0f172a;
 }
+
 
 /* 🧍 キャラエリア */
 .avatar-frame {
@@ -156,6 +159,9 @@
 .btn.red {
   background: linear-gradient(135deg, #f87171, #dc2626);
 }
+.btn.pink {
+  background: linear-gradient(135deg, #ec407a, #ab47bc);
+}
 
 
 /* ----------------------------------------------------
@@ -178,30 +184,9 @@
     font-size: 1.35rem;
   }
 }
+.avatar-name-outside {
+    font-size: 16px;
+  }
 
-.mypage-gacha-box {
-  margin: 20px 0;
-  padding: 16px;
-  background: linear-gradient(135deg, #fff7cc, #ffe066);
-  border-radius: 12px;
-  text-align: center;
-}
 
-.mypage-gacha-message {
-  font-weight: bold;
-  margin-bottom: 10px;
-}
 
-.mypage-gacha-btn {
-  padding: 10px 18px;
-  font-size: 16px;
-  border: none;
-  border-radius: 999px;
-  background: #ff9800;
-  color: white;
-  cursor: pointer;
-}
-
-.mypage-gacha-btn:hover {
-  opacity: 0.9;
-}

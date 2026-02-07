@@ -1,296 +1,222 @@
-/* -----------------------------------------------------
-   📌 生徒管理ページ（PC 管理画面向け）
------------------------------------------------------ */
-
+/* ===== 全体 ===== */
 .students-page {
-  max-width: 1300px;
-  margin: 0 auto;
-  padding: 30px;
-  font-family: "Segoe UI", sans-serif;
-}
-
-.students-header {
-  margin-bottom: 25px;
+  padding: 24px;
+  background: #f4f6fa;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
 }
 
 .students-title {
-  font-size: 2rem;
-  border-left: 6px solid #4CAF50;
-  padding-left: 12px;
-  margin-bottom: 10px;
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 20px;
 }
 
-.students-subtitle {
+/* ===== 読み込み ===== */
+.students-loading {
+  text-align: center;
+  padding: 60px;
+  font-size: 18px;
+  color: #555;
+}
+
+/* ===== 学年フィルタ ===== */
+.grade-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.grade-filter button {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: none;
+  background: #e0e4ee;
+  cursor: pointer;
   font-size: 14px;
-  color: #666;
 }
 
-/* -----------------------------------------------------
-   📌 生徒カード一覧（4列グリッド）
------------------------------------------------------ */
+.grade-filter button:hover {
+  background: #cfd6e6;
+}
+
+/* ===== 生徒一覧 ===== */
 .students-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 22px;
+  gap: 16px;
 }
 
-/* 生徒カード全体 */
+/* ===== 生徒カード ===== */
 .student-card {
-  background: #ffffff;
+  background: white;
   border-radius: 14px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-  padding: 20px;
-  transition: 0.25s;
+  padding: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .student-card:hover {
-  transform: translateY(-4px);
-}
-
-/* 上部（名前 + 学年） */
-.student-card-header {
-  margin-bottom: 12px;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
 }
 
 .student-name {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
 }
 
-.student-grade {
-  font-size: 0.95rem;
-  margin-top: 4px;
-  color: #666;
-}
-
-/* -----------------------------------------------------
-   🌸 講習タグ
------------------------------------------------------ */
-.course-tags-area {
-  display: flex;
+/* ===== 数値編集 ===== */
+.status-edit {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 10px;
+  background: #f7f9fd;
+  border-radius: 10px;
+  padding: 10px;
 }
 
-.course-tag {
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #eef4ff;
-  border: 1px solid #b9d7ff;
-  color: #0b4f91;
-}
-
-.course-tag.spring_course {
-  background: #ffe6f3;
-  border-color: #ffbcd8;
-  color: #992e6b;
-}
-
-.course-tag.summer_course {
-  background: #fff4ce;
-  border-color: #ffe188;
-  color: #8c6a00;
-}
-
-.course-tag.winter_course {
-  background: #e4f2ff;
-  border-color: #c1dfff;
-  color: #0a3474;
-}
-
-/* -----------------------------------------------------
-   📊 数値ステータス（Lv / XP / Pt）
------------------------------------------------------ */
-
-.student-stats {
-  margin-top: 14px;
-  border-top: 1px solid #eee;
-  padding-top: 14px;
-}
-
-.stat-block {
-  margin-bottom: 14px;
-}
-
-.stat-label {
-  font-weight: 600;
-  margin-bottom: 5px;
+.status-edit div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
 }
 
-.stat-controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.stat-btn {
-  width: 40px;
-  height: 32px;
+.status-edit input {
+  width: 60px;
+  padding: 4px 6px;
   border-radius: 6px;
-  border: none;
-  background: #e0e7ff;
-  cursor: pointer;
-  font-size: 16px;
-  transition: 0.2s;
-}
-
-.stat-btn:hover {
-  background: #c7d4ff;
-}
-
-.stat-value {
-  width: 70px;
+  border: 1px solid #ccc;
   text-align: center;
-  font-size: 15px;
-  font-weight: 600;
-  padding: 6px 0;
-  border-radius: 6px;
-  background: #f7f7f7;
-  border: 1px solid #ddd;
 }
 
-/* -----------------------------------------------------
-   🧩 下部ボタン（称号・講習タグ）
------------------------------------------------------ */
+.status-edit button {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: #dde4f4;
+  cursor: pointer;
+  font-weight: bold;
+}
 
-.student-card-footer {
-  margin-top: 16px;
+.status-edit button:hover {
+  background: #c9d4ee;
+}
+
+/* ===== 規律ボタン ===== */
+.discipline-buttons {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 6px;
 }
 
-.title-modal-open-btn,
-.course-modal-btn {
-  padding: 10px;
+.discipline-buttons button {
+  flex: 1;
+  padding: 6px 8px;
   border-radius: 8px;
   border: none;
-  background: #4CAF50;
+  font-size: 12px;
+  cursor: pointer;
+  background: #eef1f7;
+}
+
+.discipline-buttons button:hover {
+  background: #dfe5f2;
+}
+
+/* ===== 講習タグ ===== */
+.student-card > button {
+  margin-top: auto;
+  padding: 8px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #6a85f1, #8fa4ff);
   color: white;
   font-size: 14px;
   cursor: pointer;
-  transition: 0.2s;
 }
 
-.title-modal-open-btn:hover,
-.course-modal-btn:hover {
-  background: #46a148;
+.student-card > button:hover {
+  opacity: 0.9;
 }
 
-/* -----------------------------------------------------
-   🪟 モーダル共通
------------------------------------------------------ */
+/* ===== モーダル ===== */
 .students-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.45);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 2000;
+  justify-content: center;
+  z-index: 1000;
 }
 
 .students-modal {
-  background: #fff;
-  width: 600px;
-  padding: 25px;
+  background: white;
+  padding: 20px;
   border-radius: 14px;
-  box-shadow: 0 5px 16px rgba(0,0,0,0.25);
-  animation: fadeIn 0.3s ease-out;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.students-modal-header {
+  min-width: 260px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
-.modal-close-x {
-  font-size: 20px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-/* -----------------------------------------------------
-   🏷 称号モーダル
------------------------------------------------------ */
-.titles-grid {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.title-pill {
-  background: #f2f8ff;
-  border: 1px solid #b9d9ff;
-  padding: 12px;
-  border-radius: 8px;
-  text-align: left;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.title-pill:hover {
-  background: #dcecff;
-}
-
-.title-pill-name {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-/* -----------------------------------------------------
-   🌸 講習タグモーダル
------------------------------------------------------ */
-
+/* ===== 講習タグボタン ===== */
 .course-tag-btn {
-  width: 100%;
-  padding: 12px;
-  font-size: 15px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  background: #fafafa;
-  text-align: left;
-  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #edf0f8;
   cursor: pointer;
-}
-
-.course-tag-btn:hover {
-  background: #f0f0f0;
+  font-size: 14px;
 }
 
 .course-tag-btn.active {
-  background: #1976d2;
-  color: white;
-  border-color: #145ca8;
+  background: linear-gradient(135deg, #ffcf6f, #ffb347);
+  font-weight: bold;
 }
 
-/* -----------------------------------------------------
-   ✨ アニメーション
------------------------------------------------------ */
+.course-tag-btn:hover {
+  opacity: 0.9;
+}
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* ===== 閉じる ===== */
+.students-modal button:last-child {
+  background: #444;
+  color: white;
+}
+
+.student-status-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+/* イエローカード */
+.yellowcard-badge {
+  background: #facc15; /* 黄色 */
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* 出禁 */
+.ban-badge {
+  background: #ef4444; /* 赤 */
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 999px;
 }
