@@ -180,9 +180,25 @@ export default function MyPage() {
         <button onClick={() => router.push("/checkin")} className="btn blue">🕒 チェックイン</button>
         <button onClick={() => router.push("/rewards")} className="btn green">🎁 景品交換</button>
         <button onClick={() => router.push("/ranking")} className="btn purple">📊 ランキング</button>
-          <button onClick={() => router.push("/student/scores")} className="btn pink">
-              📝 成績入力・志望校判定
+          {!(data?.grade >= 10 && data?.grade <= 12) && (
+            <>
+              <button onClick={() => router.push("/student/scores")} className="btn pink">
+                📝 成績入力・志望校判定
+              </button>
+
+              <button onClick={() => router.push("/behavior")} className="btn teal">
+                📊 生活態度
+              </button>
+            </>
+          )}
+          {(data?.grade >= 10 && data?.grade <= 12) && (
+            <button
+              onClick={() => router.push("/university")}
+              className="btn indigo"
+            >
+              🎓 大学入試情報
             </button>
+          )}
         <button onClick={() => router.push("/points")} className="btn cyan">🅿️ ポイント履歴</button>
         <button onClick={() => router.push("/settings")} className="btn gray">⚙️ 設定</button>
         <button onClick={() => router.push("/guide")} className="btn orange">📘 アプリの使い方</button>

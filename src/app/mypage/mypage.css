@@ -162,6 +162,15 @@
 .btn.pink {
   background: linear-gradient(135deg, #ec407a, #ab47bc);
 }
+.btn.teal {
+  background: linear-gradient(135deg, #009688, #26c6da);
+}
+
+.btn.indigo {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+}
+
 
 
 /* ----------------------------------------------------

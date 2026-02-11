@@ -6,7 +6,8 @@ import { collection,addDoc,onSnapshot,query,orderBy,serverTimestamp,deleteDoc,do
 import './scores.css'
 import ScoreBreakdown from '@/components/ScoreBreakdown'
 
-const YEARS=['中1','中2','中3']
+const GRADES = ['中1','中2','中3']
+const SCHOOL_YEARS =['2026','2027','2028']
 const TERMS=['1学期','2学期','3学期']
 const BASE_TEST_TYPES=['中間','期末','春課題実力','夏課題実力','秋課題実力','冬課題実力']
 const PAST_EXAMS=['過去問2016','過去問2017','過去問2018','過去問2019','過去問2020','過去問2021','過去問2022','過去問2023','過去問2024','過去問2025']
@@ -17,11 +18,12 @@ export default function StudentScoresPage(){
   const [user,setUser]=useState(null)
   const [checkingAuth,setCheckingAuth]=useState(true)
   const [profile,setProfile]=useState(null)
-  const [year,setYear]=useState('中1')
+  const [grade,setGrade]=useState('中1')
   const [term,setTerm]=useState('1学期')
   const [testType,setTestType]=useState('中間')
-  const [internalYear,setInternalYear]=useState('中1')
+  const [internalGrade,setInternalGrade]=useState('中1')
   const [internalTerm,setInternalTerm]=useState('1学期')
+    const [schoolYear,setSchoolYear] = useState('2026')
   const [exam,setExam]=useState(Object.fromEntries(MAIN.map(s=>[s,''])))
   const [internalMain,setInternalMain]=useState(Object.fromEntries(MAIN.map(s=>[s,3])))
   const [internalSub,setInternalSub]=useState(Object.fromEntries(SUB.map(s=>[s,3])))
@@ -66,35 +68,76 @@ export default function StudentScoresPage(){
     s.type==='internal' && s.year===internalYear && s.term===internalTerm && s.id!==editingScoreId
   )
 
-  const saveExam=async()=>{
-    if(!confirm('この内容でテスト成績を保存しますか？')) return
-    if(isDuplicateExam()){ alert('同じ学年・学期・テストの成績が既にあります'); return }
-    const data={type:'exam',year,term,testType,exam,examTotal,examConverted,approved:false,updatedAt:serverTimestamp()}
-    editingScoreId
-      ? await updateDoc(doc(db,`users/${user.uid}/scores/${editingScoreId}`),data)
-      : await addDoc(collection(db,`users/${user.uid}/scores`),{...data,createdAt:serverTimestamp()})
-    setEditingScoreId(null)
-  }
+    const saveExam = async () => {
+      if (!confirm('この内容でテスト成績を保存しますか？')) return
+      if (isDuplicateExam()) {
+        alert('同じ学年・学期・テストの成績が既にあります')
+        return
+      }
 
-  const saveInternal=async()=>{
-    if(!confirm('この内容で内申点を保存しますか？')) return
-    if(isDuplicateInternal()){ alert('同じ学年・学期の内申点が既にあります'); return }
-    const data={type:'internal',year:internalYear,term:internalTerm,internalMain,internalSub,internalTotal,approved:false,updatedAt:serverTimestamp()}
-    editingScoreId
-      ? await updateDoc(doc(db,`users/${user.uid}/scores/${editingScoreId}`),data)
-      : await addDoc(collection(db,`users/${user.uid}/scores`),{...data,createdAt:serverTimestamp()})
-    setEditingScoreId(null)
-  }
+      const data = {
+        type: 'exam',
+        year: schoolYear,
+        term,
+        testType,
+        exam,
+        examTotal,
+        examConverted,
+        approved: false,
+        updatedAt: serverTimestamp(),
+      }
 
+      editingScoreId
+        ? await updateDoc(
+            doc(db, `users/${user.uid}/scores/${editingScoreId}`),
+            data
+          )
+        : await addDoc(
+            collection(db, `users/${user.uid}/scores`),
+            { ...data, createdAt: serverTimestamp() }
+          )
+
+      setEditingScoreId(null)
+    }
+    const saveInternal = async () => {
+      if (!confirm('この内容で内申点を保存しますか？')) return
+      if (isDuplicateInternal()) {
+        alert('同じ学年・学期の内申点が既にあります')
+        return
+      }
+
+      const data = {
+        type: 'internal',
+        year: schoolYear,
+        term: internalTerm,
+        internalMain,
+        internalSub,
+        internalTotal,
+        approved: false,
+        updatedAt: serverTimestamp(),
+      }
+
+      editingScoreId
+        ? await updateDoc(
+            doc(db, `users/${user.uid}/scores/${editingScoreId}`),
+            data
+          )
+        : await addDoc(
+            collection(db, `users/${user.uid}/scores`),
+            { ...data, createdAt: serverTimestamp() }
+          )
+
+      setEditingScoreId(null)
+    }
   return (
     <div className="page">
-      <h1>成績入力・比較</h1>
+      <h1>成績入力・志望校判定</h1>
 
       <div className="score-input-wrapper">
         <div className="score-block">
           <h2>五教科テスト</h2>
           <div className="row-inline">
-            <select value={year} onChange={e=>setYear(e.target.value)}>{YEARS.map(v=><option key={v}>{v}</option>)}</select>
+            <select value={grade} onChange={e=>setGrade(e.target.value)}>{GRADES.map(v=><option key={v}>{v}</option>)}</select>
             <select value={term} onChange={e=>setTerm(e.target.value)}>{TERMS.map(v=><option key={v}>{v}</option>)}</select>
             <select value={testType} onChange={e=>setTestType(e.target.value)}>{TEST_TYPES.map(v=><option key={v}>{v}</option>)}</select>
           </div>
@@ -109,7 +152,7 @@ export default function StudentScoresPage(){
         <div className="score-block internal-block">
           <h2>内申点</h2>
           <div className="row-inline">
-            <select value={internalYear} onChange={e=>setInternalYear(e.target.value)}>{YEARS.map(v=><option key={v}>{v}</option>)}</select>
+            <select value={internalGrade} onChange={e=>setInternalGrade(e.target.value)}>{GRADES.map(v=><option key={v}>{v}</option>)}</select>
             <select value={internalTerm} onChange={e=>setInternalTerm(e.target.value)}>{TERMS.map(v=><option key={v}>{v}</option>)}</select>
           </div>
           <div className="grid">{MAIN.map(s=>(

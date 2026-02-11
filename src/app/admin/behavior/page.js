@@ -1,132 +1,196 @@
 'use client'
-import { useEffect,useState } from 'react'
-import { getAuth,onAuthStateChanged } from 'firebase/auth'
+
+import { useEffect, useState } from 'react'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/../firebaseConfig'
 import {
-  collection,doc,onSnapshot,addDoc,updateDoc,setDoc,
-  serverTimestamp,increment
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  onSnapshot,
 } from 'firebase/firestore'
 import './behavior.css'
 
-const GRADE_OPTIONS=['全学年','中1','中2','中3']
-const HOMEWORK_OPTIONS=[{value:'submitted',label:'提出'},{value:'partial',label:'途中'},{value:'missed',label:'忘れ'}]
-const ATTENDANCE_OPTIONS=[{value:'ontime',label:'時間通り'},{value:'late',label:'遅刻'}]
-const gradeLabel=g=>g>=7&&g<=9?`中${g-6}`:'不明'
+const GRADE_OPTIONS = ['全学年', '中1', '中2', '中3']
+const TERMS = ['1学期', '2学期', '3学期']
 
-export default function AdminBehaviorPage(){
-  const [admin,setAdmin]=useState(null)
-  const [loading,setLoading]=useState(true)
-  const [students,setStudents]=useState([])
-  const [gradeFilter,setGradeFilter]=useState('全学年')
-  const [selectedStudent,setSelectedStudent]=useState(null)
-  const [date,setDate]=useState('')
-  const [homework,setHomework]=useState('submitted')
-  const [attendance,setAttendance]=useState('ontime')
-  const [forgot,setForgot]=useState(false)
-  const [forgotItems,setForgotItems]=useState('')
+const gradeLabel = g => g >= 7 && g <= 9 ? `中${g - 6}` : '不明'
 
-  useEffect(()=>{const a=getAuth();return onAuthStateChanged(a,u=>{setAdmin(u);setLoading(false)})},[])
-  useEffect(()=>{if(!admin)return
-    return onSnapshot(collection(db,'users'),s=>{
-      setStudents(s.docs.map(d=>({uid:d.id,...d.data()})))
+export default function AdminBehaviorPage() {
+  const [admin, setAdmin] = useState(null)
+  const [students, setStudents] = useState([])
+  const [gradeFilter, setGradeFilter] = useState('全学年')
+  const [studentId, setStudentId] = useState('')
+  const [selectedStudent, setSelectedStudent] = useState(null)
+
+  const [date, setDate] = useState('')
+  const [term, setTerm] = useState('1学期')
+  const [homework, setHomework] = useState('submitted')
+  const [attendance, setAttendance] = useState('ontime')
+  const [forgot, setForgot] = useState(false)
+
+  /* ===== 認証 ===== */
+  useEffect(() => {
+    return onAuthStateChanged(getAuth(), u => setAdmin(u))
+  }, [])
+
+  /* ===== 生徒一覧 ===== */
+  useEffect(() => {
+    if (!admin) return
+    return onSnapshot(collection(db, 'users'), snap => {
+      setStudents(snap.docs.map(d => ({ uid: d.id, ...d.data() })))
     })
-  },[admin])
+  }, [admin])
 
-  if(loading) return <p>読み込み中...</p>
-  if(!admin) return <p>管理者ログインが必要です</p>
+  /* ===== 生徒選択 ===== */
+  useEffect(() => {
+    setSelectedStudent(students.find(s => s.uid === studentId) || null)
+  }, [studentId, students])
 
-  const filteredStudents=students.filter(s=>gradeFilter==='全学年'||gradeLabel(s.grade)===gradeFilter)
+  if (!admin) return <p>管理者ログインが必要です</p>
 
-  const saveBehavior=async()=>{
-    if(!date) return alert('日付を選択してください')
-    if(!selectedStudent) return
-    if(!confirm(`${selectedStudent.realName} の生活態度を記録しますか？`)) return
+  const filteredStudents = students.filter(s => {
+    if (gradeFilter === '全学年') return true
+    return gradeLabel(s.grade) === gradeFilter
+  })
 
-    const logRef=collection(db,`users/${selectedStudent.uid}/behaviorLogs`)
-    const summaryRef=doc(db,`users/${selectedStudent.uid}/behavior/summary`)
-
-    await addDoc(logRef,{
-      date,homework,attendance,forgot,
-      forgotItems:forgot?forgotItems.split(',').map(v=>v.trim()):[],
-      createdAt:serverTimestamp(),recordedBy:admin.uid
-    })
-
-    try{
-      await updateDoc(summaryRef,{
-        [`homework.${homework}`]:increment(1),
-        [`attendance.${attendance}`]:increment(1),
-        forgot:forgot?increment(1):increment(0),
-        updatedAt:serverTimestamp()
-      })
-    }catch{
-      await setDoc(summaryRef,{
-        homework:{
-          submitted:homework==='submitted'?1:0,
-          partial:homework==='partial'?1:0,
-          missed:homework==='missed'?1:0
-        },
-        attendance:{
-          ontime:attendance==='ontime'?1:0,
-          late:attendance==='late'?1:0
-        },
-        forgot:forgot?1:0,
-        updatedAt:serverTimestamp()
-      })
+  /* ===== 保存 ===== */
+  const saveBehavior = async () => {
+    if (!studentId || !date) {
+      alert('日付と生徒は必須です')
+      return
     }
 
-    alert('記録しました')
-    setDate('');setForgot(false);setForgotItems('')
+    const year = date.slice(0, 4)
+    const summaryId = `${year}_${term}`
+
+    /* =====================
+       ① 生ログ（円グラフ用）
+    ===================== */
+    await addDoc(
+      collection(db, 'users', selectedStudent.uid, 'behaviorLogs'),
+      {
+        date,
+        year,
+        term,
+        homework,
+        attendance,
+        forgot,
+        createdAt: serverTimestamp(),
+      }
+    )
+
+    /* =====================
+       ② 集計ログ（相関図用）
+       ※ ここが最終仕様
+    ===================== */
+    const summaryRef = doc(
+      db,
+      'users',
+      selectedStudent.uid,
+      'behaviorSummary',
+      summaryId
+    )
+
+    const snap = await getDoc(summaryRef)
+
+    const base = snap.exists()
+      ? snap.data()
+      : {
+          homework: { submitted: 0, partial: 0, missed: 0 },
+          attendance: { ontime: 0, late: 0 },
+          forgot: 0,
+          lessonCount: 0,
+        }
+
+    if (homework === 'submitted') base.homework.submitted++
+    if (homework === 'partial') base.homework.partial++
+    if (homework === 'missed') base.homework.missed++
+
+    if (attendance === 'ontime') base.attendance.ontime++
+    if (attendance === 'late') base.attendance.late++
+
+    if (forgot) base.forgot++
+
+    base.lessonCount++
+
+    const behaviorScore =
+      base.homework.submitted +
+      base.attendance.ontime -
+      base.homework.missed -
+      base.attendance.late -
+      base.forgot
+
+    await setDoc(summaryRef, {
+      ...base,
+      behaviorScore: Math.max(0, Math.min(32, behaviorScore)),
+      year,
+      term,
+      updatedAt: serverTimestamp(),
+    })
+
+    alert('保存しました')
   }
 
   return (
-    <div className="page behavior-page">
+    <div className="admin-behavior-page">
       <h1>管理者：生活態度記録</h1>
 
-      <div className="row">
-        <select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
-          {GRADE_OPTIONS.map(g=><option key={g}>{g}</option>)}
+      <div className="filter-row">
+        <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}>
+          {GRADE_OPTIONS.map(g => <option key={g}>{g}</option>)}
+        </select>
+
+        <select value={studentId} onChange={e => setStudentId(e.target.value)}>
+          <option value="">生徒を選択</option>
+          {filteredStudents.map(s =>
+            <option key={s.uid} value={s.uid}>{s.realName}</option>
+          )}
         </select>
       </div>
 
-      <div className="student-list">
-        {filteredStudents.map(s=>(
-          <div key={s.uid}
-            className={`student-card ${selectedStudent?.uid===s.uid?'active':''}`}
-            onClick={()=>setSelectedStudent(s)}>
-            <div className="name">{s.realName}</div>
-            <div className="grade">{gradeLabel(s.grade)}</div>
+      {!selectedStudent && (
+        <p className="hint">生徒を選択すると入力欄が表示されます</p>
+      )}
+
+      {selectedStudent && (
+        <div className="form-card">
+          <h2>{selectedStudent.realName}</h2>
+
+          <div className="form-grid">
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} />
+
+            <select value={term} onChange={e => setTerm(e.target.value)}>
+              {TERMS.map(t => <option key={t}>{t}</option>)}
+            </select>
+
+            <select value={homework} onChange={e => setHomework(e.target.value)}>
+              <option value="submitted">宿題：提出</option>
+              <option value="partial">宿題：途中</option>
+              <option value="missed">宿題：忘れ</option>
+            </select>
+
+            <select value={attendance} onChange={e => setAttendance(e.target.value)}>
+              <option value="ontime">出席：時間通り</option>
+              <option value="late">出席：遅刻</option>
+            </select>
+
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={forgot}
+                onChange={e => setForgot(e.target.checked)}
+              />
+              忘れ物あり
+            </label>
           </div>
-        ))}
-      </div>
 
-      {selectedStudent&&(
-        <div className="record-card">
-          <h2>{selectedStudent.realName} の生活態度</h2>
-
-          <label>日付</label>
-          <input type="date" value={date} onChange={e=>setDate(e.target.value)} />
-
-          <label>宿題</label>
-          <select value={homework} onChange={e=>setHomework(e.target.value)}>
-            {HOMEWORK_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-
-          <label>遅刻</label>
-          <select value={attendance} onChange={e=>setAttendance(e.target.value)}>
-            {ATTENDANCE_OPTIONS.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-
-          <label>
-            <input type="checkbox" checked={forgot} onChange={e=>setForgot(e.target.checked)} />
-            忘れ物あり
-          </label>
-
-          {forgot&&(
-            <input placeholder="例：筆記用具, ワーク"
-              value={forgotItems} onChange={e=>setForgotItems(e.target.value)} />
-          )}
-
-          <button onClick={saveBehavior}>記録する</button>
+          <button className="save-btn" onClick={saveBehavior}>
+            保存
+          </button>
         </div>
       )}
     </div>

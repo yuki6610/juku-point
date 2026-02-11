@@ -84,6 +84,13 @@ export default function AdminPage() {
       path: '/admin/judge',
     },
     
+    {
+      title: '🏫 生活態度',
+      desc: '宿題提出、遅刻記録',
+      color: 'sky',
+      path: '/admin/behavior',
+    },
+    
     
   ]
 

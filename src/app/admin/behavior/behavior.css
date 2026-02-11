@@ -1,140 +1,59 @@
-/* =========================
-   全体
-========================= */
-.page.behavior-page {
-  padding: 24px;
-}
-
-h1 {
-  font-size: 22px;
-  margin-bottom: 16px;
-}
-
-/* =========================
-   上部フィルタ
-========================= */
-.row {
-  margin-bottom: 16px;
-}
-
-.row select {
-  padding: 8px 10px;
-  font-size: 15px;
-  border-radius: 8px;
-}
-
-/* =========================
-   生徒一覧（★ 横4〜5人）
-========================= */
-.student-list {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr); /* ★ 基本5列 */
-  gap: 16px;
-  margin-bottom: 28px;
-}
-
-/* 画面が少し狭いPC用 */
-@media (max-width: 1200px) {
-  .student-list {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* =========================
-   生徒カード
-========================= */
-.student-card {
-  background: #fff;
-  border-radius: 14px;
-  padding: 18px 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  cursor: pointer;
-  transition: 0.2s;
-  border: 3px solid transparent;
-  text-align: center;
-}
-
-.student-card:hover {
-  transform: translateY(-3px);
-}
-
-.student-card.active {
-  border-color: #4f6ef7;
-  background: #f3f6ff;
-}
-
-/* 名前を大きく */
-.student-card .name {
-  font-weight: 700;
-  font-size: 16px;
-  margin-bottom: 6px;
-}
-
-/* 学年 */
-.student-card .grade {
-  font-size: 14px;
-  color: #555;
-}
-
-/* =========================
-   記録カード
-========================= */
-.record-card {
-  background: #fff;
-  border-radius: 18px;
-  padding: 24px;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+.admin-behavior-page {
   max-width: 520px;
+  margin: 0 auto;
+  padding: 24px;
 }
 
-.record-card h2 {
-  font-size: 18px;
-  margin-bottom: 14px;
+.filter-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-/* =========================
-   フォーム
-========================= */
-.record-card label {
-  display: block;
-  font-size: 14px;
-  margin: 12px 0 6px;
+.filter-row select {
+  flex: 1;
+  padding: 8px;
 }
 
-.record-card input[type="date"],
-.record-card select,
-.record-card input[type="text"] {
-  width: 100%;
-  padding: 10px;
-  font-size: 15px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
+.hint {
+  color: #777;
+  text-align: center;
+  margin-top: 24px;
 }
 
-/* =========================
-   ボタン
-========================= */
-.record-card button {
-  margin-top: 20px;
+.form-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.form-card h2 {
+  margin-bottom: 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.form-grid select,
+.form-grid input[type="date"] {
+  padding: 8px;
+}
+
+.checkbox {
+  grid-column: span 2;
+}
+
+.save-btn {
   width: 100%;
   padding: 12px;
-  font-size: 15px;
-  border-radius: 12px;
-  border: none;
-  background: #4f6ef7;
+  background: #1976d2;
   color: #fff;
-  cursor: pointer;
-}
-
-.record-card button:hover {
-  opacity: 0.9;
-}
-
-/* =========================
-   スマホは最低限
-========================= */
-@media (max-width: 600px) {
-  .student-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
 }
