@@ -52,7 +52,7 @@ export default function StudentScoresPage(){
   const finalTotal=(selectedExam?.examConverted||0)+(selectedInternal?.internalTotal||0)
 
   const isPastExamStudent=profile?.grade===9 && Array.isArray(profile?.courseTags) && profile.courseTags.includes('past_exam')
-  const TEST_TYPES=isPastExamStudent && year==='中3' ? [...BASE_TEST_TYPES,...PAST_EXAMS] : BASE_TEST_TYPES
+  const TEST_TYPES=isPastExamStudent && grade==='中3' ? [...BASE_TEST_TYPES,...PAST_EXAMS] : BASE_TEST_TYPES
 
   const judgeResult=(my,min)=>{const d=my-min
     if(d>=20)return{diff:d,label:'◎ 安全圏',className:'safe'}
@@ -62,7 +62,7 @@ export default function StudentScoresPage(){
   }
 
   const isDuplicateExam=()=>saved.some(s=>
-    s.type==='exam' && s.year===year && s.term===term && s.testType===testType && s.id!==editingScoreId
+    s.type==='exam' && s.year===schoolYear && s.term===term && s.testType===testType && s.id!==editingScoreId
   )
   const isDuplicateInternal=()=>saved.some(s=>
     s.type==='internal' && s.year===internalYear && s.term===internalTerm && s.id!==editingScoreId

@@ -193,7 +193,7 @@ export default function MyPage() {
           )}
           {(data?.grade >= 10 && data?.grade <= 12) && (
             <button
-              onClick={() => router.push("/university")}
+              onClick={() => router.push("/universities")}
               className="btn indigo"
             >
               🎓 大学入試情報

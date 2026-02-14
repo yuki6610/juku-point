@@ -67,7 +67,7 @@ export default function WordTestPage() {
       snap.docs.map(async (d) => {
         const data = d.data()
 
-        const testRef = doc(db, `users/${d.id}/wordtests/${selectedWeek}`)
+        const testRef = doc(db, 'users/${d.id}/wordtests/${selectedWeek}')
         const testSnap = await getDoc(testRef)
         const test = testSnap.exists() ? testSnap.data() : {}
 
@@ -95,93 +95,105 @@ export default function WordTestPage() {
   // ================================
   // 提出処理
   // ================================
-  const submitTest = async (studentId, correct, total) => {
-    if (!correct || !total) return alert('正答数と問題数を入力してください')
+    const submitTest = async (studentId, correct, total) => {
+      if (!correct || !total) return alert('正答数と問題数を入力してください')
 
-    const { exp, points } = calcScoreRewards(correct, total)
-    const ref = doc(db, `users/${studentId}/wordtests/${selectedWeek}`)
+      const accuracy = correct / total
+      const passed = accuracy >= 0.7
 
-    await setDoc(ref, {
-      correct,
-      total,
-      accuracy: correct / total,
-      exp,
-      points,
-      submitted: true,
-      submittedAt: new Date().toISOString(),
-    })
+      const rewards = passed ? calcScoreRewards(correct, total) : { exp: 0, points: 0 }
+      const { exp, points } = rewards
 
-    const result = await updateExperience(studentId, exp, 'wordtest', points)
+      const ref = doc(db, `users/${studentId}/wordtests/${selectedWeek}`)
 
-    await addDoc(collection(db, `users/${studentId}/pointHistory`), {
-      type: "wordtest",
-      amount: points,
-      exp,
-      correct,
-      total,
-      week: selectedWeek,
-      createdAt: new Date()
-    })
+      await setDoc(ref, {
+        correct,
+        total,
+        accuracy,
+        exp,
+        points,
+        passed,
+        submitted: true,
+        submittedAt: new Date().toISOString(),
+      })
 
-    await updateDoc(doc(db, "users", studentId), {
-      totalWordTestScore: increment(correct)
-    })
+      // 🔥 正解数は常に加算（ランキング用）
+      await updateDoc(doc(db, "users", studentId), {
+        totalWordTestScore: increment(correct)
+      })
 
-    await incrementCounter(studentId, "wordTestCount")
-    await checkAndGrantTitles(studentId)
+      await incrementCounter(studentId, "wordTestCount")
 
-    setStudents(prev =>
-      prev.map(s =>
-        s.id === studentId
-          ? { ...s, submitted: true, correct, total, exp, pointsEarned: points, accuracy: correct / total }
-          : s
+      let result = { levelUps: 0, newLevel: 0 }
+
+      if (passed) {
+        result = await updateExperience(studentId, exp, 'wordtest', points)
+
+        await addDoc(collection(db, `users/${studentId}/pointHistory`), {
+          type: "wordtest",
+          amount: points,
+          exp,
+          correct,
+          total,
+          week: selectedWeek,
+          createdAt: new Date()
+        })
+      }
+
+      setStudents(prev =>
+        prev.map(s =>
+          s.id === studentId
+            ? { ...s, submitted: true, correct, total, exp, pointsEarned: points, accuracy }
+            : s
+        )
       )
-    )
 
-    if (result.levelUps > 0) {
-      const before = result.newLevel - result.levelUps
-      const after = result.newLevel
-      setLevelText(`🎉 レベルアップ！ Lv${before} → Lv${after}`)
-      setShowLevelUp(true)
-      setTimeout(() => setShowLevelUp(false), 3000)
+      if (passed && result.levelUps > 0) {
+        const before = result.newLevel - result.levelUps
+        const after = result.newLevel
+        setLevelText(`🎉 レベルアップ！ Lv${before} → Lv${after}`)
+        setShowLevelUp(true)
+        setTimeout(() => setShowLevelUp(false), 3000)
+      }
     }
-  }
 
   // ================================
   // 取消処理
   // ================================
-  const undoTest = async (studentId) => {
-    const ref = doc(db, `users/${studentId}/wordtests/${selectedWeek}`)
-    const snap = await getDoc(ref)
-    if (!snap.exists()) return
+    const undoTest = async (studentId) => {
+      const ref = doc(db, `users/${studentId}/wordtests/${selectedWeek}`)
+      const snap = await getDoc(ref)
+      if (!snap.exists()) return
 
-    const { exp, points, correct } = snap.data()
+      const { exp, points, correct, passed } = snap.data()
 
-    await setDoc(ref, {
-      submitted: false,
-      correct: 0,
-      total: 0,
-      accuracy: 0,
-      exp: 0,
-      points: 0,
-      submittedAt: null,
-    })
+      await setDoc(ref, {
+        submitted: false,
+        correct: 0,
+        total: 0,
+        accuracy: 0,
+        exp: 0,
+        points: 0,
+        passed: false,
+        submittedAt: null,
+      })
 
-    await updateExperience(studentId, -exp, "wordtest_undo", -points)
+      await updateDoc(doc(db, "users", studentId), {
+        totalWordTestScore: increment(-correct)
+      })
 
-    await updateDoc(doc(db, "users", studentId), {
-      totalWordTestScore: increment(-correct)
-    })
+      if (passed) {
+        await updateExperience(studentId, -exp, "wordtest_undo", -points)
+      }
 
-    setStudents(prev =>
-      prev.map(s =>
-        s.id === studentId
-          ? { ...s, submitted: false, correct: "", total: "", accuracy: null }
-          : s
+      setStudents(prev =>
+        prev.map(s =>
+          s.id === studentId
+            ? { ...s, submitted: false, correct: "", total: "", accuracy: null }
+            : s
+        )
       )
-    )
-  }
-
+    }
   // ================================
   // 週関連
   // ================================
@@ -189,7 +201,7 @@ export default function WordTestPage() {
     const now = new Date()
     const year = now.getFullYear()
     const week = Math.ceil(((now - new Date(year, 0, 1)) / 86400000 + new Date(year, 0, 1).getDay() + 1) / 7)
-    return `${year}-W${week}`
+    return '${year}-W${week}'
   }
 
   function getWeekLabel(weekStr) {
