@@ -7,7 +7,12 @@
   gap: 24px;
   margin: 24px 0;
   flex-wrap: wrap;
+  align-items: stretch;
 }
+
+/* =====================
+   円グラフカード
+===================== */
 
 .pie-card {
   width: 180px;
@@ -55,7 +60,35 @@
   margin: 12px 0;
 }
 
-/* === 忘れ物 === */
+/* =====================
+   共通情報カード（横並び用）
+===================== */
+
+.info-card {
+  width: 150px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.info-card h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.info-value {
+  font-size: 26px;
+  font-weight: bold;
+}
+
+/* =====================
+   忘れ物（赤強調）
+===================== */
 
 .forgot-card {
   width: 140px;
@@ -64,6 +97,9 @@
   border-radius: 8px;
   background: #fff;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .forgot-card h3 {
@@ -75,4 +111,47 @@
   font-size: 32px;
   font-weight: bold;
   color: #e53935;
+}
+
+/* =====================
+   授業回数
+===================== */
+
+.lesson-card .info-value {
+  color: #1976d2;
+}
+
+/* =====================
+   単語テスト総得点
+===================== */
+
+.wordtest-card .info-value {
+  color: #2e7d32;
+}
+
+/* =====================
+   印刷時微調整
+===================== */
+
+@media print {
+  .behavior-summary {
+    gap: 16px;
+  }
+
+  .pie-card {
+    width: 160px;
+  }
+
+  .info-card,
+  .forgot-card {
+    width: 130px;
+  }
+
+  .info-value {
+    font-size: 22px;
+  }
+
+  .forgot-count {
+    font-size: 26px;
+  }
 }

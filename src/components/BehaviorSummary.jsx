@@ -5,6 +5,7 @@ import { db } from '@/../firebaseConfig'
 
 export default function BehaviorSummary({ uid, year, term }) {
   const [summary, setSummary] = useState(null)
+  const [totalWordTestScore, setTotalWordTestScore] = useState(0)
 
   useEffect(() => {
     if (!uid || !year || !term) return
@@ -20,6 +21,12 @@ export default function BehaviorSummary({ uid, year, term }) {
       }
 
       setSummary(snap.data())
+
+      // ★ 単語テスト総得点取得（users直下）
+      const userSnap = await getDoc(doc(db, 'users', uid))
+      if (userSnap.exists()) {
+        setTotalWordTestScore(userSnap.data().totalWordTestScore || 0)
+      }
     }
 
     load()
@@ -48,24 +55,35 @@ export default function BehaviorSummary({ uid, year, term }) {
       <div className="pie-row">
         <PieChart title="宿題" items={homeworkItems} />
         <PieChart title="出席" items={attendanceItems} />
-      </div>
 
-      <p className="forgot">
-        忘れ物：{summary.forgot} 回
-      </p>
+        {/* ★ 忘れ物 */}
+        <div className="info-card forgot-card">
+          <div className="info-label">忘れ物</div>
+          <div className="info-value">{summary.forgot} 回</div>
+        </div>
+
+        {/* ★ 授業回数 */}
+        <div className="info-card">
+          <div className="info-label">授業回数</div>
+          <div className="info-value">{summary.lessonCount || 0}</div>
+        </div>
+
+        {/* ★ 単語テスト総得点 */}
+        <div className="info-card">
+          <div className="info-label">単語テスト総得点</div>
+          <div className="info-value">{totalWordTestScore}</div>
+        </div>
+      </div>
     </div>
   )
 }
 
 /* ===== SVG 円グラフ ===== */
 function PieChart({ title, items }) {
-  // ★ 値が多い順に並び替え（0は後ろ）
   const sorted = [...items].sort((a, b) => b.value - a.value)
-
   const total = sorted.reduce((a, i) => a + i.value, 0)
   if (total === 0) return <p className="empty">{title}：記録なし</p>
 
-  // ★ 1種類しかない場合はベタ塗り
   if (sorted.filter(i => i.value > 0).length === 1) {
     return (
       <div className="pie">
@@ -92,33 +110,32 @@ function PieChart({ title, items }) {
   }
 
   let acc = 0
-const R = 48
-const C = 60
+  const R = 48
+  const C = 60
 
-return (
-  <div className="pie">
-    <svg width="120" height="120">
-      {sorted.map((i, idx) => {
-        const start = (acc / total) * 2 * Math.PI - Math.PI / 2
-        const angle = (i.value / total) * 2 * Math.PI
-        acc += i.value
+  return (
+    <div className="pie">
+      <svg width="120" height="120">
+        {sorted.map((i, idx) => {
+          const start = (acc / total) * 2 * Math.PI - Math.PI / 2
+          const angle = (i.value / total) * 2 * Math.PI
+          acc += i.value
 
-        const x1 = C + R * Math.cos(start)
-        const y1 = C + R * Math.sin(start)
-        const x2 = C + R * Math.cos(start + angle)
-        const y2 = C + R * Math.sin(start + angle)
+          const x1 = C + R * Math.cos(start)
+          const y1 = C + R * Math.sin(start)
+          const x2 = C + R * Math.cos(start + angle)
+          const y2 = C + R * Math.sin(start + angle)
+          const large = angle > Math.PI ? 1 : 0
 
-        const large = angle > Math.PI ? 1 : 0
-
-        return (
-          <path
-            key={idx}
-            d={`M${C},${C} L${x1},${y1} A${R},${R} 0 ${large} 1 ${x2},${y2} Z`}
-            fill={i.color}
-          />
-        )
-      })}
-    </svg>
+          return (
+            <path
+              key={idx}
+              d={`M${C},${C} L${x1},${y1} A${R},${R} 0 ${large} 1 ${x2},${y2} Z`}
+              fill={i.color}
+            />
+          )
+        })}
+      </svg>
 
       <div className="legend">
         <strong>{title}</strong>

@@ -8,6 +8,7 @@ export default function ReturnToMypageButton() {
   // ▼ マイページでは非表示
   if (pathname === "/mypage") return null;
     if (pathname === "/login") return null;
+    if (pathname === "/admin/judge") return null;
    
   return (
     <>

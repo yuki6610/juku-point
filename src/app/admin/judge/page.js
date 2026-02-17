@@ -159,7 +159,7 @@ export default function AdminJudgePage(){
 
   return (
     <div className="page judge-page">
-      <h1>管理者：志望校判定</h1>
+          <h1>{selectedStudent ? `${selectedStudent.realName}：志望校判定` : '志望校判定'}</h1>
 
       <div className="row no-print">
         <select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
@@ -181,7 +181,7 @@ export default function AdminJudgePage(){
           )}
         </select>
       </div>
-
+          
       {selectedStudent && (
         <>
           {/* 円グラフ（summary 直読み） */}
@@ -204,7 +204,7 @@ export default function AdminJudgePage(){
               <option value="">テスト</option>
               {scores.filter(s=>s.type==='exam').map(s=>
                 <option key={s.id} value={s.id}>
-                  {s.year}{s.term}{s.testType} 換算{s.examConverted}
+            {s.year} {s.term}{s.testType} 5計{s.examTotal}点 入試換算{s.examConverted}点
                 </option>
               )}
             </select>
@@ -214,18 +214,39 @@ export default function AdminJudgePage(){
               <option value="">内申</option>
               {scores.filter(s=>s.type==='internal').map(s=>
                 <option key={s.id} value={s.id}>
-                  {s.year}{s.term} 内申{s.internalTotal}
+                  {s.year} {s.term} 内申{s.internalTotal}点
                 </option>
               )}
             </select>
           </div>
+                           
+                           
+                           <div className="print-only">
+                             <div className="print-card">
+                               <p>
+                           テスト：
+                               {examScore
+                                 ? `${examScore.year} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
+                                 : '未選択'}
+                               </p>
+                             </div>
+
+                             <div className="print-card">
+                               <p>
+                                 内申：{internalScore
+                                     ? `${internalScore.year} ${internalScore.term}（内申${internalScore.internalTotal}点）`
+                                     : '未選択'}
+                               </p>
+                             </div>
+                           </div>
+                           
 
           <ScoreBreakdown exam={examScore} internal={internalScore} />
 
           <table className="compare-table">
             <thead>
               <tr>
-                <th>高校</th><th>最低点</th><th>あなた</th><th>差</th><th>判定</th>
+                <th>高校</th><th>合格最低点</th><th>あなたの総合得点</th><th>点差</th><th>判定</th>
               </tr>
             </thead>
             <tbody>

@@ -117,20 +117,44 @@ export default function AdminBehaviorPage() {
 
     base.lessonCount++
 
-    const behaviorScore =
-      base.homework.submitted +
-      base.attendance.ontime -
-      base.homework.missed -
-      base.attendance.late -
-      base.forgot
+        // ===== 生活態度スコア再設計 =====
 
-    await setDoc(summaryRef, {
-      ...base,
-      behaviorScore: Math.max(0, Math.min(32, behaviorScore)),
-      year,
-      term,
-      updatedAt: serverTimestamp(),
-    })
+        const hwTotal =
+          base.homework.submitted + base.homework.missed
+
+        const attendanceTotal =
+          base.attendance.ontime + base.attendance.late
+
+        const hwRate =
+          hwTotal > 0
+            ? base.homework.submitted / hwTotal
+            : 1
+
+        const attendanceRate =
+          attendanceTotal > 0
+            ? base.attendance.ontime / attendanceTotal
+            : 1
+
+        // 遅刻は1回3点減点（調整可）
+        const latePenalty = base.attendance.late * 5
+
+        // 忘れ物は1回4点減点（調整可）
+        const forgotPenalty = base.forgot * 4
+
+        let behaviorScore =
+          hwRate * 40 +
+          attendanceRate * 40 +
+          20 - latePenalty - forgotPenalty
+
+        behaviorScore = Math.max(0, Math.min(100, behaviorScore))
+
+        await setDoc(summaryRef, {
+          ...base,
+          behaviorScore: Math.round(behaviorScore),
+          year,
+          term,
+          updatedAt: serverTimestamp(),
+        })
 
     alert('保存しました')
   }
