@@ -7,7 +7,7 @@ import './scores.css'
 import ScoreBreakdown from '@/components/ScoreBreakdown'
 
 const GRADES = ['中1','中2','中3']
-const SCHOOL_YEARS =['2025''2026','2027','2028']
+const SCHOOL_YEARS =['2025','2026','2027','2028']
 const TERMS=['1学期','2学期','3学期']
 const BASE_TEST_TYPES=['中間','期末','春課題実力','夏課題実力','秋課題実力','冬課題実力']
 const PAST_EXAMS=['過去問2016','過去問2017','過去問2018','過去問2019','過去問2020','過去問2021','過去問2022','過去問2023','過去問2024','過去問2025']
