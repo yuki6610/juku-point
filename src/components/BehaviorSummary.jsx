@@ -62,12 +62,6 @@ export default function BehaviorSummary({ uid, year, term }) {
           <div className="info-value">{summary.forgot} 回</div>
         </div>
 
-        {/* ★ 授業回数 */}
-        <div className="info-card">
-          <div className="info-label">授業回数</div>
-          <div className="info-value">{summary.lessonCount || 0}</div>
-        </div>
-
         {/* ★ 単語テスト総得点 */}
         <div className="info-card">
           <div className="info-label">単語テスト総得点</div>

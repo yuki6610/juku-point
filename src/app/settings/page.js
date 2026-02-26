@@ -127,6 +127,14 @@ export default function SettingsPage() {
       <button onClick={saveAvatar} className="settings-save-btn">
         アバターを保存
       </button>
+          
+          <a
+            href="https://readyplayer.me/avatar"
+            target="_blank"
+            className="settings-link"
+          >
+            🎭 アバターを作成する（Ready Player Me）
+          </a>
 
       <h3 className="settings-preview-title">プレビュー</h3>
 
@@ -134,13 +142,6 @@ export default function SettingsPage() {
         <Avatar3DWrapper url={avatarUrl} />
       </div>
 
-      <a
-        href="https://readyplayer.me/avatar"
-        target="_blank"
-        className="settings-link"
-      >
-        🎭 アバターを作成する（Ready Player Me）
-      </a>
     </div>
   );
 }

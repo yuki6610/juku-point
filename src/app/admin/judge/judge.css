@@ -314,122 +314,108 @@ select {
    印刷最適化（A4 1枚）
 ========================= */
 
-.print-only {
-  display: none;
-}
+.print-only { display: none; }
 
 @media print {
 
-  @page { size: A4; margin: 10mm; }
+  @page { size: A4; margin: 8mm; }
 
-  body { zoom: 0.85; }
-  .page { padding: 0 !important; }
+  body { zoom: 0.75; }
+  .page { padding: 0 !important; margin: 0 !important; }
 
-  /* ===== 五教科・内申を小さく ===== */
-  .score-breakdown { gap: 16px !important; margin: 16px 0 !important; }
-  .score-block { padding: 12px !important; margin-bottom: 16px !important; }
-  .score-block h3 { font-size: 14px !important; margin-bottom: 8px !important; }
-  .score-card { padding: 8px !important; }
-  .score-card .label { font-size: 11px !important; }
-  .score-card .value { font-size: 14px !important; }
+  /* ===== セクション間を圧縮 ===== */
+  h1,h2,h3 { margin: 6px 0 !important; }
+  .behavior-summary,
+  .correlation-card,
+  .score-breakdown,
+  .compare-table {
+    margin: 10px 0 !important;
+  }
 
-  /* ===== 円グラフ横一列 ===== */
-  
+  /* ===== 五教科・内申 横並び小型化 ===== */
+  .score-breakdown {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 14px !important;
+  }
+
+  .score-block {
+    flex: 1 !important;
+    padding: 8px !important;
+    margin: 0 !important;
+  }
+
+  .score-block h3 { font-size: 12px !important; margin-bottom: 4px !important; }
+  .score-block h4 { font-size: 10px !important; margin: 4px 0 !important; }
+
+  .score-card { padding: 3px !important; }
+  .score-card .label { font-size: 7px !important; }
+  .score-card .value { font-size: 9px !important; }
+
+  /* ===== 円グラフ 横一列固定 ===== */
+  /* ===== 円グラフ・忘れ物を完全横固定 ===== */
+  .behavior-summary {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 8px 12px !important;
+  }
+
   .pie-row {
-      display: flex !important;
-      flex-direction: row !important;
-      flex-wrap: nowrap !important;
-      justify-content: flex-start !important;
-      align-items: center !important;
-      gap: 40px !important;
-    }
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 28px !important;
+    width: 100% !important;
+  }
 
-    .pie-row > * {
-      flex: 0 0 auto !important;
-    }
+  .pie-row > * {
+    flex: 0 0 auto !important;
+  }
 
-  
-  /* 円を小さく */
+  /* 円サイズ固定 */
   .behavior-summary svg {
-      width: 150px !important;
-      height: 150px !important;
-    }
+    width: 130px !important;
+    height: 130px !important;
+  }
 
-  /* 忘れ物（横並び用） */
+  /* 忘れ物カードが折り返さないように */
+  .forgot-card,
   .forgot-inline {
-    font-weight: bold;
-    color: #d32f2f;
-    font-size: 14px !important;
-    white-space: nowrap;
+    white-space: nowrap !important;
+    flex: 0 0 auto !important;
   }
-
-  /* 散布図縮小 */
+  /* ===== 散布図 少し大きめ維持 ===== */
   .correlation-card svg {
-    max-height: 220px !important;
+    max-height: 240px !important;
   }
 
-  /* テーブル圧縮 */
+  /* ===== テーブル 超圧縮 ===== */
+  .compare-table {
+    margin-top: 10px !important;
+  }
+
   .compare-table th,
   .compare-table td {
-    padding: 6px 8px !important;
-    font-size: 12px !important;
+    padding: 4px 6px !important;
+    font-size: 10px !important;
   }
-  
-  .score-breakdown {
-      display: flex !important;
-      flex-direction: row !important;
-      flex-wrap: nowrap !important;
-      gap: 16px !important;
-      margin: 16px 0 !important;
-    }
 
-    .score-block {
-      flex: 1 !important;
-      padding: 10px !important;
-      margin: 0 !important;
-    }
+  /* ===== 印刷用選択情報 ===== */
+  .print-only {
+    display: flex !important;
+    gap: 10px;
+    margin: 8px 0 12px;
+  }
 
-    /* ===== 全体を小さく ===== */
-    .score-block h3 {
-      font-size: 13px !important;
-      margin-bottom: 6px !important;
-    }
-
-    .score-block h4 {
-      font-size: 11px !important;
-      margin: 6px 0 !important;
-    }
-
-    .score-card {
-      padding: 4px !important;
-    }
-
-    .score-card .label {
-      font-size: 7px !important;
-    }
-
-    .score-card .value {
-      font-size: 10px !important;
-    }
-    .print-only {
-        display: flex !important;
-        gap: 16px;
-        margin: 10px 0 18px;
-      }
-
-      .print-only .print-card {
-        flex: 1;
-        padding: 8px 12px;
-        border: 1px solid #bbb;
-        border-radius: 6px;
-        background: #f8f9fc;
-        font-size: 13px;
-        font-weight: 500;
-      }
-
-      .print-only p {
-        margin: 0;
-      }
-  
+  .print-only .print-card {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    font-size: 11px;
+    background: #f8f9fc;
+  }
 
 }

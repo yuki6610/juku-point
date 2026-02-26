@@ -50,6 +50,7 @@ export default function AdminJudgePage(){
 
   const [schools,setSchools]=useState([])
   const [correlationPoints,setCorrelationPoints]=useState([])
+    const [lessonCount, setLessonCount] = useState(0)
 
   /* === 認証 === */
   useEffect(()=>{
@@ -88,6 +89,33 @@ export default function AdminJudgePage(){
       snap=>setSchools(snap.docs.map(d=>({id:d.id,...d.data()})))
     )
   },[])
+    
+    useEffect(()=>{
+      if(!selectedStudentId || !year || !term){
+        setLessonCount(0)
+        return
+      }
+
+      const loadLesson = async ()=>{
+        const ref = doc(
+          db,
+          'users',
+          selectedStudentId,
+          'behaviorSummary',
+          `${year}_${term}`
+        )
+
+        const snap = await getDoc(ref)
+
+        if(snap.exists()){
+          setLessonCount(snap.data().lessonCount || 0)
+        }else{
+          setLessonCount(0)
+        }
+      }
+
+      loadLesson()
+    },[selectedStudentId, year, term])
 
     /* =====================
        相関データ生成（最終・安定版）
@@ -190,7 +218,11 @@ export default function AdminJudgePage(){
             year={year}
             term={term}
           />
-
+                          
+                           <div className="lesson-box">
+                             授業回数：{lessonCount} 回
+                           </div>
+                           
           {/* 相関図 */}
           <FinalCorrelationChart
             points={correlationPoints}
