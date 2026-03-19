@@ -208,8 +208,14 @@ export default function StudentsPage() {
                         🚫 出禁中
                       </span>
                     )}
-                  </div>
 
+                    {/* ★ 講習タグ表示（追加） */}
+                    {(s.courseTags || []).map(tag => (
+                      <span key={tag} className="course-badge">
+                        {courseTagLabel[tag]}
+                      </span>
+                    ))}
+                  </div>
               <GradeTag
                 grade={gradeLabel(s.grade)}
                 onChange={(g) => updateGrade(s.uid, g)}

@@ -191,14 +191,14 @@ export default function MyPage() {
               </button>
             </>
           )}
-          {(data?.grade >= 10 && data?.grade <= 12) && (
+          {/*} {(data?.grade >= 10 && data?.grade <= 12) && (
             <button
-              onClick={() => router.push("/universities")}
-              className="btn indigo"
+            onClick={() => router.push("/universities")}
+            className="btn indigo"
             >
-              🎓 大学入試情報
+            🎓 大学入試情報
             </button>
-          )}
+            )}*/}
         <button onClick={() => router.push("/points")} className="btn cyan">🅿️ ポイント履歴</button>
         <button onClick={() => router.push("/settings")} className="btn gray">⚙️ 設定</button>
         <button onClick={() => router.push("/guide")} className="btn orange">📘 アプリの使い方</button>
