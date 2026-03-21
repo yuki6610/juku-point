@@ -167,7 +167,8 @@ export default function MyPage() {
               <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
             </Canvas>
           )}
-
+          </div>
+          
       <div className="status-card">
         <p>🎯 レベル：{level}</p>
         <p>💎 ポイント：{points}</p>
