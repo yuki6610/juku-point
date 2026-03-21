@@ -191,7 +191,7 @@ export default function MyPage() {
               </button>
             </>
           )}
-          {/*} {(data?.grade >= 10 && data?.grade <= 12) && (
+          {/* {(data?.grade >= 10 && data?.grade <= 12) && (
             <button
             onClick={() => router.push("/universities")}
             className="btn indigo"
