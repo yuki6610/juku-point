@@ -153,7 +153,8 @@ export default function MyPage() {
             }}
           >
           
-          <Canvas camera={{ position: [0, 1.35, 2.2] }} style={{ pointerEvents: "none" }}>
+          {data.avatarUrl && (
+            <Canvas camera={{ position: [0, 1.35, 2.2] }} style={{ pointerEvents: "none" }}>
               <ambientLight intensity={1.4} />
               <directionalLight position={[3, 5, 2]} intensity={1.2} />
               <Suspense fallback={null}>
@@ -165,7 +166,7 @@ export default function MyPage() {
               </Suspense>
               <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
             </Canvas>
-          </div>
+          )}
 
       <div className="status-card">
         <p>🎯 レベル：{level}</p>
