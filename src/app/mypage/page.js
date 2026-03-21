@@ -1,14 +1,10 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "../../firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
-import RotatingAvatar from "@/components/RotatingAvatar";
 import "./mypage.css";
 
 /* ---------------- 共通関数 ---------------- */
@@ -152,19 +148,6 @@ export default function MyPage() {
               height: "320px",
             }}
           >
-          
-          <Canvas camera={{ position: [0, 1.35, 2.2] }} style={{ pointerEvents: "none" }}>
-            <ambientLight intensity={1.4} />
-            <directionalLight position={[3, 5, 2]} intensity={1.2} />
-            <Suspense fallback={null}>
-              <RotatingAvatar
-                url={data.avatarUrl}
-                position={[0, 1, 0]}
-                scale={1.5}
-              />
-            </Suspense>
-            <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
-          </Canvas>
           
           </div>
           
