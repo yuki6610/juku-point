@@ -1,4 +1,3 @@
-// src/components/RotatingAvatar.js
 "use client";
 
 import { useRef } from "react";
