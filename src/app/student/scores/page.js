@@ -44,6 +44,7 @@ export default function StudentScoresPage(){
   if(checkingAuth) return <p>確認中...</p>
   if(!user) return <p>ログインしてください</p>
 
+      const gradeLabel = g => g>=7 && g<=9 ? `中${g-6}` : '不明'
   const examTotal=Object.values(exam).reduce((a,b)=>a+Number(b||0),0)
   const examConverted=examTotal*0.5
   const internalTotal=Object.values(internalMain).reduce((a,b)=>a+b,0)*4+Object.values(internalSub).reduce((a,b)=>a+b,0)*7.5
@@ -65,7 +66,7 @@ export default function StudentScoresPage(){
     s.type==='exam' && s.year===schoolYear && s.term===term && s.testType===testType && s.id!==editingScoreId
   )
   const isDuplicateInternal=()=>saved.some(s=>
-    s.type==='internal' && s.year===internalYear && s.term===internalTerm && s.id!==editingScoreId
+    s.type==='internal' && s.year===schoolYear && s.term===internalTerm && s.id!==editingScoreId
   )
 
     const saveExam = async () => {
@@ -82,6 +83,7 @@ export default function StudentScoresPage(){
         testType,
         exam,
         examTotal,
+          grade: Number(grade.replace('中','')) + 6,
         examConverted,
         approved: false,
         updatedAt: serverTimestamp(),
@@ -113,6 +115,7 @@ export default function StudentScoresPage(){
         internalMain,
         internalSub,
         internalTotal,
+          grade: Number(grade.replace('中','')) + 6,
         approved: false,
         updatedAt: serverTimestamp(),
       }
@@ -173,13 +176,13 @@ export default function StudentScoresPage(){
         <select value={selectedExamId} onChange={e=>setSelectedExamId(e.target.value)}>
           <option value="">テストを選択</option>
           {saved.filter(s=>s.type==='exam').map(s=>
-            <option key={s.id} value={s.id}>{s.year} {s.term} {s.testType}｜5計{s.examTotal}点 / 換算{s.examConverted}点</option>
+    <option key={s.id} value={s.id}>{gradeLabel(s.grade)} {s.term} {s.testType}｜5計{s.examTotal}点 / 換算{s.examConverted}点</option>
           )}
         </select>
         <select value={selectedInternalId} onChange={e=>setSelectedInternalId(e.target.value)}>
           <option value="">内申点を選択</option>
           {saved.filter(s=>s.type==='internal').map(s=>
-            <option key={s.id} value={s.id}>{s.year} {s.term}｜内申{s.internalTotal}点</option>
+        <option key={s.id} value={s.id}>{gradeLabel(s.grade)} {s.term}｜内申{s.internalTotal}点</option>
           )}
         </select>
       </div>
@@ -203,4 +206,3 @@ export default function StudentScoresPage(){
     </div>
   )
 }
-

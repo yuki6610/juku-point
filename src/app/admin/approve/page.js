@@ -175,9 +175,53 @@ export default function AdminApprovePage() {
               {score.year} {score.term} {score.testType}
             </div>
 
-            <div className="score-summary">
-              付与：{reward.point}pt / {reward.exp}exp
-            </div>
+                <div className="score-summary">
+
+                  {/* ===== 教科点数 ===== */}
+                  {score.type === 'exam' && (
+                    <div className="subject-scores">
+                                             国:{score.exam?.['国語'] ?? '-'}/
+                                                 数:{score.exam?.['数学'] ?? '-'}/
+                                                 英:{score.exam?.['英語'] ?? '-'}/
+                                                 理:{score.exam?.['理科'] ?? '-'}/
+                                                 社:{score.exam?.['社会'] ?? '-'}
+                    </div>
+                  )}
+
+                  {/* ===== 内申 ===== */}
+                {score.type === 'internal' && (
+                  <div>
+                    {/* 主教科 */}
+                    国:{score.internalMain?.['国語']??'-'}/
+                    数:{score.internalMain?.['数学'] ?? '-'}/
+                    英:{score.internalMain?.['英語'] ?? '-'}/
+                    理:{score.internalMain?.['理科'] ?? '-'}/
+                    社:{score.internalMain?.['社会'] ?? '-'}
+                    
+                    <br/>
+
+                    {/* 副教科 */}
+                    音:{score.internalSub?.['音楽'] ?? '-'}/
+                    美:{score.internalSub?.['美術'] ?? '-'}/
+                    保:{score.internalSub?.['保体'] ?? '-'}/
+                    技:{score.internalSub?.['技家'] ?? '-'}
+                  </div>
+                )}
+
+                  {/* ===== 合計 ===== */}
+                  <div className="total-score">
+                    {score.type === 'exam'
+                      ? `5計：${score.examTotal ?? '-'} / 入試換算：${score.examConverted ?? '-'}`
+                      : `内申合計：${score.internalTotal ?? '-'}`
+                    }
+                  </div>
+
+                  {/* ===== 付与 ===== */}
+                  <div className="reward">
+                    付与：{reward.point}pt / {reward.exp}exp
+                  </div>
+
+                </div>
 
             <div className="approve-actions">
               <button onClick={() => approveScore(score)}>承認</button>
@@ -206,8 +250,8 @@ export default function AdminApprovePage() {
             return (
               <div key={score.id} className="approve-card">
                 <div className="score-meta">
-                  {score.type === 'exam' ? 'テスト' : '内申'}｜
-                  {score.year} {score.term} {score.testType}
+                  {score.type === 'exam'?'テスト':'内申'}｜
+                  {score.grade} {score.term} {score.testType}
                 </div>
 
                 <div className="score-summary">

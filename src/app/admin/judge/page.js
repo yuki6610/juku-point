@@ -118,7 +118,7 @@ export default function AdminJudgePage(){
     },[selectedStudentId, year, term])
 
     /* =====================
-       相関データ生成（最終・安定版）
+       相関データ生成
     ===================== */
     useEffect(() => {
       if (students.length === 0) return
@@ -236,7 +236,7 @@ export default function AdminJudgePage(){
               <option value="">テスト</option>
               {scores.filter(s=>s.type==='exam').map(s=>
                 <option key={s.id} value={s.id}>
-            {s.year} {s.term}{s.testType} 5計{s.examTotal}点 入試換算{s.examConverted}点
+        {gradeLabel(s.grade)}　{s.term}{s.testType} 5計{s.examTotal}点 入試換算{s.examConverted}点
                 </option>
               )}
             </select>
@@ -246,7 +246,7 @@ export default function AdminJudgePage(){
               <option value="">内申</option>
               {scores.filter(s=>s.type==='internal').map(s=>
                 <option key={s.id} value={s.id}>
-                  {s.year} {s.term} 内申{s.internalTotal}点
+                 {gradeLabel(s.grade)} {s.term} 内申{s.internalTotal}点
                 </option>
               )}
             </select>
@@ -258,7 +258,7 @@ export default function AdminJudgePage(){
                                <p>
                            テスト：
                                {examScore
-                                 ? `${examScore.year} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
+                                 ? `${examScore.grade} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
                                  : '未選択'}
                                </p>
                              </div>
@@ -266,7 +266,7 @@ export default function AdminJudgePage(){
                              <div className="print-card">
                                <p>
                                  内申：{internalScore
-                                     ? `${internalScore.year} ${internalScore.term}（内申${internalScore.internalTotal}点）`
+                                     ? `${internalScore.grade} ${internalScore.term}（内申${internalScore.internalTotal}点）`
                                      : '未選択'}
                                </p>
                              </div>
@@ -305,4 +305,3 @@ export default function AdminJudgePage(){
     </div>
   )
 }
-
