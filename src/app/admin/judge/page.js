@@ -20,7 +20,7 @@ import FinalCorrelationChart from '@/components/FinalCorrelationChart'
 ===================== */
 const GRADE_OPTIONS = ['全学年','中1','中2','中3']
 const TERMS = ['1学期','2学期','3学期']
-const YEARS = ['2024','2025','2026']
+const YEARS = ['2026','2027','2028']
 
 const gradeLabel = g => g>=7 && g<=9 ? `中${g-6}` : '不明'
 
@@ -146,13 +146,13 @@ export default function AdminJudgePage(){
             collection(db, 'users', s.uid, 'scores')
           )
 
-          const sameTerm = scoreSnap.docs
-            .map(d => d.data())
-            .filter(sc =>
-              sc.year === year &&
-              sc.term === term &&
-              typeof sc.examTotal === 'number'
-            )
+              const sameTerm = scoreSnap.docs
+                .map(d => d.data())
+                .filter(sc =>
+                  String(sc.year) === String(year) &&
+                  sc.term === term &&
+                  Number.isFinite(Number(sc.examTotal))
+                )
 
           if (sameTerm.length === 0) continue
 

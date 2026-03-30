@@ -76,7 +76,7 @@ export default function AdminBehaviorPage() {
         date,
         year,
         term,
-        homework,
+          homework: homework === 'none' ? null : homework,
         attendance,
         forgot,
         createdAt: serverTimestamp(),
@@ -106,9 +106,11 @@ export default function AdminBehaviorPage() {
           lessonCount: 0,
         }
 
-    if (homework === 'submitted') base.homework.submitted++
-    if (homework === 'partial') base.homework.partial++
-    if (homework === 'missed') base.homework.missed++
+      if (homework !== 'none') {
+        if (homework === 'submitted') base.homework.submitted++
+        if (homework === 'partial') base.homework.partial++
+        if (homework === 'missed') base.homework.missed++
+      }
 
     if (attendance === 'ontime') base.attendance.ontime++
     if (attendance === 'late') base.attendance.late++
@@ -120,14 +122,16 @@ export default function AdminBehaviorPage() {
         // ===== 生活態度スコア再設計 =====
 
         const hwTotal =
-          base.homework.submitted + base.homework.missed
-
+          base.homework.submitted +
+          base.homework.partial +
+          base.homework.missed
+        
         const attendanceTotal =
           base.attendance.ontime + base.attendance.late
 
         const hwRate =
           hwTotal > 0
-            ? base.homework.submitted / hwTotal
+            ? (base.homework.submitted + base.homework.partial * 0.5) / hwTotal
             : 1
 
         const attendanceRate =
@@ -195,6 +199,7 @@ export default function AdminBehaviorPage() {
               <option value="submitted">宿題：提出</option>
               <option value="partial">宿題：途中</option>
               <option value="missed">宿題：忘れ</option>
+            <option value="none">宿題：なし</option>
             </select>
 
             <select value={attendance} onChange={e => setAttendance(e.target.value)}>
