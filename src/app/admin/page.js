@@ -69,7 +69,7 @@ export default function AdminPage() {
       title: '✅ 出席確認',
       desc: '高校生の出席確認',
       color: 'orange',
-      path: '/admin/NewFolder',
+      path: '/admin/attend',
     },
     
     {
