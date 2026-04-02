@@ -17,7 +17,7 @@ import './behavior.css'
 const GRADE_OPTIONS = ['全学年', '中1', '中2', '中3']
 const TERMS = ['1学期', '2学期', '3学期']
 
-const gradeLabel = g => g >= 7 && g <= 9 ? `中${g - 6}` : '不明'
+const gradeLabel = g => g >= 7 && g <= 9 ? 中${g - 6} : '不明'
 
 export default function AdminBehaviorPage() {
   const [admin, setAdmin] = useState(null)
@@ -65,7 +65,7 @@ export default function AdminBehaviorPage() {
     }
 
     const year = date.slice(0, 4)
-    const summaryId = `${year}_${term}`
+    const summaryId = ${year}_${term}
 
     /* =====================
        ① 生ログ（円グラフ用）

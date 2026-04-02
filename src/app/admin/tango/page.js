@@ -67,7 +67,7 @@ export default function WordTestPage() {
       snap.docs.map(async (d) => {
         const data = d.data()
 
-        const testRef = doc(db, 'users/${d.id}/wordtests/${selectedWeek}')
+        const testRef = doc(db, `users/${d.id}/wordtests/${selectedWeek}`)
         const testSnap = await getDoc(testRef)
         const test = testSnap.exists() ? testSnap.data() : {}
 
@@ -201,7 +201,7 @@ export default function WordTestPage() {
     const now = new Date()
     const year = now.getFullYear()
     const week = Math.ceil(((now - new Date(year, 0, 1)) / 86400000 + new Date(year, 0, 1).getDay() + 1) / 7)
-    return '${year}-W${week}'
+    return `${year}-W${week}`
   }
 
   function getWeekLabel(weekStr) {
