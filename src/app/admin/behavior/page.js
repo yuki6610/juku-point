@@ -58,14 +58,14 @@ export default function AdminBehaviorPage() {
   })
 
   /* ===== 保存 ===== */
-  const saveBehavior = async () => {
+const saveBehavior = async () => {
     if (!studentId || !date) {
       alert('日付と生徒は必須です')
       return
     }
 
     const year = date.slice(0, 4)
-    const summaryId = ${year}_${term}
+    const summaryId = `${year}_${term}`
 
     /* =====================
        ① 生ログ（円グラフ用）
