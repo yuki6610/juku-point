@@ -13,6 +13,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore'
 import './behavior.css'
+import { useRouter } from 'next/navigation'
 
 const GRADE_OPTIONS = ['全学年', '中1', '中2', '中3']
 const TERMS = ['1学期', '2学期', '3学期']
@@ -31,6 +32,7 @@ export default function AdminBehaviorPage() {
   const [homework, setHomework] = useState('submitted')
   const [attendance, setAttendance] = useState('ontime')
   const [forgot, setForgot] = useState(false)
+    const router = useRouter()
 
   /* ===== 認証 ===== */
   useEffect(() => {
@@ -166,6 +168,10 @@ const saveBehavior = async () => {
   return (
     <div className="admin-behavior-page">
       <h1>管理者：生活態度記録</h1>
+
+          <button onClick={() => router.push('/admin/behavior/history')}>
+            履歴を見る
+          </button>
 
       <div className="filter-row">
         <select value={gradeFilter} onChange={e => setGradeFilter(e.target.value)}>

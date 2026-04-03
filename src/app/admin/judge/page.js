@@ -51,6 +51,7 @@ export default function AdminJudgePage(){
   const [schools,setSchools]=useState([])
   const [correlationPoints,setCorrelationPoints]=useState([])
     const [lessonCount, setLessonCount] = useState(0)
+   
 
   /* === 認証 === */
   useEffect(()=>{
@@ -127,7 +128,7 @@ export default function AdminJudgePage(){
         const arr = []
 
         for (const s of students) {
-          /* 生活態度（確定値） */
+          /* 生活態度 */
           const behRef = doc(
             db,
             'users',
@@ -138,21 +139,27 @@ export default function AdminJudgePage(){
           const behSnap = await getDoc(behRef)
           if (!behSnap.exists()) continue
 
-          const behavior = behSnap.data().behaviorScore
-          if (behavior === undefined) continue
+          const behavior = Number(behSnap.data().behaviorScore)
+          if (!Number.isFinite(behavior)) continue
 
-          /* 成績（同学期 examTotal 最大） */
+          /* 成績 */
           const scoreSnap = await getDocs(
             collection(db, 'users', s.uid, 'scores')
           )
 
-              const sameTerm = scoreSnap.docs
-                .map(d => d.data())
-                .filter(sc =>
-                  String(sc.year) === String(year) &&
-                  sc.term === term &&
-                  Number.isFinite(Number(sc.examTotal))
-                )
+          const sameTerm = scoreSnap.docs
+            .map(d => {
+              const data = d.data()
+              return {
+                ...data,
+                examTotal: Number(data.examTotal)
+              }
+            })
+            .filter(sc =>
+              String(sc.year) === String(year) &&
+              sc.term === term &&
+              Number.isFinite(sc.examTotal)
+            )
 
           if (sameTerm.length === 0) continue
 
@@ -164,6 +171,8 @@ export default function AdminJudgePage(){
             score: best,
           })
         }
+
+        console.log('相関データ', arr) // ←確認用（重要）
 
         setCorrelationPoints(arr)
       }

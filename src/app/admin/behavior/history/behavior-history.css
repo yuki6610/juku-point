@@ -1,0 +1,101 @@
+/* 全体 */
+.history-page {
+  padding: 24px;
+  background: #f5f7fb;
+  min-height: 100vh;
+}
+
+/* タイトル */
+.history-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* セレクト */
+.history-select {
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 20px;
+}
+
+/* カード */
+.history-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  transition: 0.2s;
+}
+
+.history-card:hover {
+  transform: translateY(-2px);
+}
+
+/* 日付 */
+.history-date {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+/* 行 */
+.history-row {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+/* バッジ */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+/* 状態別カラー */
+.good {
+  background: #d4f8e8;
+  color: #1e9e6f;
+}
+
+.normal {
+  background: #e7f0ff;
+  color: #2f6df6;
+}
+
+.bad {
+  background: #ffe3e3;
+  color: #d64545;
+}
+
+/* 忘れ物 */
+.warn {
+  background: #fff3cd;
+  color: #b78103;
+}
+
+/* 空表示 */
+.empty {
+  margin-top: 20px;
+  color: #888;
+}
+
+/* 戻るボタン */
+.back-btn {
+  margin-top: 30px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #2f6df6;
+  color: white;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  opacity: 0.9;
+}
