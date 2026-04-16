@@ -65,7 +65,7 @@ export default function CheckinPage() {
       const snap = await getDoc(ref);
 
       if (snap.exists() && snap.data().currentSessionActive) {
-        setWarning("⚠ まだ退出していません");
+        setWarning("⚠ 自習を終了していません");
       }
     };
     fn();
@@ -111,43 +111,63 @@ export default function CheckinPage() {
       // ---------------------------------------------------
       // 🔵 入室処理
       // ---------------------------------------------------
-      if (pin === enterPin) {
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
+        if (pin === enterPin) {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              const lat = pos.coords.latitude;
+              const lng = pos.coords.longitude;
 
-          const dist = getDistanceM(lat, lng, JUKU_LAT, JUKU_LNG);
-          if (dist > ALLOW_DISTANCE_M) {
-            alert("不正を検知しました。logを保存します。");
-            await logIllegal(user.uid, lat, lng, "enter");
-            return;
-          }
+              const dist = getDistanceM(lat, lng, JUKU_LAT, JUKU_LNG);
+              if (dist > ALLOW_DISTANCE_M) {
+                alert("不正を検知しました。logを保存します。");
+                await logIllegal(user.uid, lat, lng, "enter");
+                return;
+              }
 
-          const snap = await getDoc(checkRef);
-          const nowMs = now.getTime();
+              const snap = await getDoc(checkRef);
+              const nowMs = now.getTime();
 
-          if (!snap.exists()) {
-            // 初回入室
-            await setDoc(checkRef, {
-              currentSessionActive: true,
-              enterAt: nowMs,
-              lastEnterAt: nowMs,
-              sessions: [],
-            });
-          } else {
-            // 2 回目以降
-            await updateDoc(checkRef, {
-              currentSessionActive: true,
-              enterAt: nowMs,
-              lastEnterAt: nowMs,
-            });
-          }
+              if (!snap.exists()) {
+                // 初回
+                await setDoc(checkRef, {
+                  currentSessionActive: true,
+                  enterAt: nowMs,
+                  lastEnterAt: nowMs,
+                  sessions: [],
+                });
+              } else {
+                // 2回目以降
+                await updateDoc(checkRef, {
+                  currentSessionActive: true,
+                  enterAt: nowMs,
+                  lastEnterAt: nowMs,
+                });
+              }
 
-          alert("入室しました");
-          router.push("/mypage");
-        });
-        return;
-      }
+              alert("自習を開始しました");
+              setPin("");
+              router.push("/mypage");
+            },
+
+            // 🔴 追加する部分（これが重要）
+            async (err) => {
+              console.error("GPS error:", err);
+
+              alert("位置情報が取得できません。\n設定で位置情報をONにしてください。");
+
+              await logIllegal(user.uid, null, null, "gps_error");
+            },
+
+            // ⭐ 精度オプション（おすすめ）
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            }
+          );
+
+          return;
+        }
 
     // ---------------------------------------------------
     // 🔴 退出処理
@@ -156,7 +176,7 @@ export default function CheckinPage() {
       const snap = await getDoc(checkRef);
 
       if (!snap.exists() || !snap.data().currentSessionActive) {
-        alert("入室記録がありません");
+        alert("自習開始記録がありません");
         return;
       }
 
@@ -194,7 +214,7 @@ export default function CheckinPage() {
         createdAt: new Date(),
       });
 
-      alert(`退出しました（${minutes}分）`);
+      alert(`自習終了（${minutes}分）`);
       router.push("/mypage");
       return;
     }
@@ -209,7 +229,7 @@ export default function CheckinPage() {
     <div className="checkin-container">
       {warning && <div className="warning-box">{warning}</div>}
 
-      <h1 className="checkin-title">Check-in / Check-out</h1>
+      <h1 className="checkin-title">自習開始 / 自習終了</h1>
 
       <div className="pin-display">{pin.replace(/./g, "●")}</div>
 

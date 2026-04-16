@@ -162,7 +162,7 @@ export default function MyPage() {
       </div>
 
       <div className="button-group">
-        <button onClick={() => router.push("/checkin")} className="btn blue">🕒 チェックイン</button>
+        <button onClick={() => router.push("/checkin")} className="btn blue">🕒 自習</button>
         <button onClick={() => router.push("/rewards")} className="btn green">🎁 景品交換</button>
         <button onClick={() => router.push("/ranking")} className="btn purple">📊 ランキング</button>
           {!(data?.grade >= 10 && data?.grade <= 12) && (

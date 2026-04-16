@@ -59,7 +59,7 @@ export default function StudentScoresPage(){
     if(d>=20)return{diff:d,label:'◎ 安全圏',className:'safe'}
     if(d>=0)return{diff:d,label:'○ 合格圏',className:'ok'}
     if(d>=-20)return{diff:d,label:'△ 努力圏',className:'warn'}
-    return{diff:d,label:'× 厳しい',className:'ng'}
+    return{diff:d,label:'× 危険',className:'ng'}
   }
 
   const isDuplicateExam=()=>saved.some(s=>
