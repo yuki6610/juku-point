@@ -194,7 +194,10 @@
 .reward-icon.eraser { color: #4f9fff; }     /* 消しゴム → ピンク */
 
 /* お菓子 */
-.reward-icon.snack { color: #8b4513; }      /* ブラウン */
+.reward-icon.snack { color: #8b4513; }/* ブラウン */
+.reward-icon.ice {color: #4fc3f7;}
+
+.reward-icon.soft {color: #ffb74d;}
 
 /* 限定報酬 */
 .reward-icon.dinner { color: #e63946; }     /* ご飯奢り → 赤 */

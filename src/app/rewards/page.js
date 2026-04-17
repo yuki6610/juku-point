@@ -18,6 +18,7 @@ import {
   FaPen,
   FaEraser,
   FaCookieBite,
+  FaIceCream,
   FaGamepad,
   FaAppleAlt,
   FaTshirt,
@@ -69,7 +70,13 @@ const getIconForReward = (name) => {
   // -------------------------
   if (lower.includes('お菓子') || lower.includes('snack') || lower.includes('スナック'))
     return <FaCookieBite className="reward-icon snack" />
+      
+      if (lower.includes('アイス') ||lower.includes('ice') ||lower.includes('icecream'))
+        return <FaIceCream className="reward-icon ice" />
 
+      // ⭐ アイス②（ソフトクリーム系）
+      if (lower.includes('高級アイス') ||lower.includes('softcream'))
+        return <FaIceCream className="reward-icon soft" />
   // -------------------------
   // 🍽 限定報酬（コストコ / ご飯奢り）
   // -------------------------

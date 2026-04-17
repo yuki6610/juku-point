@@ -76,9 +76,15 @@ export default function RankingPage() {
         list.sort((a, b) => (b.homeworkCount ?? 0) - (a.homeworkCount ?? 0));
         break;
 
-      case "rewardsCount":
-        list.sort((a, b) => (b.rewardsCount ?? 0) - (a.rewardsCount ?? 0));
-        break;
+        case "rewardsCount":
+          list.forEach((u) => {
+            u._rewardCount = Array.isArray(u.rewardHistory)
+              ? u.rewardHistory.length
+              : 0;
+          });
+
+          list.sort((a, b) => (b._rewardCount ?? 0) - (a._rewardCount ?? 0));
+          break;
 
       default:
         break;
@@ -89,9 +95,16 @@ export default function RankingPage() {
   };
 
   // 🔹 学年フィルタ適用
-  const filteredUsers =
-    grade === "all" ? users : users.filter((u) => u.grade === grade);
+    const filteredUsers = users
+      .filter((u) => {
+        // 学年フィルタ
+        if (grade !== "all" && u.grade !== grade) return false;
 
+        // ⭐ 単語テストのときだけ高校生を除外
+        if (category === "wordTotal" && u.grade >= 10) return false;
+
+        return true;
+      });
   // 上位3名の色
   const getRankClass = (rank) => {
     if (rank === 0) return "rank-gold";
@@ -122,7 +135,7 @@ export default function RankingPage() {
       case "homeworkCount":
         return `${u.homeworkCount ?? 0} 回`;
       case "rewardsCount":
-        return `${u.rewardsCount ?? 0} 回`;
+        return `${u._rewardCount ?? 0} 回`;
       default:
         return "";
     }
@@ -134,95 +147,72 @@ export default function RankingPage() {
         <h1 className="ranking-title">🏆 ランキング</h1>
 
         {/* ⭐ 学年フィルタ */}
-        <div className="ranking-tabs" style={{ marginBottom: "16px" }}>
-          <button
-            className={grade === "all" ? "active" : ""}
-            onClick={() => setGrade("all")}
-          >
-            全学年
-          </button>
+          <div className="ranking-tabs">
+            <button
+              className={category === "level" ? "active" : ""}
+              onClick={() => setCategory("level")}
+            >
+              📈 レベル
+            </button>
 
-          <button
-            className={grade === 7 ? "active" : ""}
-            onClick={() => setGrade(7)}
-          >
-            中1
-          </button>
+            <button
+              className={category === "points" ? "active" : ""}
+              onClick={() => setCategory("points")}
+            >
+              💎 ポイント
+            </button>
 
-          <button
-            className={grade === 8 ? "active" : ""}
-            onClick={() => setGrade(8)}
-          >
-            中2
-          </button>
+            <button
+              className={category === "selfStudyCount" ? "active" : ""}
+              onClick={() => setCategory("selfStudyCount")}
+            >
+              📘 累計自習回数
+            </button>
 
-          <button
-            className={grade === 9 ? "active" : ""}
-            onClick={() => setGrade(9)}
-          >
-            中3
-          </button>
-        </div>
+            <button
+              className={category === "studyHours" ? "active" : ""}
+              onClick={() => setCategory("studyHours")}
+            >
+              ⏱ 総自習時間
+            </button>
 
-        {/* ▼ カテゴリ切り替え */}
-        <div className="ranking-tabs">
-          <button
-            className={category === "level" ? "active" : ""}
-            onClick={() => setCategory("level")}
-          >
-          📈  レベル
-          </button>
+            <button
+              className={category === "wordTotal" ? "active" : ""}
+              onClick={() => setCategory("wordTotal")}
+            >
+              ✏️ 単語テスト総得点
+            </button>
 
-          <button
-            className={category === "points" ? "active" : ""}
-            onClick={() => setCategory("points")}
-          >
-            💎 ポイント
-          </button>
-
-          <button
-            className={category === "selfStudyCount" ? "active" : ""}
-            onClick={() => setCategory("selfStudyCount")}
-          >
-            📘 累計自習回数
-          </button>
-
-          <button
-            className={category === "studyHours" ? "active" : ""}
-            onClick={() => setCategory("studyHours")}
-          >
-            ⏱ 総自習時間
-          </button>
-
-          <button
-            className={category === "wordTotal" ? "active" : ""}
-            onClick={() => setCategory("wordTotal")}
-          >
-            ✏️ 単語テスト総得点
-          </button>
-        </div>
-
-        {loading ? (
-          <p>読み込み中...</p>
-        ) : (
-          <div className="ranking-list">
-            {filteredUsers.map((u, index) => (
-              <div key={u.id} className={`ranking-row ${getRankClass(index)}`}>
-                <div className="ranking-left">
-                  <div className="rank-number">
-                    {index + 1} {getCrown(index)}
-                  </div>
-                  <div className="rank-name">
-                    {u._displayNameWithTitle ?? "不明"}
-                  </div>
-                </div>
-                <div className="ranking-value">{displayValue(u)}</div>
-              </div>
-            ))}
+            {/* 👇 ここ追加 */}
+            <button
+              className={category === "rewardsCount" ? "active" : ""}
+              onClick={() => setCategory("rewardsCount")}
+            >
+              🎁 景品交換回数
+            </button>
           </div>
-        )}
-      </div>
 
+                  {loading ? (
+                    <p>読み込み中...</p>
+                  ) : (
+                    <div className="ranking-list">
+                      {filteredUsers.map((u, index) => (
+                        <div key={u.id} className={`ranking-row ${getRankClass(index)}`}>
+                          <div className="ranking-left">
+                            <div className="rank-number">
+                              {index + 1} {getCrown(index)}
+                            </div>
+                            <div className="rank-name">
+                              {u._displayNameWithTitle ?? "不明"}
+                            </div>
+                          </div>
+                          <div className="ranking-value">{displayValue(u)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                    </div>
+                    
       <button
         className="back-btn"
         onClick={() => (window.location.href = "/mypage")}
