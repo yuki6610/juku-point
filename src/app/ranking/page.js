@@ -146,7 +146,38 @@ export default function RankingPage() {
       <div className="ranking-card">
         <h1 className="ranking-title">🏆 ランキング</h1>
 
-        {/* ⭐ 学年フィルタ */}
+          {/* ⭐ 学年フィルタ */}
+          <div className="ranking-tabs" style={{ marginBottom: "16px" }}>
+            <button
+              className={grade === "all" ? "active" : ""}
+              onClick={() => setGrade("all")}
+            >
+              全学年
+            </button>
+
+            <button
+              className={grade === 7 ? "active" : ""}
+              onClick={() => setGrade(7)}
+            >
+              中1
+            </button>
+
+            <button
+              className={grade === 8 ? "active" : ""}
+              onClick={() => setGrade(8)}
+            >
+              中2
+            </button>
+
+            <button
+              className={grade === 9 ? "active" : ""}
+              onClick={() => setGrade(9)}
+            >
+              中3
+            </button>
+          </div>
+
+          {/* ▼ カテゴリ切り替え（←これ追加！） */}
           <div className="ranking-tabs">
             <button
               className={category === "level" ? "active" : ""}
@@ -183,7 +214,6 @@ export default function RankingPage() {
               ✏️ 単語テスト総得点
             </button>
 
-            {/* 👇 ここ追加 */}
             <button
               className={category === "rewardsCount" ? "active" : ""}
               onClick={() => setCategory("rewardsCount")}
