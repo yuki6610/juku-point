@@ -80,21 +80,42 @@ export default function IllegalListPage() {
             <tr key={r.id}>
               <td>{r.name}</td>
               <td>{r.grade || '-'}</td>
-              <td style={{ color: r.type === 'enter' ? 'red' : 'orange' }}>
-                {r.type === 'enter' ? '入室不正' : '退出不正'}
+
+              {/* 種別（改善） */}
+              <td style={{
+                color:
+                  r.type === 'enter' ? 'red' :
+                  r.type === 'exit' ? 'orange' :
+                  'gray'
+              }}>
+                {r.type === 'enter' && '入室不正'}
+                {r.type === 'exit' && '退出不正'}
+                {r.type === 'gps_error' && 'GPS取得失敗'}
               </td>
+
               <td>{new Date(r.time).toLocaleString()}</td>
+
+              {/* 座標（エラー防止） */}
               <td>
-                {r.lat.toFixed(5)}, {r.lng.toFixed(5)}
+                {Number.isFinite(r.lat) && Number.isFinite(r.lng)
+                  ? `${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}`
+                  : '取得失敗'}
               </td>
+
+              {/* 地図（安全化） */}
               <td>
-                <a
-                  className="map-btn"
-                  href={`https://www.google.com/maps?q=${r.lat},${r.lng}`}
-                  target="_blank"
-                >
-                  地図
-                </a>
+                {Number.isFinite(r.lat) && Number.isFinite(r.lng) ? (
+                  <a
+                    className="map-btn"
+                    href={`https://www.google.com/maps?q=${r.lat},${r.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    地図
+                  </a>
+                ) : (
+                  '-'
+                )}
               </td>
             </tr>
           ))}
