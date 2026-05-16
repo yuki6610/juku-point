@@ -93,6 +93,14 @@ export default function AdminPage() {
     },
     
     
+    {
+      title: '🏫 成績入力',
+      desc: '成績記録',
+      color: 'sky',
+      path: '/admin/score',
+    },
+    
+    
   ]
 
   return (

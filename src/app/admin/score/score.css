@@ -1,0 +1,190 @@
+/* =========================
+   全体
+========================= */
+
+.admin-score-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #fff;
+}
+
+.admin-score-page h1 {
+  text-align: center;
+  margin-bottom: 28px;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+/* =========================
+   生徒選択
+========================= */
+
+.student-select-box {
+  margin-bottom: 28px;
+  display: flex;
+  justify-content: center;
+}
+
+.student-select-box select {
+  width: 320px;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: #1f2937;
+  color: white;
+  font-size: 16px;
+}
+
+/* =========================
+   入力ブロック
+========================= */
+
+.score-block {
+  background: #111827;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.score-block h2 {
+  margin-bottom: 18px;
+  font-size: 24px;
+}
+
+/* =========================
+   横並び
+========================= */
+
+.row-inline {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.row-inline select {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* =========================
+   grid
+========================= */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* =========================
+   input / select
+========================= */
+
+.score-block input,
+.score-block select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: #1f2937;
+  color: white;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.score-block label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #d1d5db;
+}
+
+/* =========================
+   ボタン
+========================= */
+
+.score-block button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: #2563eb;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.score-block button:hover {
+  background: #1d4ed8;
+}
+
+/* =========================
+   保存済み
+========================= */
+
+.saved-list {
+  margin-top: 36px;
+}
+
+.saved-list h2 {
+  margin-bottom: 18px;
+  font-size: 24px;
+}
+
+.saved-card {
+  background: #1f2937;
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 14px;
+  border-left: 6px solid #3b82f6;
+}
+
+.saved-card p {
+  margin: 6px 0;
+  font-size: 15px;
+}
+
+/* =========================
+   モバイル
+========================= */
+
+@media (max-width: 768px) {
+
+  .admin-score-page {
+    padding: 14px;
+  }
+
+  .admin-score-page h1 {
+    font-size: 24px;
+  }
+
+  .score-block {
+    padding: 18px;
+  }
+
+  .score-block h2 {
+    font-size: 20px;
+  }
+
+  .row-inline {
+    flex-direction: column;
+  }
+
+  .student-select-box select {
+    width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2,1fr);
+  }
+
+  .score-block button {
+    font-size: 15px;
+  }
+}

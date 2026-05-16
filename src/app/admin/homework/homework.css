@@ -111,3 +111,19 @@
   font-weight: bold;
   z-index: 1000;
 }
+
+.hw-btn-miss {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #dc2626;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hw-btn-miss:hover {
+  background: #b91c1c;
+}
