@@ -56,8 +56,10 @@ export default function AdminScoresPage() {
   const [students, setStudents] = useState([])
   const [selectedStudentId, setSelectedStudentId] = useState('')
   const [selectedStudent, setSelectedStudent] = useState(null)
-
   const [saved, setSaved] = useState([])
+
+  // ⭐ 学年フィルタ
+  const [gradeFilter, setGradeFilter] = useState('all')
 
   const [grade, setGrade] = useState('中1')
   const [term, setTerm] = useState('1学期')
@@ -81,21 +83,16 @@ export default function AdminScoresPage() {
 
   const [editingScoreId, setEditingScoreId] = useState(null)
 
-  /* =====================
-     管理者認証
-  ===================== */
+  /* ===================== */
   useEffect(() => {
     const auth = getAuth()
 
-    return onAuthStateChanged(auth, async user => {
+    return onAuthStateChanged(auth, user => {
       setAdmin(user)
       setCheckingAuth(false)
     })
   }, [])
 
-  /* =====================
-     生徒一覧
-  ===================== */
   useEffect(() => {
     return onSnapshot(collection(db, 'users'), snap => {
       setStudents(
@@ -107,9 +104,6 @@ export default function AdminScoresPage() {
     })
   }, [])
 
-  /* =====================
-     選択生徒
-  ===================== */
   useEffect(() => {
     if (!selectedStudentId) {
       setSelectedStudent(null)
@@ -117,11 +111,9 @@ export default function AdminScoresPage() {
       return
     }
 
-    const student = students.find(
-      s => s.uid === selectedStudentId
+    setSelectedStudent(
+      students.find(s => s.uid === selectedStudentId)
     )
-
-    setSelectedStudent(student)
 
     return onSnapshot(
       query(
@@ -140,36 +132,25 @@ export default function AdminScoresPage() {
   }, [selectedStudentId, students])
 
   if (checkingAuth) return <p>確認中...</p>
-
   if (!admin) return <p>ログインしてください</p>
 
-  /* =====================
-     計算
-  ===================== */
+  /* ===================== */
   const examTotal = Object.values(exam)
     .reduce((a, b) => a + Number(b || 0), 0)
 
   const examConverted = examTotal * 0.5
 
   const internalTotal =
-    Object.values(internalMain)
-      .reduce((a, b) => a + b, 0) * 4 +
-    Object.values(internalSub)
-      .reduce((a, b) => a + b, 0) * 7.5
-
-  const isPastExamStudent =
-    selectedStudent?.grade === 9 &&
-    Array.isArray(selectedStudent?.courseTags) &&
-    selectedStudent.courseTags.includes('past_exam')
+    Object.values(internalMain).reduce((a, b) => a + b, 0) * 4 +
+    Object.values(internalSub).reduce((a, b) => a + b, 0) * 7.5
 
   const TEST_TYPES =
-    isPastExamStudent && grade === '中3'
+    selectedStudent?.grade === 9 &&
+    selectedStudent?.courseTags?.includes('past_exam') &&
+    grade === '中3'
       ? [...BASE_TEST_TYPES, ...PAST_EXAMS]
       : BASE_TEST_TYPES
 
-  /* =====================
-     重複確認
-  ===================== */
   const isDuplicateExam = () =>
     saved.some(
       s =>
@@ -189,21 +170,21 @@ export default function AdminScoresPage() {
         s.id !== editingScoreId
     )
 
-  /* =====================
-     テスト保存
-  ===================== */
+  // ⭐ フィルタ済み生徒
+  const filteredStudents =
+    gradeFilter === 'all'
+      ? students.filter(s => s.grade >= 7 && s.grade <= 9)
+      : students.filter(s => s.grade === Number(gradeFilter))
+
+  /* ===================== */
   const saveExam = async () => {
-    if (!selectedStudentId) {
-      alert('生徒を選択してください')
-      return
-    }
+    if (!selectedStudentId)
+      return alert('生徒を選択してください')
 
     if (!confirm('この内容で保存しますか？')) return
 
-    if (isDuplicateExam()) {
-      alert('同じテストデータがあります')
-      return
-    }
+    if (isDuplicateExam())
+      return alert('同じテストデータがあります')
 
     const data = {
       type: 'exam',
@@ -218,44 +199,34 @@ export default function AdminScoresPage() {
       updatedAt: serverTimestamp(),
     }
 
-    if (editingScoreId) {
-      await updateDoc(
-        doc(
-          db,
-          `users/${selectedStudentId}/scores/${editingScoreId}`
-        ),
-        data
-      )
-    } else {
-      await addDoc(
-        collection(db, `users/${selectedStudentId}/scores`),
-        {
-          ...data,
-          createdAt: new Date(),
-        }
-      )
-    }
+    editingScoreId
+      ? await updateDoc(
+          doc(
+            db,
+            `users/${selectedStudentId}/scores/${editingScoreId}`
+          ),
+          data
+        )
+      : await addDoc(
+          collection(db, `users/${selectedStudentId}/scores`),
+          {
+            ...data,
+            createdAt: new Date(),
+          }
+        )
 
     alert('保存しました')
-
     setEditingScoreId(null)
   }
 
-  /* =====================
-     内申保存
-  ===================== */
   const saveInternal = async () => {
-    if (!selectedStudentId) {
-      alert('生徒を選択してください')
-      return
-    }
+    if (!selectedStudentId)
+      return alert('生徒を選択してください')
 
     if (!confirm('この内容で保存しますか？')) return
 
-    if (isDuplicateInternal()) {
-      alert('同じ内申データがあります')
-      return
-    }
+    if (isDuplicateInternal())
+      return alert('同じ内申データがあります')
 
     const data = {
       type: 'internal',
@@ -269,26 +240,23 @@ export default function AdminScoresPage() {
       updatedAt: new Date(),
     }
 
-    if (editingScoreId) {
-      await updateDoc(
-        doc(
-          db,
-          `users/${selectedStudentId}/scores/${editingScoreId}`
-        ),
-        data
-      )
-    } else {
-      await addDoc(
-        collection(db, `users/${selectedStudentId}/scores`),
-        {
-          ...data,
-          createdAt: serverTimestamp(),
-        }
-      )
-    }
+    editingScoreId
+      ? await updateDoc(
+          doc(
+            db,
+            `users/${selectedStudentId}/scores/${editingScoreId}`
+          ),
+          data
+        )
+      : await addDoc(
+          collection(db, `users/${selectedStudentId}/scores`),
+          {
+            ...data,
+            createdAt: serverTimestamp(),
+          }
+        )
 
     alert('保存しました')
-
     setEditingScoreId(null)
   }
 
@@ -298,60 +266,61 @@ export default function AdminScoresPage() {
 
       {/* 生徒選択 */}
       <div className="student-select-box">
+
+        <select
+          value={gradeFilter}
+          onChange={e => setGradeFilter(e.target.value)}
+        >
+          <option value="all">全学年</option>
+          <option value="7">中1</option>
+          <option value="8">中2</option>
+          <option value="9">中3</option>
+        </select>
+
         <select
           value={selectedStudentId}
           onChange={e => setSelectedStudentId(e.target.value)}
         >
           <option value="">生徒を選択</option>
 
-          {students.map(s => (
+          {filteredStudents.map(s => (
             <option key={s.uid} value={s.uid}>
+              {gradeLabel(s.grade)}
               {s.realName || s.displayName}
             </option>
           ))}
         </select>
       </div>
 
-      {/* テスト入力 */}
+      {/* テスト */}
       <div className="score-block">
         <h2>五教科テスト</h2>
 
         <div className="row-inline">
-          <select
-            value={schoolYear}
-            onChange={e => setSchoolYear(e.target.value)}
-          >
-            {SCHOOL_YEARS.map(v => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-
-          <select
-            value={grade}
-            onChange={e => setGrade(e.target.value)}
-          >
-            {GRADES.map(v => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-
-          <select
-            value={term}
-            onChange={e => setTerm(e.target.value)}
-          >
-            {TERMS.map(v => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-
-          <select
-            value={testType}
-            onChange={e => setTestType(e.target.value)}
-          >
-            {TEST_TYPES.map(v => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
+          {[schoolYear, grade, term, testType].map((v, i) => (
+            <select
+              key={i}
+              value={v}
+              onChange={e => {
+                const val = e.target.value
+                if (i === 0) setSchoolYear(val)
+                if (i === 1) setGrade(val)
+                if (i === 2) setTerm(val)
+                if (i === 3) setTestType(val)
+              }}
+            >
+              {(i === 0
+                ? SCHOOL_YEARS
+                : i === 1
+                ? GRADES
+                : i === 2
+                ? TERMS
+                : TEST_TYPES
+              ).map(x => (
+                <option key={x}>{x}</option>
+              ))}
+            </select>
+          ))}
         </div>
 
         <div className="grid">
@@ -398,9 +367,7 @@ export default function AdminScoresPage() {
 
           <select
             value={internalGrade}
-            onChange={e =>
-              setInternalGrade(e.target.value)
-            }
+            onChange={e => setInternalGrade(e.target.value)}
           >
             {GRADES.map(v => (
               <option key={v}>{v}</option>
@@ -409,9 +376,7 @@ export default function AdminScoresPage() {
 
           <select
             value={internalTerm}
-            onChange={e =>
-              setInternalTerm(e.target.value)
-            }
+            onChange={e => setInternalTerm(e.target.value)}
           >
             {TERMS.map(v => (
               <option key={v}>{v}</option>
@@ -431,7 +396,7 @@ export default function AdminScoresPage() {
                 })
               }
             >
-              {[1, 2, 3, 4, 5].map(v => (
+              {[1,2,3,4,5].map(v => (
                 <option key={v} value={v}>
                   {s}:{v}
                 </option>
@@ -452,7 +417,7 @@ export default function AdminScoresPage() {
                 })
               }
             >
-              {[1, 2, 3, 4, 5].map(v => (
+              {[1,2,3,4,5].map(v => (
                 <option key={v} value={v}>
                   {s}:{v}
                 </option>
@@ -477,13 +442,11 @@ export default function AdminScoresPage() {
             {s.type === 'exam' ? (
               <>
                 <p>
-                  {gradeLabel(s.grade)} / {s.term} /{' '}
-                  {s.testType}
+                  {gradeLabel(s.grade)} / {s.term} / {s.testType}
                 </p>
 
                 <p>
-                  5計 {s.examTotal}点 / 換算{' '}
-                  {s.examConverted}点
+                  5計 {s.examTotal}点 / 換算 {s.examConverted}点
                 </p>
               </>
             ) : (
