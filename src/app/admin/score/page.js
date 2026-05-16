@@ -231,7 +231,7 @@ export default function AdminScoresPage() {
         collection(db, `users/${selectedStudentId}/scores`),
         {
           ...data,
-          createdAt: serverTimestamp(),
+          createdAt: new Date(),
         }
       )
     }
@@ -266,7 +266,7 @@ export default function AdminScoresPage() {
       internalTotal,
       grade: Number(internalGrade.replace('中', '')) + 6,
       approved: true,
-      updatedAt: serverTimestamp(),
+      updatedAt: new Date(),
     }
 
     if (editingScoreId) {

@@ -96,7 +96,7 @@ export default function StudentScoresPage(){
           )
         : await addDoc(
             collection(db, `users/${user.uid}/scores`),
-            { ...data, createdAt: serverTimestamp() }
+            { ...data, createdAt: new Date() }
           )
 
       setEditingScoreId(null)
@@ -127,7 +127,7 @@ export default function StudentScoresPage(){
           )
         : await addDoc(
             collection(db, `users/${user.uid}/scores`),
-            { ...data, createdAt: serverTimestamp() }
+            { ...data, createdAt: new Date() }
           )
 
       setEditingScoreId(null)
