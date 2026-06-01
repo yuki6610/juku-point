@@ -6,14 +6,13 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
+    setDoc,
   onSnapshot
 } from 'firebase/firestore'
 import './judge.css'
 
 import ScoreBreakdown from '@/components/ScoreBreakdown'
 import BehaviorSummary from '@/components/BehaviorSummary'
-import FinalCorrelationChart from '@/components/FinalCorrelationChart'
 
 /* =====================
    定数
@@ -49,8 +48,8 @@ export default function AdminJudgePage(){
   const [internalScore,setInternalScore]=useState(null)
 
   const [schools,setSchools]=useState([])
-  const [correlationPoints,setCorrelationPoints]=useState([])
     const [lessonCount, setLessonCount] = useState(0)
+    const [comment,setComment] = useState('')
    
 
   /* === 認証 === */
@@ -117,68 +116,30 @@ export default function AdminJudgePage(){
 
       loadLesson()
     },[selectedStudentId, year, term])
+    
+    useEffect(()=>{
+      if(!selectedStudentId) return
 
-    /* =====================
-       相関データ生成
-    ===================== */
-    useEffect(() => {
-      if (students.length === 0) return
-
-      const build = async () => {
-        const arr = []
-
-        for (const s of students) {
-          /* 生活態度 */
-          const behRef = doc(
+      const loadComment = async ()=>{
+        const snap = await getDoc(
+          doc(
             db,
             'users',
-            s.uid,
-            'behaviorSummary',
+            selectedStudentId,
+            'judgeComments',
             `${year}_${term}`
           )
-          const behSnap = await getDoc(behRef)
-          if (!behSnap.exists()) continue
+        )
 
-          const behavior = Number(behSnap.data().behaviorScore)
-          if (!Number.isFinite(behavior)) continue
-
-          /* 成績 */
-          const scoreSnap = await getDocs(
-            collection(db, 'users', s.uid, 'scores')
-          )
-
-          const sameTerm = scoreSnap.docs
-            .map(d => {
-              const data = d.data()
-              return {
-                ...data,
-                examTotal: Number(data.examTotal)
-              }
-            })
-            .filter(sc =>
-              String(sc.year) === String(year) &&
-              sc.term === term &&
-              Number.isFinite(sc.examTotal)
-            )
-
-          if (sameTerm.length === 0) continue
-
-          const best = Math.max(...sameTerm.map(s => s.examTotal))
-
-          arr.push({
-            uid: s.uid,
-            behavior,
-            score: best,
-          })
+        if(snap.exists()){
+          setComment(snap.data().comment || '')
+        }else{
+          setComment('')
         }
-
-        console.log('相関データ', arr) // ←確認用（重要）
-
-        setCorrelationPoints(arr)
       }
 
-      build()
-    }, [students, year, term])
+      loadComment()
+    },[selectedStudentId,year,term])
     
   if(loading) return <p>読み込み中...</p>
   if(!admin) return <p>管理者ログインが必要です</p>
@@ -191,6 +152,26 @@ export default function AdminJudgePage(){
   const myTotal =
     (examScore?.examConverted||0) +
     (internalScore?.internalTotal||0)
+      
+      const saveComment = async ()=>{
+        if(!selectedStudentId) return
+
+        await setDoc(
+          doc(
+            db,
+            'users',
+            selectedStudentId,
+            'judgeComments',
+            `${year}_${term}`
+          ),
+          {
+            comment,
+            updatedAt:new Date()
+          }
+        )
+
+        alert('コメントを保存しました')
+      }
 
   const sortedSchools=[...schools].sort((a,b)=>b.minScore-a.minScore)
 
@@ -232,11 +213,8 @@ export default function AdminJudgePage(){
                              授業回数：{lessonCount} 回
                            </div>
                            
-          {/* 相関図 */}
-          <FinalCorrelationChart
-            points={correlationPoints}
-            meUid={selectedStudent.uid}
-          />
+                           
+                           
 
           {/* 成績選択（既存） */}
           <div className="score-select no-print">
@@ -267,7 +245,7 @@ export default function AdminJudgePage(){
                                <p>
                            テスト：
                                {examScore
-                                 ? `${examScore.grade} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
+                                 ? `${gradeLabel(examScore.grade)} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
                                  : '未選択'}
                                </p>
                              </div>
@@ -275,10 +253,17 @@ export default function AdminJudgePage(){
                              <div className="print-card">
                                <p>
                                  内申：{internalScore
-                                     ? `${internalScore.grade} ${internalScore.term}（内申${internalScore.internalTotal}点）`
+                                     ? `${gradeLabel(internalScore.grade)} ${internalScore.term}（内申${internalScore.internalTotal}点）`
                                      : '未選択'}
                                </p>
                              </div>
+                           
+                           <div className="print-card">
+                             <h3>担当コメント</h3>
+                             <p style={{whiteSpace:'pre-wrap'}}>
+                               {comment || 'コメントなし'}
+                             </p>
+                           </div>
                            </div>
                            
 
@@ -305,6 +290,24 @@ export default function AdminJudgePage(){
               })}
             </tbody>
           </table>
+                           <div className="comment-box">
+                             <h3>担当コメント</h3>
+
+                             <textarea
+                               value={comment}
+                               onChange={e=>setComment(e.target.value)}
+                               placeholder="コメントを入力"
+                               rows={8}
+                             />
+
+                             <button
+                               className="save-comment-btn no-print"
+                               onClick={saveComment}
+                             >
+                               コメント保存
+                             </button>
+                           </div>
+                           
         </>
       )}
           
@@ -312,5 +315,7 @@ export default function AdminJudgePage(){
             印刷
           </button>
     </div>
+          
+         
   )
 }

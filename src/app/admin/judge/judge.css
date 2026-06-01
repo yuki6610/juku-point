@@ -93,50 +93,31 @@ select {
 .lesson-card .info-value{color:#1976d2;}
 .word-card .info-value{color:#2e7d32;}
 
-/* =========================
-   相関図セクション
-========================= */
-
-.correlation-section {
-  margin-top: 40px;
+.comment-box{
+  margin:20px 0;
+  padding:16px;
+  border:1px solid #ddd;
+  border-radius:12px;
+  background:#fff;
 }
 
-.correlation-section h3 {
-  margin-bottom: 12px;
+.comment-box textarea{
+  width:100%;
+  min-height:180px;
+  padding:12px;
+  font-size:15px;
+  resize:vertical;
+  box-sizing:border-box;
 }
 
-.correlation-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.05);
+.save-comment-btn{
+  margin-top:12px;
 }
 
-.correlation-legend {
-  display: flex;
-  gap: 16px;
-  margin-top: 12px;
-  font-size: 14px;
-}
-
-.correlation-legend span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.correlation-legend .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.correlation-legend .me {
-  background: #e53935;
-}
-
-.correlation-legend .other {
-  background: #90caf9;
+@media print{
+  .comment-box textarea{
+    border:none;
+  }
 }
 
 /* =========================
