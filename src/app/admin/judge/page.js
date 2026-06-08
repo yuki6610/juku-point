@@ -175,146 +175,141 @@ export default function AdminJudgePage(){
 
   const sortedSchools=[...schools].sort((a,b)=>b.minScore-a.minScore)
 
-  return (
-    <div className="page judge-page">
-          <h1>{selectedStudent ? `${selectedStudent.realName}：志望校判定` : '志望校判定'}</h1>
+    return (
+      <div className="page judge-page">
+        <h1>{selectedStudent ? `${selectedStudent.realName}：志望校判定` : '志望校判定'}</h1>
 
-      <div className="row no-print">
-        <select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
-          {GRADE_OPTIONS.map(g=><option key={g}>{g}</option>)}
-        </select>
+        <div className="row no-print">
+          <select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
+            {GRADE_OPTIONS.map(g=><option key={g}>{g}</option>)}
+          </select>
 
-        <select value={year} onChange={e=>setYear(e.target.value)}>
-          {YEARS.map(y=><option key={y} value={y}>{y}年</option>)}
-        </select>
+          <select value={year} onChange={e=>setYear(e.target.value)}>
+            {YEARS.map(y=><option key={y} value={y}>{y}年</option>)}
+          </select>
 
-        <select value={term} onChange={e=>setTerm(e.target.value)}>
-          {TERMS.map(t=><option key={t}>{t}</option>)}
-        </select>
+          <select value={term} onChange={e=>setTerm(e.target.value)}>
+            {TERMS.map(t=><option key={t}>{t}</option>)}
+          </select>
 
-        <select value={selectedStudentId} onChange={e=>setSelectedStudentId(e.target.value)}>
-          <option value="">生徒を選択</option>
-          {filteredStudents.map(s=>
-            <option key={s.uid} value={s.uid}>{s.realName}</option>
-          )}
-        </select>
+          <select value={selectedStudentId} onChange={e=>setSelectedStudentId(e.target.value)}>
+            <option value="">生徒を選択</option>
+            {filteredStudents.map(s=>
+              <option key={s.uid} value={s.uid}>{s.realName}</option>
+            )}
+          </select>
+        </div>
+
+        {selectedStudent && (
+          <>
+            <BehaviorSummary uid={selectedStudent.uid} year={year} term={term} />
+
+            <div className="lesson-box">授業回数：{lessonCount} 回</div>
+
+            <div className="score-select no-print">
+              <select value={examScore?.id||''} onChange={e=>setExamScore(scores.find(s=>s.id===e.target.value))}>
+                <option value="">テスト</option>
+                {scores.filter(s=>s.type==='exam').map(s=>
+                  <option key={s.id} value={s.id}>
+                    {gradeLabel(s.grade)} {s.term}{s.testType} 5計{s.examTotal}点 入試換算{s.examConverted}点
+                  </option>
+                )}
+              </select>
+
+              <select value={internalScore?.id||''} onChange={e=>setInternalScore(scores.find(s=>s.id===e.target.value))}>
+                <option value="">内申</option>
+                {scores.filter(s=>s.type==='internal').map(s=>
+                  <option key={s.id} value={s.id}>
+                    {gradeLabel(s.grade)} {s.term} 内申{s.internalTotal}点
+                  </option>
+                )}
+              </select>
+            </div>
+
+            <div className="print-only">
+              <div className="print-card">
+                <p>
+                  テスト：
+                  {examScore
+                    ? `${gradeLabel(examScore.grade)} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
+                    : '未選択'}
+                </p>
+              </div>
+
+              <div className="print-card">
+                <p>
+                  内申：
+                  {internalScore
+                    ? `${gradeLabel(internalScore.grade)} ${internalScore.term}（内申${internalScore.internalTotal}点）`
+                    : '未選択'}
+                </p>
+              </div>
+            </div>
+
+            <ScoreBreakdown exam={examScore} internal={internalScore} />
+
+            <table className="compare-table">
+              <thead>
+                <tr>
+                  <th>高校</th>
+                  <th>合格最低点</th>
+                  <th>あなたの総合得点</th>
+                  <th>点差</th>
+                  <th>判定</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {sortedSchools.map(s=>{
+                  const r=judgeResult(myTotal,s.minScore)
+                  return(
+                    <tr key={s.id}>
+                      <td>{s.name}</td>
+                      <td>{s.minScore}</td>
+                      <td>{myTotal}</td>
+                      <td className={r.className}>{r.diff}</td>
+                      <td className={r.className}>{r.label}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            <div className="print-comment">
+              <h3>コメント</h3>
+              <p style={{whiteSpace:'pre-wrap'}}>
+                {comment || 'コメントなし'}
+              </p>
+            </div>
+
+            <div className="comment-box">
+              <h3>コメント</h3>
+
+              <textarea
+                value={comment}
+                onChange={e=>setComment(e.target.value)}
+                placeholder="コメントを入力"
+                rows={8}
+              />
+
+              <button
+                className="save-comment-btn no-print"
+                onClick={saveComment}
+              >
+                コメント保存
+              </button>
+            </div>
+          </>
+        )}
+
+        <button
+          className="print-btn no-print"
+          onClick={() => window.print()}
+        >
+          印刷
+        </button>
       </div>
-          
-      {selectedStudent && (
-        <>
-          {/* 円グラフ（summary 直読み） */}
-          <BehaviorSummary
-            uid={selectedStudent.uid}
-            year={year}
-            term={term}
-          />
-                          
-                           <div className="lesson-box">
-                             授業回数：{lessonCount} 回
-                           </div>
-                           
-                           
-                           
-
-          {/* 成績選択（既存） */}
-          <div className="score-select no-print">
-            <select value={examScore?.id||''}
-              onChange={e=>setExamScore(scores.find(s=>s.id===e.target.value))}>
-              <option value="">テスト</option>
-              {scores.filter(s=>s.type==='exam').map(s=>
-                <option key={s.id} value={s.id}>
-        {gradeLabel(s.grade)}　{s.term}{s.testType} 5計{s.examTotal}点 入試換算{s.examConverted}点
-                </option>
-              )}
-            </select>
-
-            <select value={internalScore?.id||''}
-              onChange={e=>setInternalScore(scores.find(s=>s.id===e.target.value))}>
-              <option value="">内申</option>
-              {scores.filter(s=>s.type==='internal').map(s=>
-                <option key={s.id} value={s.id}>
-                 {gradeLabel(s.grade)} {s.term} 内申{s.internalTotal}点
-                </option>
-              )}
-            </select>
-          </div>
-                           
-                           
-                           <div className="print-only">
-                             <div className="print-card">
-                               <p>
-                           テスト：
-                               {examScore
-                                 ? `${gradeLabel(examScore.grade)} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
-                                 : '未選択'}
-                               </p>
-                             </div>
-
-                             <div className="print-card">
-                               <p>
-                                 内申：{internalScore
-                                     ? `${gradeLabel(internalScore.grade)} ${internalScore.term}（内申${internalScore.internalTotal}点）`
-                                     : '未選択'}
-                               </p>
-                             </div>
-                           
-                           <div className="print-card">
-                             <h3>担当コメント</h3>
-                             <p style={{whiteSpace:'pre-wrap'}}>
-                               {comment || 'コメントなし'}
-                             </p>
-                           </div>
-                           </div>
-                           
-
-          <ScoreBreakdown exam={examScore} internal={internalScore} />
-
-          <table className="compare-table">
-            <thead>
-              <tr>
-                <th>高校</th><th>合格最低点</th><th>あなたの総合得点</th><th>点差</th><th>判定</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedSchools.map(s=>{
-                const r=judgeResult(myTotal,s.minScore)
-                return(
-                  <tr key={s.id}>
-                    <td>{s.name}</td>
-                    <td>{s.minScore}</td>
-                    <td>{myTotal}</td>
-                    <td className={r.className}>{r.diff}</td>
-                    <td className={r.className}>{r.label}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-                           <div className="comment-box">
-                             <h3>担当コメント</h3>
-
-                             <textarea
-                               value={comment}
-                               onChange={e=>setComment(e.target.value)}
-                               placeholder="コメントを入力"
-                               rows={8}
-                             />
-
-                             <button
-                               className="save-comment-btn no-print"
-                               onClick={saveComment}
-                             >
-                               コメント保存
-                             </button>
-                           </div>
-                           
-        </>
-      )}
-          
-          <button className="print-btn no-print" onClick={() => window.print()}>
-            印刷
-          </button>
-    </div>
+    
           
          
   )
