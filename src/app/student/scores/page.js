@@ -32,6 +32,7 @@ export default function StudentScoresPage(){
   const [selectedExamId,setSelectedExamId]=useState('')
   const [selectedInternalId,setSelectedInternalId]=useState('')
   const [editingScoreId,setEditingScoreId]=useState(null)
+    const [openSchool, setOpenSchool] = useState(null);
 
   useEffect(()=>{const auth=getAuth();return onAuthStateChanged(auth,u=>{setUser(u);setCheckingAuth(false)})},[])
   useEffect(()=>{if(!user)return
@@ -189,20 +190,178 @@ export default function StudentScoresPage(){
 
       <ScoreBreakdown exam={selectedExam} internal={selectedInternal} />
 
-      <h2>志望校比較</h2>
-      <table className="compare-table">
-        <thead><tr><th>高校名</th><th>最低点</th><th>あなた</th><th>差</th><th>判定</th></tr></thead>
-        <tbody>{[...schools].sort((a,b)=>b.minScore-a.minScore).map(s=>{
-          const r=judgeResult(finalTotal,s.minScore)
-          return (
-            <tr key={s.id}>
-              <td>{s.name}</td><td>{s.minScore}</td><td>{finalTotal}</td>
-              <td className={r.className}>{r.diff>=0?`+${r.diff}`:r.diff}</td>
-              <td className={r.className}>{r.label}</td>
-            </tr>
-          )
-        })}</tbody>
-      </table>
-    </div>
-  )
-}
+                                             <h2>志望校比較</h2>
+
+                                             <div className="school-list">
+                                               {[...schools]
+                                                 .sort((a, b) => b.minScore - a.minScore)
+                                                 .map((s) => {
+
+                                                   const r = judgeResult(finalTotal, s.minScore);
+                                                   const open = openSchool === s.id;
+
+                                                   return (
+                                                     <div key={s.id} className="school-card">
+
+                                                       <div
+                                                         className="school-header"
+                                                         onClick={() =>
+                                                           setOpenSchool(open ? null : s.id)
+                                                         }
+                                                       >
+                                                         <div>
+                                                           <div className="school-name">
+                                                             🏫 {s.name}
+                                                           </div>
+
+                                                           <div className="school-score">
+                                                             偏差値 {s.deviation ?? "-"}
+                                                           </div>
+                                                         </div>
+
+                                                         <div className={r.className}>
+                                                           {r.label}
+
+                                                           {open ? " ▲" : " ▼"}
+                                                         </div>
+                                                       </div>
+
+                                                           {open && (
+                                                             <div className="school-body">
+
+                                                               <div className="info-row">
+                                                                 <span>平均点</span>
+                                                                 <span>{s.averageScore ?? "-"}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>あなた</span>
+                                                                 <span>{finalTotal}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>平均点差</span>
+                                                                 <span
+                                                                   className={
+                                                                     finalTotal - (s.averageScore ?? 0) >= 0
+                                                                       ? "safe"
+                                                                       : "ng"
+                                                                   }
+                                                                 >
+                                                                   {(() => {
+                                                                     const diff = finalTotal - (s.averageScore ?? 0);
+                                                                     return `${diff >= 0 ? "+" : ""}${diff}点`;
+                                                                   })()}
+                                                                 </span>
+                                                               </div>
+
+                                                               <hr />
+
+                                                               <div className="info-row">
+                                                                 <span>合格最低点</span>
+                                                                 <span>{s.minScore}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>あなた</span>
+                                                                 <span>{finalTotal}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>最低点差</span>
+                                                                 <span
+                                                                   className={
+                                                                     finalTotal - (s.minScore ?? 0) >= 0
+                                                                       ? "safe"
+                                                                       : "ng"
+                                                                   }
+                                                                 >
+                                                                   {(() => {
+                                                                     const diff = finalTotal - (s.minScore ?? 0);
+                                                                     return `${diff >= 0 ? "+" : ""}${diff}点`;
+                                                                   })()}
+                                                                 </span>
+                                                               </div>
+
+                                                               <hr />
+
+                                                               <div className="info-row">
+                                                                 <span>内申点目安</span>
+                                                                 <span>{s.internalTarget ?? "-"}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>あなた</span>
+                                                                 <span>{selectedInternal?.internalTotal ?? "-"}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>内申差</span>
+                                                                 <span
+                                                                   className={
+                                                                     (selectedInternal?.internalTotal ?? 0) - (s.internalTarget ?? 0) >= 0
+                                                                       ? "safe"
+                                                                       : "ng"
+                                                                   }
+                                                                 >
+                                                                   {(() => {
+                                                                     const diff =
+                                                                       (selectedInternal?.internalTotal ?? 0) -
+                                                                       (s.internalTarget ?? 0);
+                                                                     return `${diff >= 0 ? "+" : ""}${diff}点`;
+                                                                   })()}
+                                                                 </span>
+                                                               </div>
+
+                                                               <hr />
+
+                                                               <div className="info-row">
+                                                                 <span>5教科目安</span>
+                                                                 <span>{s.scoreTarget ?? "-"}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>あなた</span>
+                                                                 <span>{selectedExam?.examTotal ?? "-"}点</span>
+                                                               </div>
+
+                                                               <div className="info-row">
+                                                                 <span>5教科差</span>
+                                                                 <span
+                                                                   className={
+                                                                     (selectedExam?.examTotal ?? 0) - (s.scoreTarget ?? 0) >= 0
+                                                                       ? "safe"
+                                                                       : "ng"
+                                                                   }
+                                                                 >
+                                                                   {(() => {
+                                                                     const diff =
+                                                                       (selectedExam?.examTotal ?? 0) -
+                                                                       (s.scoreTarget ?? 0);
+                                                                     return `${diff >= 0 ? "+" : ""}${diff}点`;
+                                                                   })()}
+                                                                 </span>
+                                                               </div>
+
+                                                               <hr />
+
+                                                               <div className="info-row">
+                                                                 <span>倍率</span>
+                                                                 <span>{s.rate ?? "-"}</span>
+                                                               </div>
+
+                                                             </div>
+                                                           )}
+                                                           </div>
+
+                                                                                                              );
+
+                                                                                                            })}
+
+                                                                                                        </div>
+
+                                                               </div>
+
+                                                             )
+
+                                                           }

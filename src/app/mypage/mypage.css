@@ -171,6 +171,20 @@
   color: #fff;
 }
 
+.btn.gold{
+
+  background:linear-gradient(135deg,#FFD700,#FFB300);
+
+  color:#fff;
+
+}
+
+.btn.gold:hover{
+
+  background:linear-gradient(135deg,#FFC107,#FFA000);
+
+}
+
 
 
 /* ----------------------------------------------------

@@ -16,7 +16,7 @@ import {
   deleteDoc,
   increment
 } from 'firebase/firestore'
-import { updateExperience, checkAndGrantTitles } from '../../utils/updateExperience'
+import { updateExperience} from '../../utils/updateExperience'
 import { incrementCounter } from "../../../lib/updateCounters"
 
 export default function WordTestPage() {
@@ -118,11 +118,15 @@ export default function WordTestPage() {
       })
 
       // 🔥 正解数は常に加算（ランキング用）
-      await updateDoc(doc(db, "users", studentId), {
-        totalWordTestScore: increment(correct)
-      })
+        await updateDoc(doc(db, "users", studentId), {
+          totalWordTestScore: increment(correct),
+          termWordScore: increment(correct),
+        })
 
-      await incrementCounter(studentId, "wordTestCount")
+        await incrementCounter(studentId, [
+          "wordTestCount",
+          "termWordTestCount",
+        ])
 
       let result = { levelUps: 0, newLevel: 0 }
 
@@ -178,13 +182,29 @@ export default function WordTestPage() {
         submittedAt: null,
       })
 
-      await updateDoc(doc(db, "users", studentId), {
-        totalWordTestScore: increment(-correct)
-      })
+        await updateDoc(doc(db, "users", studentId), {
+          totalWordTestScore: increment(-correct),
+          termWordScore: increment(-correct),
+        })
+        
+        await incrementCounter(studentId, [
+          "wordTestCount",
+          "termWordTestCount",
+        ], -1)
 
-      if (passed) {
-        await updateExperience(studentId, -exp, "wordtest_undo", -points)
-      }
+        if (passed) {
+          await updateExperience(studentId, -exp, "wordtest_undo", -points)
+
+          await addDoc(collection(db, `users/${studentId}/pointHistory`), {
+            type: "wordtest_undo",
+            amount: -points,
+            exp: -exp,
+            correct,
+            total: snap.data().total,
+            week: selectedWeek,
+            createdAt: new Date(),
+          })
+        }
 
       setStudents(prev =>
         prev.map(s =>

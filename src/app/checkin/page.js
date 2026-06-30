@@ -199,6 +199,9 @@ export default function CheckinPage() {
       await updateDoc(userRef, {
         selfStudyCount: increment(1),
         totalStudyMinutes: increment(minutes),
+          
+          termSelfStudyCount: increment(1),
+          termStudyMinutes: increment(minutes),
       });
 
       // XP / pt 計算

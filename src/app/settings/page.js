@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getAuth, updateProfile } from "firebase/auth";
-import { db } from "@/firebaseConfig";
+import { db, storage } from "@/firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import Avatar3DWrapper from "@/components/RpmAvatarCanvas";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import Avatar3DWrapper from "@/components/VRMAvatarCanvas";
 import "./settings.css";
 
 export default function SettingsPage() {
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingName, setSavingName] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
 
   // -----------------------------
   // ユーザーデータ読み込み
@@ -65,17 +67,48 @@ export default function SettingsPage() {
   // -----------------------------
   // アバター保存
   // -----------------------------
-  const saveAvatar = async () => {
-    if (!user) return;
+   
+    const saveAvatar = async () => {
+      alert("① saveAvatar開始");
 
-    await updateDoc(doc(db, "users", user.uid), {
-      avatarUrl,
-    });
+      if (!user) {
+        alert("② userがありません");
+        return;
+      }
 
-    alert("アバターを更新しました！");
-    router.push("/mypage");
-  };
+      if (!avatarFile) {
+        alert("③ ファイルがありません");
+        return;
+      }
 
+      alert("④ upload開始");
+
+      try {
+        const storageRef = ref(storage, `avatars/${user.uid}/avatar.vrm`);
+
+        await uploadBytes(storageRef, avatarFile);
+
+        alert("⑤ upload成功");
+
+        const downloadURL = await getDownloadURL(storageRef);
+
+        alert(downloadURL);
+
+        await updateDoc(doc(db, "users", user.uid), {
+          avatarUrl: downloadURL,
+          updatedAt: new Date(),
+        });
+
+        alert("⑥ Firestore更新");
+
+        setAvatarUrl(downloadURL);
+
+        alert("完了");
+      } catch (e) {
+        console.error(e);
+        alert(`${e.code}\n${e.message}`);
+      }
+    };
   if (loading) return <p>読み込み中...</p>;
 
   return (
@@ -110,38 +143,50 @@ export default function SettingsPage() {
       {/* -----------------------------
           アバター設定セクション
       ----------------------------- */}
-      <h3 className="settings-section-title">🎨 アバター設定</h3>
+          <h3 className="settings-section-title">🎨 アバター設定</h3>
 
-      <p className="settings-desc">
-        Ready Player Me のアバターURL（GLB）を入力してください。
-      </p>
+          <p className="settings-desc">
+          VRMファイルをアップロードしてください。
+          </p>
 
-      <input
-        type="text"
-        value={avatarUrl}
-        onChange={(e) => setAvatarUrl(e.target.value)}
-        placeholder="https://models.readyplayer.me/xxxx.glb"
-        className="settings-input"
-      />
+          <input
+            type="file"
+            accept=".vrm"
+            className="settings-input"
+            onChange={(e)=>{
+              if(e.target.files?.length){
+                setAvatarFile(e.target.files[0]);
+              }
+            }}
+          />
 
-      <button onClick={saveAvatar} className="settings-save-btn">
-        アバターを保存
-      </button>
-          
+          <button
+            className="settings-save-btn"
+            onClick={saveAvatar}
+          >
+            アバターを保存
+          </button>
           <a
-            href="https://readyplayer.me/avatar"
+            href="https://avatarmaker.vket.com/"
             target="_blank"
+            rel="noopener noreferrer"
             className="settings-link"
           >
-            🎭 アバターを作成する（Ready Player Me）
+            🎭 Vket Avatar Makerで作成
           </a>
 
-      <h3 className="settings-preview-title">プレビュー</h3>
+          <h3 className="settings-preview-title">
+          プレビュー
+          </h3>
 
-      <div className="settings-preview-box">
-        <Avatar3DWrapper url={avatarUrl} />
-      </div>
+          <div className="settings-preview-box">
 
-    </div>
-  );
-}
+            {avatarUrl && <Avatar3DWrapper url={avatarUrl} />}
+
+          </div>
+
+          </div>
+
+          );
+
+          }

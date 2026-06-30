@@ -6,6 +6,11 @@ import { db } from "../../firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
+const AvatarCanvas = dynamic(
+  () => import("@/components/VRMAvatarCanvas"),
+  { ssr: false }
+);
 import "./mypage.css";
 
 /* ---------------- 共通関数 ---------------- */
@@ -149,7 +154,10 @@ export default function MyPage() {
               height: "320px",
             }}
           >
-          
+            <AvatarCanvas
+              url={data.avatarUrl}
+              height={320}
+            />
           </div>
           
       <div className="status-card">
@@ -176,6 +184,10 @@ export default function MyPage() {
               </button>
             </>
           )}
+          {data?.courseTags?.includes('summer_course') && (
+            <button className="btn gold" onClick={() => router.push('/summer')}>🍖 夏期イベント</button>
+          )}
+          
           {/* {(data?.grade >= 10 && data?.grade <= 12) && (
             <button
             onClick={() => router.push("/universities")}

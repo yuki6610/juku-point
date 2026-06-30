@@ -139,3 +139,127 @@
 .back-btn:hover {
   background: #4f46e5;
 }
+
+.top3-container{
+  display:flex;
+  gap:16px;
+  justify-content:center;
+  margin:24px 0;
+}
+
+.top-card{
+  flex:1;
+  max-width:220px;
+  border-radius:16px;
+  padding:20px;
+  text-align:center;
+  color:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,.15);
+}
+
+.top1{
+  background:linear-gradient(135deg,#FFD700,#FFB300);
+}
+
+.top2{
+  background:linear-gradient(135deg,#D9D9D9,#9E9E9E);
+}
+
+.top3{
+  background:linear-gradient(135deg,#CD7F32,#8D5524);
+}
+
+.top-crown{
+  font-size:42px;
+  margin-bottom:10px;
+}
+
+.top-name{
+  font-size:20px;
+  font-weight:bold;
+  margin-bottom:10px;
+}
+
+.top-score{
+  font-size:24px;
+  font-weight:bold;
+}
+.hall-card{
+    background:#fff8dc;
+    border:2px solid gold;
+    border-radius:16px;
+    padding:18px;
+    margin-bottom:20px;
+}
+
+.hall-card h2{
+    text-align:center;
+    margin-bottom:12px;
+}
+
+.hall-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.hall-row{
+    display:flex;
+    justify-content:space-between;
+    padding:10px 16px;
+    background:white;
+    border-radius:10px;
+    font-weight:bold;
+}
+.hall-podium{
+    display:flex;
+    justify-content:center;
+    align-items:flex-end;
+    gap:18px;
+    margin-top:20px;
+}
+
+.hall-first,
+.hall-second,
+.hall-third{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    border-radius:16px;
+    padding:16px;
+    color:white;
+    width:120px;
+    font-weight:bold;
+}
+
+.hall-first{
+    background:#FFD700;
+    color:black;
+    min-height:180px;
+}
+
+.hall-second{
+    background:#C0C0C0;
+    color:black;
+    min-height:150px;
+}
+
+.hall-third{
+    background:#CD7F32;
+    min-height:130px;
+}
+
+.hall-medal{
+    font-size:42px;
+}
+
+.hall-name{
+    margin-top:10px;
+    font-size:18px;
+    text-align:center;
+}
+
+.hall-score{
+    margin-top:8px;
+    font-size:16px;
+}

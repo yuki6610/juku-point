@@ -2,12 +2,11 @@
 
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import RpmAvatar from "./RpmAvatar";
+import VRMAvatar from "./VRMAvatar";
 
 export default function RotatingAvatar({ url, ...props }) {
   const ref = useRef();
 
-  // 毎フレーム回転（0.01 は速度）
   useFrame(() => {
     if (ref.current) {
       ref.current.rotation.y += 0.01;
@@ -16,7 +15,7 @@ export default function RotatingAvatar({ url, ...props }) {
 
   return (
     <group ref={ref}>
-      <RpmAvatar url={url} {...props} />
+      <VRMAvatar url={url} {...props} />
     </group>
   );
 }

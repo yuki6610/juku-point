@@ -270,11 +270,21 @@ export default function RewardsPage() {
               cost: -rewardData.cost,      // マイナスで記録
               date: new Date(),
             };
+            
+            const isSummerReward =
+            rewardData.requiredTag === 'summer_course'
+            
+            const updateData={
+              points:currentPoints-rewardData.cost,
+              rewardHistory:arrayUnion(newHistory),
+            }
 
-          transaction.update(userRef, {
-            points: currentPoints - rewardData.cost,
-            rewardHistory: arrayUnion(newHistory),
-          })
+            if(isSummerReward){
+              updateData.summerExchangePoint=
+                (userData.summerExchangePoint||0)+rewardData.cost
+            }
+
+            transaction.update(userRef,updateData)
 
           if (rewardData.stock !== undefined) {
             transaction.update(rewardRef, {

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { db } from '../../../firebaseConfig'
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore'
-import { updateExperience, checkAndGrantTitles } from '../../utils/updateExperience'
+import { updateExperience} from '../../utils/updateExperience'
 import { incrementCounter } from "../../../lib/updateCounters"
 
 export default function HomeworkPage() {
@@ -85,9 +85,10 @@ export default function HomeworkPage() {
       50
     )
 
-    await incrementCounter(studentId, "homeworkCount")
-
-    await checkAndGrantTitles(studentId)
+        await incrementCounter(studentId, [
+          "homeworkCount",
+          "termHomeworkCount",
+        ])
 
     const historyRef = doc(
       collection(db, `users/${studentId}/pointHistory`)
