@@ -268,10 +268,41 @@ select {
   font-weight: bold;
 }
 
-/* 印刷崩れ防止 */
-/* =========================
-   印刷最適化（A4 1枚）
-========================= */
+
+.school-name{
+  font-weight:700;
+}
+
+.school-deviation{
+  font-size:12px;
+  color:#666;
+  margin-top:2px;
+}
+
+.internal-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  gap:18px;
+}
+
+.internal-divider{
+  align-self:center;
+  font-size:22px;
+  font-weight:bold;
+  color:#999;
+}
+
+.internal-row .score-row{
+  display:flex;
+  gap:6px;
+}
+
+.internal-row .score-card{
+  min-width:42px;
+}
+
+
 .print-comment{
 
   display:none;
@@ -298,21 +329,31 @@ select {
   .score-breakdown{
     display:flex!important;
     flex-wrap:nowrap!important;
-    gap:14px!important;
+    gap:10px!important;
   }
 
   .score-block{
     flex:1!important;
-    padding:8px!important;
+    padding:8px 10px!important;
     margin:0!important;
+    border:1px solid #ccc;
+    border-radius:6px;
+    background:#fff;
   }
 
-  .score-block h3{font-size:15px!important;margin-bottom:4px!important;}
-  .score-block h4{font-size:13px!important;margin:4px 0!important;}
+  .score-block h3{
+    font-size:18px!important;
+    margin:0 0 4px!important;
+  }
 
-  .score-card{padding:3px!important;}
-  .score-card .label{font-size:10px!important;}
-  .score-card .value{font-size:10px!important;}
+  .score-block h4{
+    font-size:15px!important;
+    margin:4px 0!important;
+  }
+
+  .score-card{
+    padding:4px!important;
+  }
 
   .behavior-summary{
     display:flex!important;
@@ -329,8 +370,8 @@ select {
   }
 
   .behavior-summary svg{
-    width:130px!important;
-    height:130px!important;
+    width:110px!important;
+    height:110px!important;
   }
 
   .forgot-card,
@@ -353,17 +394,39 @@ select {
   .print-only{
     display:flex!important;
     gap:10px;
-    margin:8px 0 12px;
+    margin:6px 0 8px;
     page-break-inside:avoid;
   }
 
   .print-only .print-card{
     flex:1;
-    padding:6px 8px;
+    min-height:48px;
+    padding:8px 12px;
     border:1px solid #bbb;
-    border-radius:4px;
-    font-size:15px;
+    border-radius:6px;
     background:#f8f9fc;
+
+    display:flex;
+    align-items:center;
+  }
+
+  .print-only .print-card p{
+    margin:0;
+    font-size:18px;
+    line-height:1.4;
+    font-weight:500;
+  }
+  
+  .internal-row{
+    gap:12px!important;
+  }
+
+  .internal-divider{
+    font-size:20px!important;
+  }
+
+  .internal-row .score-card{
+    min-width:36px!important;
   }
   
   .print-comment{
@@ -383,8 +446,6 @@ select {
       page-break-inside:avoid;
 
     }
-
-  /* ←これが重要 */
   .comment-box{
     display:none!important;
   }

@@ -22,11 +22,18 @@ export default function BehaviorSummary({ uid, year, term }) {
 
       setSummary(snap.data())
 
-      // ★ 単語テスト総得点取得（users直下）
-      const userSnap = await getDoc(doc(db, 'users', uid))
-      if (userSnap.exists()) {
-        setTotalWordTestScore(userSnap.data().totalWordTestScore || 0)
-      }
+     const userSnap = await getDoc(doc(db, 'users', uid))
+
+if (userSnap.exists()) {
+  const data = userSnap.data()
+
+  const total = data.totalWordTestScore || 0
+  const count = data.wordTestCount || 0
+
+  setTotalWordTestScore(
+    count > 0 ? (total / count).toFixed(1) : 0
+  )
+}
     }
 
     load()
@@ -64,7 +71,7 @@ export default function BehaviorSummary({ uid, year, term }) {
 
         {/* ★ 単語テスト総得点 */}
         <div className="info-card">
-          <div className="info-label">単語テスト総得点</div>
+          <div className="info-label">単語テスト平均点</div>
           <div className="info-value">{totalWordTestScore}</div>
         </div>
       </div>

@@ -28,7 +28,7 @@ const judgeResult = (my,min)=>{
   if(d>=20) return{diff:d,label:'◎ 安全圏',className:'safe'}
   if(d>=0)  return{diff:d,label:'○ 合格圏',className:'ok'}
   if(d>=-20)return{diff:d,label:'△ 努力圏',className:'warn'}
-  return{diff:d,label:'× 厳しい',className:'ng'}
+  return{diff:d,label:'× 危険',className:'ng'}
 }
 
 export default function AdminJudgePage(){
@@ -250,29 +250,77 @@ export default function AdminJudgePage(){
 
             <table className="compare-table">
               <thead>
-                <tr>
-                  <th>高校</th>
-                  <th>合格最低点</th>
-                  <th>あなたの総合得点</th>
-                  <th>点差</th>
-                  <th>判定</th>
-                </tr>
+                             <tr>
+                               <th>高校</th>
+                               <th>合格最低点</th>
+                             <th>あなたの総合点</th>
+                             <th>最低点差</th>
+                             <th>平均点</th>
+                             <th>平均点差</th>
+                               <th>内申目安</th>
+                             <th>内申差</th>
+                               <th>5教科目安</th>
+                             <th>5教科差</th>
+                               <th>判定</th>
+                             </tr>
               </thead>
 
-              <tbody>
-                {sortedSchools.map(s=>{
-                  const r=judgeResult(myTotal,s.minScore)
-                  return(
-                    <tr key={s.id}>
-                      <td>{s.name}</td>
-                      <td>{s.minScore}</td>
-                      <td>{myTotal}</td>
-                      <td className={r.className}>{r.diff}</td>
-                      <td className={r.className}>{r.label}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
+                             <tbody>
+                               {sortedSchools.map((s) => {
+                                 const r = judgeResult(myTotal, s.minScore);
+
+                                 const internalDiff =
+                                   (internalScore?.internalTotal ?? 0) - (s.internalTarget ?? 0);
+                                   
+                                   const averageDiff =
+
+                                     myTotal - (s.averageScore ?? 0);
+
+                                 const examDiff =
+                                   (examScore?.examTotal ?? 0) - (s.scoreTarget ?? 0);
+
+                                 return (
+                                   <tr key={s.id}>
+                                     <td>
+                                       <div className="school-name">{s.name}</div>
+                                       <div className="school-deviation">
+                                         偏差値 {s.deviation ?? "-"}
+                                       </div>
+                                     </td>
+
+                                     <td>{s.minScore}</td>
+                                         
+                                         <td>{myTotal}</td>
+                                         
+                                         <td className={r.className}>
+                                           {r.diff >= 0 ? `+${r.diff}` : r.diff}
+                                         </td>
+
+                                     <td>{s.averageScore ?? "-"}</td>
+                                         
+                                         <td className={averageDiff >= 0 ? "safe" : "ng"}>
+                                           {averageDiff >= 0
+                                             ? `+${averageDiff}`
+                                             : averageDiff}
+                                         </td>
+
+                                     <td>{s.internalTarget ?? "-"}</td>
+                                         
+                                         <td className={internalDiff >= 0 ? "safe" : "ng"}>
+                                           {internalDiff >= 0 ? `+${internalDiff}` : internalDiff}
+                                         </td>
+
+                                     <td>{s.scoreTarget ?? "-"}</td>
+
+                                         <td className={examDiff >= 0 ? "safe" : "ng"}>
+                                           {examDiff >= 0 ? `+${examDiff}` : examDiff}
+                                         </td>
+
+                                     <td className={r.className}>{r.label}</td>
+                                   </tr>
+                                 );
+                               })}
+                             </tbody>
             </table>
 
             <div className="print-comment">

@@ -263,3 +263,15 @@
     margin-top:8px;
     font-size:16px;
 }
+
+.ranking-tabs button:disabled {
+  opacity: 1;
+  color: inherit;
+  background: #f7f7f7;
+  cursor: not-allowed;
+}
+
+.ranking-tabs button.active:disabled {
+  background: #2563eb;
+  color: white;
+}
