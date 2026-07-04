@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect,useState } from 'react'
-import { getAuth,onAuthStateChanged } from 'firebase/auth'
+import { useEffect, useState } from 'react'
+import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/../firebaseConfig'
 import {
   collection,
@@ -12,148 +12,249 @@ import {
 } from 'firebase/firestore'
 import './summer.css'
 
-export default function SummerPage(){
-
-  const [loading,setLoading]=useState(true)
-  const [user,setUser]=useState(null)
-
-  const [ranking,setRanking]=useState([])
-  const [myRank,setMyRank]=useState(0)
-  const [myPoint,setMyPoint]=useState(0)
-
-  const [totalPoint,setTotalPoint]=useState(0)
-  const [yenPerPoint,setYenPerPoint]=useState(0.3)
-  const [meal,setMeal]=useState('未定')
+export default function SummerPage() {
     
-  useEffect(()=>{
+    const [loading, setLoading] = useState(true)
+    const [user, setUser] = useState(null)
+    
+    const [ranking, setRanking] = useState([])
+    const [myRank, setMyRank] = useState(0)
+    const [myPoint, setMyPoint] = useState(0)
+    
+    const [totalPoint, setTotalPoint] = useState(0)
+    const [yenPerPoint, setYenPerPoint] = useState(0.3)
+    
+    // ★追加
+    const [endDate, setEndDate] = useState('2026-08-22')
+    
+    useEffect(() => {
+        
+        return onAuthStateChanged(getAuth(), async (currentUser) => {
+            
+            if (!currentUser) {
+                location.href = '/login'
+                return
+            }
+            
+            const userSnap = await getDoc(doc(db, 'users', currentUser.uid))
+            
+            if (!userSnap.exists()) {
+                setLoading(false)
+                return
+            }
+            
+            const userData = userSnap.data()
+            
+            if (!(userData.courseTags || []).includes('summer_course')) {
+                alert('このページは対象者のみ閲覧できます')
+                location.href = '/'
+                return
+            }
+            
+            setUser(currentUser)
+            
+            const adminsSnap = await getDocs(collection(db, 'admins'))
+            const adminIds = new Set(adminsSnap.docs.map(d => d.id))
+            
+            const unsubscribe = onSnapshot(collection(db, 'users'), snap => {
+                
+                const arr = snap.docs
+                .map(d => ({
+                    uid: d.id,
+                    name: d.data().realName || d.data().displayName || '名前なし',
+                    point: d.data().summerExchangePoint || 0,
+                    tags: d.data().courseTags || []
+                }))
+                .filter(v =>
+                        v.tags.includes('summer_course') &&
+                        !adminIds.has(v.uid)
+                        )
+                .sort((a, b) => b.point - a.point)
+                
+                setRanking(arr)
+                
+                const total = arr.reduce((s, v) => s + v.point, 0)
+                setTotalPoint(total)
+                
+                const me = arr.find(v => v.uid === currentUser.uid)
+                
+                setMyPoint(me?.point || 0)
+                
+                setMyRank(
+                          arr.findIndex(v => v.uid === currentUser.uid) + 1
+                          )
+                
+            })
+            
+            const eventSnap = await getDoc(
+                                           doc(db, 'admin_data', 'summerEvent')
+                                           )
+            
+            if (eventSnap.exists()) {
+                
+                const d = eventSnap.data()
+                
+                setYenPerPoint(d.yenPerPoint ?? 0.3)
+                
+                // Firestoreに endDate があれば使う
+                setEndDate(d.endDate ?? '2026-08-22')
+            }
+            
+            setLoading(false)
+            
+            return unsubscribe
+            
+        })
+        
+    }, [])
+    
+    if (loading) return <p>読み込み中...</p>
+        
+        //==========================
+        // 追加
+        //==========================
+        
+        const contribution =
+        totalPoint > 0
+        ? ((myPoint / totalPoint) * 100).toFixed(1)
+        : 0
+        
+        const remainDays = Math.max(
+                                    0,
+                                    Math.ceil(
+                                              (new Date(endDate) - new Date()) /
+                                              (1000 * 60 * 60 * 24)
+                                              )
+                                    )
+        
+        const top3 = ranking.slice(0, 3)
+        
+        return (
+          <div className="summer-page">
 
-    return onAuthStateChanged(getAuth(),async(currentUser)=>{
+            <h1>🍖 夏期イベント</h1>
 
-      if(!currentUser){
-        location.href='/login'
-        return
-      }
+            <div className="summer-info">
+              🏆 <strong>ランキング1位の生徒がイベント当日の食事内容を決定します！</strong>
+              <br />
+              ポイントを集めて1位を目指そう！
+            </div>
 
-      const userSnap=await getDoc(doc(db,'users',currentUser.uid))
+            {/* TOP3 */}
+            <div className="top3-wrap">
 
-      if(!userSnap.exists()){
-        setLoading(false)
-        return
-      }
+              {top3[1] && (
+                <div className="top-card silver">
+                  <div className="medal">🥈</div>
+                  <div className="top-name">{top3[1].name}</div>
+                  <div className="top-point">
+                    {top3[1].point.toLocaleString()} pt
+                  </div>
+                </div>
+              )}
 
-      const userData=userSnap.data()
+              {top3[0] && (
+                <div className="top-card gold">
+                  <div className="medal">🥇</div>
+                  <div className="top-name">{top3[0].name}</div>
+                  <div className="top-point">
+                    {top3[0].point.toLocaleString()} pt
+                  </div>
+                </div>
+              )}
 
-      if(!(userData.courseTags||[]).includes('summer_course')){
-        alert('このページは対象者のみ閲覧できます')
-        location.href='/'
-        return
-      }
+              {top3[2] && (
+                <div className="top-card bronze">
+                  <div className="medal">🥉</div>
+                  <div className="top-name">{top3[2].name}</div>
+                  <div className="top-point">
+                    {top3[2].point.toLocaleString()} pt
+                  </div>
+                </div>
+              )}
 
-      setUser(currentUser)
-        const adminsSnap = await getDocs(collection(db, "admins"));
-        const adminIds = new Set(adminsSnap.docs.map(d => d.id));
+            </div>
 
-      const unsubscribe=onSnapshot(collection(db,'users'),snap=>{
+            <div className="summer-card">
+              <h2>総交換ポイント</h2>
+              <div className="big-number">
+                {totalPoint.toLocaleString()} pt
+              </div>
+            </div>
 
-          const arr = snap.docs
-            .map(d => ({
-              uid: d.id,
-              name: d.data().realName || d.data().displayName || "名前なし",
-              point: d.data().summerExchangePoint || 0,
-              tags: d.data().courseTags || []
-            }))
-            .filter(u =>
-              u.tags.includes("summer_course") &&
-              !adminIds.has(u.uid)
-            )
-            .sort((a, b) => b.point - a.point);
+            <div className="summer-card">
+              <h2>現在の食事代</h2>
+              <div className="big-number">
+                {Math.round(totalPoint * yenPerPoint).toLocaleString()} 円
+              </div>
+            </div>
 
-        setRanking(arr)
+            <div className="summer-card">
+              <h2>⏰ イベント終了まで</h2>
+              <div className="big-number">
+                あと {remainDays} 日
+              </div>
+            </div>
 
-        const total=arr.reduce((s,v)=>s+v.point,0)
-        setTotalPoint(total)
 
-        const rank=arr.findIndex(v=>v.uid===currentUser.uid)+1
+            <div className="summer-card">
 
-        setMyRank(rank)
+              <h2>🏆 ランキング</h2>
+                
+                {ranking.map((r, i) => (
+                  <div className="rank-row" key={r.uid}>
 
-        const me=arr.find(v=>v.uid===currentUser.uid)
+                    <span className="rank-number">
+                      {i === 0
+                        ? "🥇"
+                        : i === 1
+                        ? "🥈"
+                        : i === 2
+                        ? "🥉"
+                        : `${i + 1}位`}
+                    </span>
 
-        setMyPoint(me?.point||0)
+                    <span className="rank-name">
+                      {r.name}
+                    </span>
 
-      })
+                    <span className="rank-point">
+                      {r.point.toLocaleString()} pt
+                    </span>
 
-      const eventSnap=await getDoc(doc(db,'admin_data','summerEvent'))
+                  </div>
+                ))}
 
-      if(eventSnap.exists()){
-        const d=eventSnap.data()
-        setYenPerPoint(d.yenPerPoint??0.3)
-        setMeal(d.meal||'未定')
-      }
+              </div>
 
-      setLoading(false)
+              <div className="summer-card">
 
-      return unsubscribe
+                <h2>🙋 あなた</h2>
 
-    })
+                <div className="my-info">
 
-  },[])
+                  <p>
+                    <strong>順位</strong>
+                    <br />
+                    {myRank} 位
+                  </p>
 
-  if(loading) return <p>読み込み中...</p>
+                  <p>
+                    <strong>交換ポイント</strong>
+                    <br />
+                    {myPoint.toLocaleString()} pt
+                  </p>
 
-  return(
-    <div className="summer-page">
+                  <p>
+                    <strong>全体の貢献度</strong>
+                    <br />
+                    {contribution} %
+                  </p>
 
-      <h1>🍖 夏期イベント</h1>
+                </div>
 
-      <div className="summer-card">
-        <h2>総交換ポイント</h2>
-        <div className="big-number">{totalPoint.toLocaleString()} pt</div>
-      </div>
+              </div>
 
-      <div className="summer-card">
-        <h2>食事代</h2>
-        <div className="big-number">
-          {Math.round(totalPoint*yenPerPoint).toLocaleString()} 円
-        </div>
-      </div>
-
-      <div className="summer-card">
-        <h2>🍖 食事内容</h2>
-        <div className="meal-name">{meal}</div>
-        <p>（1位の生徒が決定）</p>
-      </div>
-
-      <div className="summer-card">
-
-        <h2>🏆 ランキング</h2>
-
-        {ranking.map((r,i)=>(
-          <div className="rank-row" key={r.uid}>
-            <span>
-              {i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}位`}
-            </span>
-
-            <span>{r.name}</span>
-
-            <span>{r.point.toLocaleString()} pt</span>
-          </div>
-        ))}
-
-      </div>
-
-      <div className="summer-card">
-
-        <h2>🙋 あなた</h2>
-
-        <div className="my-info">
-          <p>順位：{myRank}位</p>
-          <p>交換ポイント：{myPoint.toLocaleString()} pt</p>
-        </div>
-
-      </div>
-
-    </div>
-  )
-
-}
+            </div>
+          )
+        }
