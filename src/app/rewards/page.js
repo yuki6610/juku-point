@@ -9,8 +9,6 @@ import {
   doc,
   getDoc,
   setDoc,
-  runTransaction,
-  arrayUnion,
 } from 'firebase/firestore'
 import {
   FaGift,
@@ -30,6 +28,7 @@ import {
   FaPencilAlt,
   FaRuler,
   FaStickyNote,
+  FaTicketAlt,
   FaSortAmountUp,      // ← 追加
   FaSortAmountDown     // ← 追加
 } from "react-icons/fa";
@@ -40,6 +39,15 @@ const getIconForReward = (name) => {
   if (!name) return <FaGift className="reward-icon default" />
 
   const lower = name.toLowerCase()
+
+  // 食事券・金券
+  if (
+    lower.includes('食事代') ||
+    lower.includes('食事券') ||
+    lower.includes('100円券') ||
+    lower.includes('チケット')
+  )
+    return <FaTicketAlt className="reward-icon ticket" />
 
   // -------------------------
   // 📚 文房具
@@ -123,6 +131,7 @@ export default function RewardsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [rewardHistory, setRewardHistory] = useState([])
     const [userId, setUserId] = useState(null)
+    const [redeemingId, setRedeemingId] = useState(null)
     
     // 🔥 初期データ読み込み
     useEffect(() => {
@@ -226,88 +235,43 @@ export default function RewardsPage() {
     }
 
     // 🎁 実際の交換処理（トランザクション）
-    const handleRedeem = async () => {
-      if (!selectedReward) return
-      const reward = selectedReward
+    const handleRedeem = async (reward) => {
+      if (!reward || redeemingId) return
       if (!userId) return alert('ログインしてください。')
       if (points < reward.cost) return alert('ポイントが足りません。')
 
+      setRedeemingId(reward.id)
       try {
-        await runTransaction(db, async (transaction) => {
-          const userRef = doc(db, 'users', userId)
-          const rewardRef = doc(db, 'rewards', reward.id)
-          const userSnap = await transaction.get(userRef)
-          const rewardSnap = await transaction.get(rewardRef)
-
-          if (!userSnap.exists()) throw new Error('ユーザーが見つかりません。')
-          if (!rewardSnap.exists()) throw new Error('景品が見つかりません。')
-
-          const userData = userSnap.data()
-          const rewardData = rewardSnap.data()
-          const currentPoints = userData.points ?? 0
-          const historyArr = Array.isArray(userData.rewardHistory) ? userData.rewardHistory : []
-
-          if (currentPoints < rewardData.cost) throw new Error('ポイントが足りません。')
-          if (rewardData.stock !== undefined && rewardData.stock <= 0)
-            throw new Error('在庫切れです。')
-
-          // 👤 一人あたりの上限チェック
-          const limit = rewardData.limit ?? 0
-          if (limit > 0) {
-            const usedCount = historyArr.filter((h) =>
-              h.rewardId ? h.rewardId === rewardRef.id : h.name === rewardData.name
-            ).length
-
-            if (usedCount >= limit) {
-              throw new Error(`この景品は一人${limit}個までです。`)
-            }
-          }
-
-            const newHistory = {
-              type: "reward",              // 交換
-              rewardId: rewardRef.id,
-              name: rewardData.name,
-              cost: -rewardData.cost,      // マイナスで記録
-              date: new Date(),
-            };
-            
-            const isSummerReward =
-            rewardData.requiredTag === 'summer_course'
-            
-            const updateData={
-              points:currentPoints-rewardData.cost,
-              rewardHistory:arrayUnion(newHistory),
-            }
-
-            if(isSummerReward){
-              updateData.summerExchangePoint=
-                (userData.summerExchangePoint||0)+rewardData.cost
-            }
-
-            transaction.update(userRef,updateData)
-
-          if (rewardData.stock !== undefined) {
-            transaction.update(rewardRef, {
-              stock: Math.max(0, rewardData.stock - 1),
-            })
-          }
+        const currentUser = getAuth().currentUser
+        if (!currentUser) throw new Error('ログインしてください。')
+        const idToken = await currentUser.getIdToken()
+        const response = await fetch('/api/rewards/redeem', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ rewardId: reward.id }),
         })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || '交換に失敗しました')
 
-        // ローカル状態更新
-        const newHistoryLocal = {
-          rewardId: reward.id,
-          name: reward.name,
-          cost: reward.cost,
-          date: new Date(),
-        }
-
-        setPoints((prev) => prev - reward.cost)
-        setRewardHistory((prev) => [...prev, newHistoryLocal])
+        setPoints(result.points)
+        setRewardHistory((prev) => [...prev, result.historyItem])
+        setRewards((prev) =>
+          prev.map((item) =>
+            item.id === reward.id && item.stock !== undefined
+              ? { ...item, stock: Math.max(0, item.stock - 1) }
+              : item
+          )
+        )
 
         alert(`🎉 ${reward.name} を交換しました！`)
         closeModal()
       } catch (e) {
         alert(e.message || '交換に失敗しました')
+      } finally {
+        setRedeemingId(null)
       }
     }
 
@@ -315,14 +279,21 @@ export default function RewardsPage() {
 
     return (
       <div className="rewards-container">
-        <h1 className="title">🎁 景品交換</h1>
-
-        <p className="points-text">
-          あなたのポイント：
-          <span className="points-value">{points} pt</span>
-        </p>
+        <header className="rewards-heading">
+          <div>
+            <span>REWARD STORE</span>
+            <h1 className="title">景品ストア</h1>
+            <p>頑張って貯めたポイントを景品と交換できます。</p>
+          </div>
+          <div className="points-wallet">
+            <small>YOUR POINTS</small>
+            <strong>{points.toLocaleString()}</strong>
+            <span>pt</span>
+          </div>
+        </header>
 
         {/* 🔍 フィルタバー */}
+        <section className="reward-controls">
         <div className="filter-bar">
           <input
             type="text"
@@ -362,6 +333,7 @@ export default function RewardsPage() {
             ))}
           </select>
         </div>
+        </section>
             
             {/* 🎁 景品一覧 */}
             <div className="rewards-grid">
@@ -371,7 +343,7 @@ export default function RewardsPage() {
                 const remain = limit > 0 ? Math.max(limit - usedCount, 0) : null
 
                 return (
-                  <div key={reward.id} className="reward-card">
+                  <article key={reward.id} className="reward-card">
                     <div className="reward-image-container">
                       {reward.image ? (
                         <img src={reward.image} alt={reward.name} className="reward-image" />
@@ -383,12 +355,14 @@ export default function RewardsPage() {
                     {/* 名前 + 説明アイコン */}
                     <div className="reward-name-row">
                       <p className="reward-name">{reward.name}</p>
-                      <span
+                      <button
+                        type="button"
                         className="info-icon"
                         onClick={() => openInfoModal(reward)}
+                        aria-label={`${reward.name}の詳細`}
                       >
-                        ℹ️
-                      </span>
+                        i
+                      </button>
                     </div>
 
                     <p className="reward-cost">{reward.cost} pt</p>
@@ -407,23 +381,23 @@ export default function RewardsPage() {
 
                     {/* 交換ボタン→モーダルは開かず即交換 */}
                     <button
-                      onClick={() => {
-                        setSelectedReward(reward)
-                        handleRedeem()
-                      }}
+                      onClick={() => handleRedeem(reward)}
                       className="redeem-button"
                       disabled={
+                        redeemingId !== null ||
                         (reward.stock !== undefined && reward.stock <= 0) ||
                         (limit > 0 && remain <= 0)
                       }
                     >
-                      {reward.stock !== undefined && reward.stock <= 0
+                      {redeemingId === reward.id
+                        ? '交換処理中…'
+                        : reward.stock !== undefined && reward.stock <= 0
                         ? '在庫なし'
                         : limit > 0 && remain <= 0
                         ? '上限に達しました'
                         : '交換する'}
                     </button>
-                  </div>
+                  </article>
                 )
               })}
             </div>

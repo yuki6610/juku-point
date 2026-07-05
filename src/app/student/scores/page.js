@@ -135,7 +135,11 @@ export default function StudentScoresPage(){
     }
   return (
     <div className="page">
-      <h1>成績入力・志望校判定</h1>
+      <header className="scores-heading">
+        <span>ACADEMIC RECORD</span>
+        <h1>成績・志望校</h1>
+        <p>成績を記録して、志望校までの距離を確認しましょう。</p>
+      </header>
 
       <div className="score-input-wrapper">
         <div className="score-block">

@@ -220,3 +220,55 @@
   padding: 4px 8px;
   border-radius: 999px;
 }
+
+@media (max-width: 1100px) {
+  .students-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .students-page {
+    padding: 18px 12px 40px;
+  }
+
+  .students-title {
+    font-size: 22px;
+  }
+
+  .grade-filter {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .grade-filter button {
+    flex: 0 0 auto;
+  }
+
+  .students-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .student-card {
+    padding: 14px;
+  }
+
+  .status-edit input {
+    width: 72px;
+    min-height: 40px;
+  }
+
+  .status-edit button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .students-modal {
+    width: calc(100% - 24px);
+    min-width: 0;
+    max-height: 85dvh;
+    overflow-y: auto;
+  }
+}

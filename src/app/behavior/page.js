@@ -106,7 +106,11 @@ export default function StudentBehaviorPage() {
 
   return (
     <div className="page behavior-page">
-      <h1>🌱 生活態度</h1>
+      <header className="behavior-heading">
+        <span>LEARNING HABITS</span>
+        <h1>生活態度</h1>
+        <p>宿題・出席・忘れ物の状況を振り返ります。</p>
+      </header>
 
       <div className="select-row">
         <select value={year} onChange={e => setYear(e.target.value)}>
@@ -154,6 +158,23 @@ export default function StudentBehaviorPage() {
               {summary.forgot || 0}
               <span>回</span>
             </div>
+          </div>
+
+          <div className="summary-card simple">
+            <h3>欠席・振替</h3>
+            <div className="attendance-detail">
+              <span>欠席 <strong>{summary.attendance?.absent || 0}</strong>回</span>
+              <span>振替 <strong>{summary.attendance?.makeup || 0}</strong>回</span>
+            </div>
+          </div>
+
+          <div className="summary-card simple">
+            <h3>単語テスト</h3>
+            <div className="big-number word-rate">
+              {summary.wordTest?.averageRate || 0}
+              <span>%</span>
+            </div>
+            <p>{summary.wordTest?.completed || 0}回実施</p>
           </div>
         </div>
       )}

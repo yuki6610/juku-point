@@ -1,97 +1,64 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebaseConfig";
+import "./auth.css";
 
 export default function Home() {
   const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) router.push("/mypage");
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.replace("/mypage");
+        return;
+      }
+
+      setCheckingAuth(false);
+    });
+
+    return unsubscribe;
   }, [router]);
 
+  if (checkingAuth) {
+    return (
+      <main aria-live="polite" className="auth-shell">
+        ログイン状態を確認しています…
+      </main>
+    );
+  }
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background:
-          "linear-gradient(135deg, #e8f5e9 0%, #f9fbe7 100%)",
-        padding: "20px",
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          padding: "40px 30px",
-          borderRadius: "16px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          maxWidth: "400px",
-          width: "100%",
-          textAlign: "center",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "1.4rem",
-            color: "#2e7d32",
-            marginBottom: "12px",
-            fontWeight: "bold",
-          }}
-        >
+    <main className="auth-shell">
+      <section className="auth-card">
+        <div className="brand-mark" aria-hidden="true">C</div>
+        <p className="auth-eyebrow">Chidorigaoka Juku</p>
+        <h1 className="auth-title">
           千鳥が丘ポイントアプリ
         </h1>
-        <p
-          style={{
-            color: "#555",
-            marginBottom: "28px",
-            fontSize: "1rem",
-          }}
-        >
-          ログインして学習を始めよう！
+        <p className="auth-copy">
+          毎日の学習を記録して、成長を見える形に。
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="auth-actions">
           <button
-            style={{
-              backgroundColor: "#2e7d32",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              padding: "12px",
-              fontWeight: "bold",
-              fontSize: "1rem",
-              cursor: "pointer",
-              transition: "0.3s",
-            }}
+            className="auth-button primary"
             onClick={() => router.push("/login")}
           >
             ログイン
           </button>
 
           <button
-            style={{
-              backgroundColor: "#fff",
-              color: "#2e7d32",
-              border: "2px solid #2e7d32",
-              borderRadius: "8px",
-              padding: "12px",
-              fontWeight: "bold",
-              fontSize: "1rem",
-              cursor: "pointer",
-              transition: "0.3s",
-            }}
-            onMouseOver={(e) => (e.target.style.backgroundColor = "#f1f8e9")}
-            onMouseOut={(e) => (e.target.style.backgroundColor = "#fff")}
+            className="auth-button secondary"
             onClick={() => router.push("/signup")}
           >
             新規登録
           </button>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

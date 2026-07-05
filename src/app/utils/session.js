@@ -1,5 +1,5 @@
 // src/utils/session.js
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 
 export function getCurrentUser() {
   if (typeof window === "undefined") return null;
@@ -32,7 +32,9 @@ export async function requireLogin(router) {
   });
 }
 
-export function logout(router) {
+export async function logout(router) {
+  await signOut(getAuth());
   sessionStorage.removeItem("user");
-  router.push("/login");
+  localStorage.removeItem("user");
+  router.replace("/login");
 }

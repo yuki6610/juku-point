@@ -28,7 +28,6 @@ export async function updateExperience(uid, gainedExp, reason = 'checkin', gaine
     levelUps++
   }
 
-  // 🔥 getTitle を削除したので title は更新しない
   await updateDoc(userRef, {
     experience: currentExp,
     level: currentLevel,
@@ -37,4 +36,3 @@ export async function updateExperience(uid, gainedExp, reason = 'checkin', gaine
     lastUpdated: new Date(),
   })
 }
-

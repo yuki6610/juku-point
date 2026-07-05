@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "../../firebaseConfig";
 import {
   collection,
@@ -21,7 +21,7 @@ export default function RankingPage() {
 
   useEffect(() => {
     fetchRanking();
-  }, [category, mode, grade]);
+  }, []);
 
     const fetchRanking = async () => {
       setLoading(true);
@@ -65,9 +65,13 @@ export default function RankingPage() {
 
       list = list.filter((u) => !adminIds.has(u.id));
 
-      // ----------------------------
-      // 並び替え
-      // ----------------------------
+      setUsers(list);
+      setLoading(false);
+    };
+
+    const rankedUsers = useMemo(() => {
+      const list = users.map((user) => ({ ...user }));
+
       switch (category) {
         case "points":
           list.sort((a, b) =>
@@ -132,15 +136,14 @@ export default function RankingPage() {
           break;
       }
 
-      setUsers(list);
-      setLoading(false);
-    };
+      return list;
+    }, [users, category, mode]);
 
   // 🔹 学年フィルタ適用
-    const filteredUsers = users
+    const filteredUsers = rankedUsers
       .filter((u) => {
         // 学年フィルタ
-        if (grade !== "all" && u.grade !== grade) return false;
+        if (grade !== "all" && Number(u.grade) !== Number(grade)) return false;
 
         // ⭐ 単語テストのときだけ高校生を除外
         if (category === "wordTotal" && u.grade >= 10) return false;
@@ -241,8 +244,14 @@ export default function RankingPage() {
     return (
       <div className="ranking-wrapper">
         <div className="ranking-card">
-          <h1 className="ranking-title">🏆 ランキング</h1>
+          <header className="ranking-heading">
+            <span>LEADERBOARD</span>
+            <h1 className="ranking-title">みんなのランキング</h1>
+            <p>積み重ねた学習の成果をカテゴリー別に確認できます。</p>
+          </header>
 
+          <section className="ranking-controls">
+          <div className="control-label">期間</div>
           <div className="ranking-tabs">
             <button
               className={mode === "term" ? "active" : ""}
@@ -259,6 +268,7 @@ export default function RankingPage() {
             </button>
           </div>
 
+          <div className="control-label">学年</div>
           <div className="ranking-tabs" style={{ marginBottom: "16px" }}>
             <button
               className={grade === "all" ? "active" : ""}
@@ -289,6 +299,7 @@ export default function RankingPage() {
             </button>
           </div>
 
+          <div className="control-label">カテゴリー</div>
           <div className="ranking-tabs">
             <button
               className={category === "level" ? "active" : ""}
@@ -332,6 +343,7 @@ export default function RankingPage() {
               🎁 景品交換回数
             </button>
           </div>
+          </section>
 
           {loading ? (
             <p>読み込み中...</p>

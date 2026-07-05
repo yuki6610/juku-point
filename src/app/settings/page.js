@@ -2,18 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAuth, updateProfile } from "firebase/auth";
-import { db, storage } from "@/firebaseConfig";
+import dynamic from "next/dynamic";
+import { onAuthStateChanged, updateProfile } from "firebase/auth";
+import { auth, db, storage } from "@/firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import Avatar3DWrapper from "@/components/VRMAvatarCanvas";
 import "./settings.css";
+
+const Avatar3DWrapper = dynamic(
+  () => import("@/components/VRMAvatarCanvas"),
+  {
+    ssr: false,
+    loading: () => <p>プレビューを読み込み中…</p>,
+  }
+);
 
 export default function SettingsPage() {
   const router = useRouter();
-  const auth = getAuth();
-  const user = auth.currentUser;
 
+  const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -24,24 +31,32 @@ export default function SettingsPage() {
   // ユーザーデータ読み込み
   // -----------------------------
   useEffect(() => {
-    if (!user) return;
-
-    const load = async () => {
-      const ref = doc(db, "users", user.uid);
-      const snap = await getDoc(ref);
-
-      if (snap.exists()) {
-        const data = snap.data();
-
-        setAvatarUrl(data.avatarUrl || "");
-        setName(data.displayName || data.realName || "");
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        router.replace("/login");
+        return;
       }
 
-      setLoading(false);
-    };
+      setUser(currentUser);
 
-    load();
-  }, [user]);
+      try {
+        const userRef = doc(db, "users", currentUser.uid);
+        const snap = await getDoc(userRef);
+
+        if (snap.exists()) {
+          const data = snap.data();
+          setAvatarUrl(data.avatarUrl || "");
+          setName(data.displayName || data.realName || "");
+        }
+      } catch (error) {
+        console.error("設定の読み込みに失敗しました:", error);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return unsubscribe;
+  }, [router]);
 
   // -----------------------------
   // 名前変更
@@ -69,41 +84,30 @@ export default function SettingsPage() {
   // -----------------------------
    
     const saveAvatar = async () => {
-      alert("① saveAvatar開始");
-
       if (!user) {
-        alert("② userがありません");
+        alert("ログイン状態を確認できません。");
         return;
       }
 
       if (!avatarFile) {
-        alert("③ ファイルがありません");
+        alert("VRMファイルを選択してください。");
         return;
       }
-
-      alert("④ upload開始");
 
       try {
         const storageRef = ref(storage, `avatars/${user.uid}/avatar.vrm`);
 
         await uploadBytes(storageRef, avatarFile);
 
-        alert("⑤ upload成功");
-
         const downloadURL = await getDownloadURL(storageRef);
-
-        alert(downloadURL);
 
         await updateDoc(doc(db, "users", user.uid), {
           avatarUrl: downloadURL,
           updatedAt: new Date(),
         });
 
-        alert("⑥ Firestore更新");
-
         setAvatarUrl(downloadURL);
-
-        alert("完了");
+        alert("アバターを更新しました！");
       } catch (e) {
         console.error(e);
         alert(`${e.code}\n${e.message}`);
@@ -112,13 +116,16 @@ export default function SettingsPage() {
   if (loading) return <p>読み込み中...</p>;
 
   return (
+    <main className="settings-shell">
     <div className="settings-container">
-      <h2 className="settings-title">⚙️ 設定</h2>
+      <header className="settings-heading">
+        <span>PROFILE SETTINGS</span>
+        <h1 className="settings-title">プロフィール設定</h1>
+        <p>表示名とアバターを自分らしく整えましょう。</p>
+      </header>
 
-      {/* -----------------------------
-          名前変更セクション
-      ----------------------------- */}
-      <h3 className="settings-section-title">📝 表示名の変更</h3>
+      <section className="settings-card">
+      <h2 className="settings-section-title">表示名</h2>
 
       <p className="settings-desc">
         アプリ内で表示される名前を変更できます。
@@ -139,11 +146,10 @@ export default function SettingsPage() {
       >
         {savingName ? "保存中..." : "名前を保存"}
       </button>
+      </section>
 
-      {/* -----------------------------
-          アバター設定セクション
-      ----------------------------- */}
-          <h3 className="settings-section-title">🎨 アバター設定</h3>
+          <section className="settings-card">
+          <h2 className="settings-section-title">3Dアバター</h2>
 
           <p className="settings-desc">
           VRMファイルをアップロードしてください。
@@ -182,10 +188,12 @@ export default function SettingsPage() {
           <div className="settings-preview-box">
 
             {avatarUrl && <Avatar3DWrapper url={avatarUrl} />}
+            {!avatarUrl && <p className="settings-empty">アバターはまだ設定されていません</p>}
 
           </div>
-
+          </section>
           </div>
+          </main>
 
           );
 

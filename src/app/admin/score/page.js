@@ -7,6 +7,8 @@ import { db } from '@/../firebaseConfig'
 import {
   collection,
   addDoc,
+  getDoc,
+  getDocs,
   onSnapshot,
   query,
   orderBy,
@@ -64,14 +66,25 @@ export default function AdminScoresPage() {
 
   useEffect(()=>{
     const auth=getAuth()
-    return onAuthStateChanged(auth,user=>{
-      setAdmin(user)
+    return onAuthStateChanged(auth,async user=>{
+      if (!user) {
+        setAdmin(null)
+        setCheckingAuth(false)
+        return
+      }
+
+      const adminSnap = await getDoc(doc(db, 'admins', user.uid))
+      setAdmin(adminSnap.exists() ? user : null)
       setCheckingAuth(false)
     })
   },[])
 
   useEffect(()=>{
-    return onSnapshot(collection(db,'users'),snap=>{
+    if (!admin) return
+
+    let active = true
+    getDocs(collection(db,'users')).then(snap=>{
+      if (!active) return
       setStudents(
         snap.docs.map(d=>({
           uid:d.id,
@@ -79,7 +92,11 @@ export default function AdminScoresPage() {
         }))
       )
     })
-  },[])
+
+    return () => {
+      active = false
+    }
+  },[admin])
 
   useEffect(()=>{
     if(!selectedStudentId){

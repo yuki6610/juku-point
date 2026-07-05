@@ -119,8 +119,13 @@ export default function PointHistoryPage() {
   };
 
   return (
+    <main className="points-shell">
     <div className="points-container">
-      <h1 className="points-title">💰 ポイント履歴</h1>
+      <header className="points-heading">
+        <span>POINT ACTIVITY</span>
+        <h1 className="points-title">ポイント履歴</h1>
+        <p>獲得・利用したポイントを日付ごとに確認できます。</p>
+      </header>
 
       {loading ? (
         <p>読み込み中...</p>
@@ -132,10 +137,10 @@ export default function PointHistoryPage() {
 
           return (
             <div key={date} className="date-section">
-              <div className="date-header" onClick={() => toggle(date)}>
+              <button className="date-header" onClick={() => toggle(date)}>
                 <h2>{date}</h2>
                 <span>{isOpen ? "▲" : "▼"}</span>
-              </div>
+              </button>
 
               {isOpen && (
                 <div className="date-body">
@@ -170,5 +175,6 @@ export default function PointHistoryPage() {
         })
       )}
     </div>
+    </main>
   );
 }

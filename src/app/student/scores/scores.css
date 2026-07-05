@@ -11,21 +11,21 @@
 /* =========================
    見出し
 ========================= */
-h1 {
+.page h1 {
   font-size: 24px;
   font-weight: 700;
   margin-bottom: 24px;
   color: #1f2d5a;
 }
 
-h2 {
+.page h2 {
   font-size: 18px;
   margin: 24px 0 14px;
   font-weight: 600;
   color: #243060;
 }
 
-h3 {
+.page h3 {
   font-size: 16px;
   margin-bottom: 12px;
   font-weight: 600;
@@ -117,7 +117,7 @@ h3 {
 /* =========================
    ボタン
 ========================= */
-button {
+.page button {
   padding: 10px 18px;
   font-size: 14px;
   border-radius: 12px;
@@ -129,7 +129,7 @@ button {
   transition: 0.2s;
 }
 
-button:hover {
+.page button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(79,110,247,0.3);
 }
@@ -272,3 +272,155 @@ button:hover {
 .ok{color:#2563eb;font-weight:bold;}
 .warn{color:#f59e0b;font-weight:bold;}
 .ng{color:#dc2626;font-weight:bold;}
+
+.page {
+  padding: 48px clamp(14px, 5vw, 60px) 80px;
+  background: #f8fafc;
+}
+
+.page > * {
+  width: min(100%, 1100px);
+  margin-inline: auto;
+}
+
+.scores-heading { margin-bottom: 28px; }
+.scores-heading > span {
+  color: #6366f1;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+.scores-heading h1 {
+  margin: 7px 0;
+  color: #0f172a;
+  font-size: clamp(29px, 6vw, 42px);
+  letter-spacing: -0.045em;
+}
+.scores-heading p { margin: 0; color: #64748b; }
+
+.score-input-wrapper {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.score-block {
+  max-width: none;
+  margin-bottom: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+}
+
+.row-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.row-inline select,
+.row select {
+  min-height: 46px;
+  padding: 9px 11px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+}
+
+.page button {
+  min-height: 46px;
+  background: #4f46e5;
+  border-radius: 12px;
+}
+
+.school-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+}
+
+@media (max-width: 800px) {
+  .score-input-wrapper { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .page { padding: 28px 12px 70px; }
+  .score-block { padding: 19px 14px; border-radius: 18px; }
+  .grid { gap: 8px; }
+}
+
+/* Modern admissions workspace */
+.score-input-wrapper .score-block {
+  position: relative;
+  overflow: hidden;
+}
+
+.score-input-wrapper .score-block::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: #4f46e5;
+}
+
+.score-input-wrapper .internal-block::before {
+  background: #14b8a6;
+}
+
+.score-block h2 {
+  margin-top: 0;
+  color: #0f172a;
+  font-size: 21px;
+  letter-spacing: -.03em;
+}
+
+.score-block > p {
+  padding: 12px 14px;
+  color: #3730a3;
+  background: #eef2ff;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.page > h2 {
+  margin-top: 34px;
+  color: #0f172a;
+  font-size: 24px;
+  letter-spacing: -.035em;
+}
+
+.page > .row {
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(15,23,42,.05);
+}
+
+.score-breakdown {
+  padding: 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+}
+
+.school-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.school-card { margin: 0; }
+.school-header {
+  min-height: 90px;
+  background: #fff;
+  transition: background .2s;
+}
+.school-header:hover { background: #f8fafc; }
+.school-name { color: #0f172a; }
+.school-body { background: #fcfcfd; }
+
+@media (max-width: 760px) {
+  .school-list { grid-template-columns: 1fr; }
+}

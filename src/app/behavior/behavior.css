@@ -140,6 +140,27 @@
   color: #333;
 }
 
+.attendance-detail {
+  display: grid;
+  gap: 12px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+.attendance-detail strong {
+  color: #0f172a;
+  font-size: 28px;
+}
+
+.big-number.word-rate {
+  color: #4f46e5;
+}
+
+.summary-card.simple p {
+  color: #64748b;
+  text-align: center;
+}
+
 /* =========================
    空データ表示
 ========================= */
@@ -166,4 +187,57 @@
   .big-number {
     font-size: 56px;
   }
+}
+
+/* Modern student dashboard */
+.page.behavior-page {
+  padding: 48px 20px 80px;
+  background: #f8fafc;
+  text-align: left;
+}
+
+.behavior-heading {
+  width: min(100%, 1000px);
+  margin: 0 auto 26px;
+}
+
+.behavior-heading > span {
+  color: #6366f1;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+
+.behavior-page .behavior-heading h1 {
+  margin: 7px 0;
+  font-size: clamp(29px, 6vw, 40px);
+  letter-spacing: -0.045em;
+}
+
+.behavior-heading p { margin: 0; color: #64748b; }
+
+.behavior-page .select-row {
+  width: min(100%, 1000px);
+  justify-content: flex-start;
+  margin-inline: auto;
+}
+
+.behavior-page .select-row select {
+  min-height: 46px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.behavior-page .summary-card {
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+}
+
+@media (max-width: 560px) {
+  .page.behavior-page { padding: 28px 12px 70px; }
+  .behavior-page .select-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .behavior-page .summary-card { padding: 22px 18px; }
 }

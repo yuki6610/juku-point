@@ -1,18 +1,76 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // The app's ranking and admin checks currently require signed-in users to
+    // read these collections. Only an existing admin can change admin records.
+    match /admins/{adminId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if isOwner(userId) || isAdmin();
+      allow update, delete: if isOwner(userId) || isAdmin();
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    match /rewards/{rewardId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /admin_data/{documentId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /hallOfFame/{seasonId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /illegal_checkins/{recordId} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /schools/{schoolId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /universities/{universityId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+
+      match /admissions/{admissionId} {
+        allow read: if signedIn();
+        allow write: if isAdmin();
+      }
+    }
+
+    // Everything not explicitly listed above stays private.
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 11, 24);
+      allow read, write: if false;
     }
   }
 }

@@ -5,7 +5,7 @@ import { db } from '@/../firebaseConfig'
 
 export default function BehaviorSummary({ uid, year, term }) {
   const [summary, setSummary] = useState(null)
-  const [totalWordTestScore, setTotalWordTestScore] = useState(0)
+  const [averageWordTestScore, setAverageWordTestScore] = useState(0)
 
   useEffect(() => {
     if (!uid || !year || !term) return
@@ -22,6 +22,11 @@ export default function BehaviorSummary({ uid, year, term }) {
 
       setSummary(snap.data())
 
+      if (snap.data().wordTest?.completed > 0) {
+        setAverageWordTestScore(snap.data().wordTest.averageRate || 0)
+        return
+      }
+
      const userSnap = await getDoc(doc(db, 'users', uid))
 
 if (userSnap.exists()) {
@@ -30,7 +35,7 @@ if (userSnap.exists()) {
   const total = data.totalWordTestScore || 0
   const count = data.wordTestCount || 0
 
-  setTotalWordTestScore(
+  setAverageWordTestScore(
     count > 0 ? (total / count).toFixed(1) : 0
   )
 }
@@ -72,7 +77,7 @@ if (userSnap.exists()) {
         {/* ★ 単語テスト総得点 */}
         <div className="info-card">
           <div className="info-label">単語テスト平均点</div>
-          <div className="info-value">{totalWordTestScore}</div>
+          <div className="info-value">{averageWordTestScore}</div>
         </div>
       </div>
     </div>

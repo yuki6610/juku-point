@@ -18,6 +18,13 @@ export default function VRMAvatarCanvas({
       }}
     >
       <Canvas
+        frameloop="demand"
+        dpr={[1, 1.5]}
+        gl={{
+          antialias: false,
+          powerPreference: "high-performance",
+        }}
+        performance={{ min: 0.5 }}
         camera={{
           position: [0, 1.4, 2.2],
           fov: 35,

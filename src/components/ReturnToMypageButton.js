@@ -1,19 +1,22 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function ReturnToMypageButton() {
   const pathname = usePathname();
+  const router = useRouter();
 
-  // ▼ マイページでは非表示
-  if (pathname === "/mypage") return null;
-    if (pathname === "/login") return null;
-    if (pathname === "/admin/judge") return null;
+  const hiddenPaths = ["/", "/login", "/signup", "/mypage"];
+  if (hiddenPaths.includes(pathname) || pathname.startsWith("/admin")) {
+    return null;
+  }
    
   return (
     <>
       <button
-        onClick={() => (window.location.href = "/mypage")}
+        onClick={() => router.push("/mypage")}
+        type="button"
+        aria-label="マイページへ戻る"
         className="return-btn"
       >
         ⬅ マイページへ戻る

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/../firebaseConfig'
 import {
-  collection, doc, onSnapshot, updateDoc, deleteDoc,
-  serverTimestamp, addDoc, increment
+  collection, collectionGroup, doc, getDoc, onSnapshot,
+  updateDoc, deleteDoc, serverTimestamp, addDoc, increment
 } from 'firebase/firestore'
 
 const GRADE_OPTIONS = ['全学年', '中1', '中2', '中3']
@@ -38,8 +38,15 @@ export default function AdminApprovePage() {
   /* ---------- 認証 ---------- */
   useEffect(() => {
     const auth = getAuth()
-    return onAuthStateChanged(auth, u => {
-      setAdmin(u)
+    return onAuthStateChanged(auth, async u => {
+      if (!u) {
+        setAdmin(null)
+        setLoading(false)
+        return
+      }
+
+      const adminSnap = await getDoc(doc(db, 'admins', u.uid))
+      setAdmin(adminSnap.exists() ? u : null)
       setLoading(false)
     })
   }, [])
@@ -67,41 +74,25 @@ export default function AdminApprovePage() {
   useEffect(() => {
     if (!admin) return
 
-    const unsubscribers = []
+    return onSnapshot(collectionGroup(db, 'scores'), scoreSnap => {
+      const studentMap = new Map(students.map(student => [student.uid, student]))
 
-    const unsub = onSnapshot(collection(db, 'users'), snap => {
-      const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
+      setAllPendingScores(
+        scoreSnap.docs.filter(scoreDoc => !scoreDoc.data().approved).map(scoreDoc => {
+          const uid = scoreDoc.ref.parent.parent?.id
+          const student = studentMap.get(uid)
 
-      users.forEach(user => {
-        const unsubScore = onSnapshot(
-          collection(db, `users/${user.uid}/scores`),
-          scoreSnap => {
-            setAllPendingScores(prev => {
-              const filtered = prev.filter(p => p.uid !== user.uid)
-
-              const newOnes = scoreSnap.docs
-                .map(d => ({
-                  id: d.id,
-                  uid: user.uid,
-                  userName: user.realName,
-                  grade: user.grade,
-                  ...d.data()
-                }))
-                .filter(s => !s.approved)
-
-              return [...filtered, ...newOnes]
-            })
+          return {
+            id: scoreDoc.id,
+            uid,
+            userName: student?.realName || student?.displayName || '名前なし',
+            grade: student?.grade,
+            ...scoreDoc.data()
           }
-        )
-        unsubscribers.push(unsubScore)
-      })
+        })
+      )
     })
-
-    return () => {
-      unsub()
-      unsubscribers.forEach(u => u())
-    }
-  }, [admin])
+  }, [admin, students])
 
   if (loading) return <p>読み込み中...</p>
   if (!admin) return <p>管理者ログインが必要です</p>

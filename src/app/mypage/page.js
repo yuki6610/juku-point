@@ -1,15 +1,17 @@
 "use client";
 
-import {  useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "../../firebaseConfig";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
-import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 const AvatarCanvas = dynamic(
   () => import("@/components/VRMAvatarCanvas"),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => <p className="avatar-loading">アバターを準備中…</p>,
+  }
 );
 import "./mypage.css";
 
@@ -34,9 +36,9 @@ export default function MyPage() {
   const [user, setUser] = useState(null);
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [showAvatar, setShowAvatar] = useState(false);
 
   const [levelUpVisible, setLevelUpVisible] = useState(false);
-  const [titleName, setTitleName] = useState("");
 
   /* ---------- 出禁自動解除 ---------- */
   const autoUnbanIfExpired = async (uid, userData) => {
@@ -81,13 +83,6 @@ export default function MyPage() {
           await autoUnbanIfExpired(currentUser.uid, d);
           setData(d);
 
-          if (d.currentTitle) {
-            const tSnap = await getDoc(doc(db, "titles", d.currentTitle));
-            if (tSnap.exists()) {
-              setTitleName(tSnap.data().name || "");
-            }
-          }
-
           const lastLevel = parseInt(localStorage.getItem("lastLevel") || "0");
           if ((d.level ?? 1) > lastLevel) {
             setLevelUpVisible(true);
@@ -108,6 +103,19 @@ export default function MyPage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (!data.avatarUrl) return;
+
+    const show = () => setShowAvatar(true);
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(show, { timeout: 1500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = window.setTimeout(show, 500);
+    return () => window.clearTimeout(timeoutId);
+  }, [data.avatarUrl]);
+
   if (loading) return <p className="loading-text">読み込み中...</p>;
   if (!user) return null;
 
@@ -116,101 +124,149 @@ export default function MyPage() {
   const exp = data.experience ?? 0;
   const expNeeded = 100 + (level - 1) * 10;
   const expPercent = Math.min((exp / expNeeded) * 100, 100);
+  const menuItems = [
+    { icon: "◷", label: "自習を記録", note: "入退室・学習時間", path: "/checkin", tone: "blue" },
+    { icon: "◇", label: "景品交換", note: "ポイントを使う", path: "/rewards", tone: "green" },
+    { icon: "↗", label: "ランキング", note: "みんなの成長を見る", path: "/ranking", tone: "purple" },
+    ...(data?.grade >= 10 && data?.grade <= 12
+      ? []
+      : [
+          { icon: "✓", label: "成績・志望校", note: "テスト結果を記録", path: "/student/scores", tone: "pink" },
+          { icon: "◎", label: "生活態度", note: "日々の振り返り", path: "/behavior", tone: "teal" },
+        ]),
+    ...(data?.courseTags?.includes("summer_course")
+      ? [{ icon: "☀", label: "夏期イベント", note: "期間限定イベント", path: "/summer", tone: "gold" }]
+      : []),
+    { icon: "P", label: "ポイント履歴", note: "獲得・利用履歴", path: "/points", tone: "cyan" },
+    { icon: "⚙", label: "設定", note: "名前・アバター", path: "/settings", tone: "gray" },
+    { icon: "?", label: "使い方", note: "操作ガイド", path: "/guide", tone: "orange" },
+  ];
 
   return (
-    <div className="mypage-container" style={{ background: getSeasonBackground() }}>
-      <AnimatePresence>
-        {levelUpVisible && (
-          <motion.div className="levelup-banner">🎉 LEVEL UP!</motion.div>
-        )}
-      </AnimatePresence>
-
-      {data.isBanned && data.banUntil && (
-        <div className="ban-warning">
-          🚫 自習室出禁<br />
-          解除日：
-          {new Date(
-            data.banUntil.toDate?.() || data.banUntil
-          ).toLocaleDateString()}
-        </div>
+    <main className="dashboard-shell" style={{ background: getSeasonBackground() }}>
+      {levelUpVisible && (
+        <div className="levelup-banner">🎉 LEVEL UP!</div>
       )}
 
-      {data.yellowCard > 0 && (
-        <div className="yellowcard-box">
-          ⚠️ イエローカード<br />
-          次に見かけたら出禁になります。
+      <header className="dashboard-header">
+        <div>
+          <p className="dashboard-eyebrow">MY DASHBOARD</p>
+          <h1>こんにちは、{data.displayName || "生徒"}さん</h1>
+          <p>今日も小さな一歩を積み重ねよう。</p>
         </div>
-      )}
-
-          <div className="avatar-name-outside">
-            {titleName ? `${titleName}${data.displayName}` : data.displayName}
-          </div>
-
-          
-          <div
-            className="avatar-frame"
-            style={{
-              backgroundImage: `url(${getSeasonImage()})`,
-              height: "320px",
-            }}
-          >
-            <AvatarCanvas
-              url={data.avatarUrl}
-              height={320}
-            />
-          </div>
-          
-      <div className="status-card">
-        <p>🎯 レベル：{level}</p>
-        <p>💎 ポイント：{points}</p>
-        <div className="exp-bar">
-          <div className="exp-fill" style={{ width: `${expPercent}%` }} />
-        </div>
-        <p className="exp-text">{exp} / {expNeeded} XP</p>
-      </div>
-
-      <div className="button-group">
-        <button onClick={() => router.push("/checkin")} className="btn blue">🕒 自習</button>
-        <button onClick={() => router.push("/rewards")} className="btn green">🎁 景品交換</button>
-        <button onClick={() => router.push("/ranking")} className="btn purple">📊 ランキング</button>
-          {!(data?.grade >= 10 && data?.grade <= 12) && (
-            <>
-              <button onClick={() => router.push("/student/scores")} className="btn pink">
-                📝 成績入力・志望校判定
-              </button>
-
-              <button onClick={() => router.push("/behavior")} className="btn teal">
-                📊 生活態度
-              </button>
-            </>
-          )}
-          {data?.courseTags?.includes('summer_course') && (
-            <button className="btn gold" onClick={() => router.push('/summer')}>🍖 夏期イベント</button>
-          )}
-          
-          {/* {(data?.grade >= 10 && data?.grade <= 12) && (
-            <button
-            onClick={() => router.push("/universities")}
-            className="btn indigo"
-            >
-            🎓 大学入試情報
-            </button>
-            )}*/}
-        <button onClick={() => router.push("/points")} className="btn cyan">🅿️ ポイント履歴</button>
-        <button onClick={() => router.push("/settings")} className="btn gray">⚙️ 設定</button>
-        <button onClick={() => router.push("/guide")} className="btn orange">📘 アプリの使い方</button>
-
         <button
-          className="btn red"
+          className="header-logout"
           onClick={async () => {
             await signOut(getAuth());
             localStorage.removeItem("lastLevel");
-            router.push("/login");
+            router.replace("/login");
           }}
         >
-          🚪 ログアウト
+          ログアウト
         </button>
-      </div>
-    </div>
+      </header>
+
+      {(data.isBanned || data.yellowCard > 0) && (
+        <section className="dashboard-alerts" aria-label="重要なお知らせ">
+          {data.isBanned && data.banUntil && (
+            <div className="dashboard-alert danger">
+              <strong>自習室の利用停止中</strong>
+              <span>
+                解除予定：{new Date(data.banUntil.toDate?.() || data.banUntil).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+          {data.yellowCard > 0 && (
+            <div className="dashboard-alert warning">
+              <strong>イエローカードがあります</strong>
+              <span>次回の利用時はルールを確認してください。</span>
+            </div>
+          )}
+        </section>
+      )}
+
+      <section className="dashboard-stats" aria-label="学習状況">
+        <article className="stat-tile">
+          <span className="stat-label">LEVEL</span>
+          <strong>{level}</strong>
+          <small>現在のレベル</small>
+        </article>
+        <article className="stat-tile">
+          <span className="stat-label">POINTS</span>
+          <strong>{points.toLocaleString()}</strong>
+          <small>利用可能ポイント</small>
+        </article>
+        <article className="stat-tile">
+          <span className="stat-label">EXPERIENCE</span>
+          <strong>{Math.round(expPercent)}%</strong>
+          <small>次のレベルまで</small>
+        </article>
+      </section>
+
+      <section className="dashboard-hero">
+        <div className="avatar-panel">
+          <div className="avatar-panel-heading">
+            <div>
+              <span>YOUR AVATAR</span>
+              <strong>{data.displayName || "未設定"}</strong>
+            </div>
+            <button onClick={() => router.push("/settings")}>編集</button>
+          </div>
+          <div
+            className="avatar-frame"
+            style={{ backgroundImage: `url(${getSeasonImage()})` }}
+          >
+            {showAvatar && <AvatarCanvas url={data.avatarUrl} height={320} />}
+            {!data.avatarUrl && (
+              <div className="avatar-empty">
+                <span>アバター未設定</span>
+                <button onClick={() => router.push("/settings")}>設定する</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="progress-panel">
+          <span className="panel-kicker">LEVEL PROGRESS</span>
+          <h2>次のレベルまで</h2>
+          <div className="progress-copy">
+            <strong>{exp}</strong>
+            <span>/ {expNeeded} XP</span>
+          </div>
+          <div className="exp-bar" aria-label={`経験値 ${Math.round(expPercent)}%`}>
+            <div className="exp-fill" style={{ width: `${expPercent}%` }} />
+          </div>
+          <p>あと {Math.max(expNeeded - exp, 0)} XPでレベルアップ</p>
+          <button className="primary-action" onClick={() => router.push("/checkin")}>
+            学習を始める
+          </button>
+        </div>
+      </section>
+
+      <section className="menu-section">
+        <div className="section-heading">
+          <div>
+            <span>MENU</span>
+            <h2>何をしますか？</h2>
+          </div>
+        </div>
+        <div className="menu-grid">
+          {menuItems.map((item) => (
+            <button
+              key={item.path}
+              className={`menu-tile ${item.tone}`}
+              onClick={() => router.push(item.path)}
+            >
+              <span className="menu-icon">{item.icon}</span>
+              <span className="menu-text">
+                <strong>{item.label}</strong>
+                <small>{item.note}</small>
+              </span>
+              <span className="menu-arrow">→</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }

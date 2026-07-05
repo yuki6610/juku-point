@@ -6,7 +6,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 
 export default function VRMAvatar({ url, scale = 1.2 }) {
-  const { scene } = useThree();
+  const { scene, invalidate } = useThree();
   const vrmRef = useRef(null);
 
   useEffect(() => {
@@ -19,11 +19,7 @@ export default function VRMAvatar({ url, scale = 1.2 }) {
       loader.load(
         url,
         (gltf) => {
-          console.log("GLTF読込成功", gltf);
-
           const vrm = gltf.userData.vrm;
-
-          console.log("VRM", vrm);
 
           if (!vrm) {
             console.error("VRMが取得できません");
@@ -36,12 +32,9 @@ export default function VRMAvatar({ url, scale = 1.2 }) {
           scene.add(vrm.scene);
 
           vrmRef.current = vrm;
+          invalidate();
         },
-        (progress) => {
-          console.log(
-            `${Math.round(progress.loaded / progress.total * 100)}%`
-          );
-        },
+        undefined,
         (err) => {
           console.error("読み込み失敗", err);
         }
@@ -53,7 +46,7 @@ export default function VRMAvatar({ url, scale = 1.2 }) {
         vrmRef.current = null;
       }
     };
-  }, [url, scene, scale]);
+  }, [url, scene, scale, invalidate]);
 
   useFrame((_, delta) => {
     if (vrmRef.current) {

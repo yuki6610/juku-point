@@ -1,6 +1,5 @@
 'use client'
 
-
 import './admin.css'
 import { useRouter } from 'next/navigation'
 import { getCurrentSeason } from "../utils/season";
@@ -13,20 +12,14 @@ export default function AdminPage() {
     
     const pages = [
         {
-            title: '📚 宿題管理',
-            desc: '提出確認・経験値付与',
+            title: '学習記録',
+            desc: '出欠・宿題・単語テスト・生活態度',
             color: 'blue',
-            path: '/admin/homework',
-        },
-        {
-            title: '🧠 単語テスト管理',
-            desc: '正答数入力・XP計算',
-            color: 'purple',
-            path: '/admin/tango',
+            path: '/admin/lesson-records',
         },
         {
             title: '🎓 生徒管理',
-            desc: 'XP/Lv/ポイント調整・称号付与',
+            desc: 'XP/Lv/ポイント調整・コース設定',
             color: 'indigo',
             path: '/admin/students',
         },
@@ -90,14 +83,6 @@ export default function AdminPage() {
         },
         
         {
-            title: '🏫 生活態度',
-            desc: '宿題提出、遅刻記録',
-            color: 'sky',
-            path: '/admin/behavior',
-        },
-        
-        
-        {
             title: '🏫 成績入力',
             desc: '成績記録',
             color: 'sky',
@@ -141,26 +126,33 @@ export default function AdminPage() {
     
     return (
             <div className="admin-page">
-            <h1 className="admin-title">👑 管理者メニュー</h1>
-            <p className="admin-subtitle">管理したい項目を選択してください。</p>
-            
-            <button
-            className="admin-btn season-btn"
-            onClick={startNewSeason}
-            >
-            🏆 学期開始
-            </button>
+            <header className="admin-hero">
+              <div>
+                <p className="admin-eyebrow">ADMIN CONSOLE</p>
+                <h1 className="admin-title">管理ダッシュボード</h1>
+                <p className="admin-subtitle">生徒・学習・ポイントの状況を管理します。</p>
+              </div>
+              <button className="season-btn" onClick={startNewSeason}>
+                新学期を開始
+              </button>
+            </header>
+
+            <div className="admin-section-heading">
+              <span>TOOLS</span>
+              <h2>管理メニュー</h2>
+            </div>
             
             <div className="admin-grid">
             {pages.map((p) => (
-                               <div
+                               <button
                                key={p.title}
                                className={`admin-card admin-${p.color}`}
                                onClick={() => router.push(p.path)}
                                >
                                <h2 className="admin-card-title">{p.title}</h2>
                                <p className="admin-card-desc">{p.desc}</p>
-                               </div>
+                               <span className="admin-card-arrow">→</span>
+                               </button>
                                ))}
             </div>
             </div>

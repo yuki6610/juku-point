@@ -3,20 +3,24 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../firebaseConfig'
+import '../auth.css'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
 
   const handleLogin = async () => {
+    if (submitting) return
     if (!email || !password) {
       alert('メールアドレスとパスワードを入力してください。')
       return
     }
 
+    setSubmitting(true)
     try {
       const auth = getAuth()
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
@@ -35,7 +39,7 @@ export default function LoginPage() {
           level: 1,
           points: 0,
           experience: 0,
-          createdAt: new Date().toISOString(),
+          createdAt: serverTimestamp(),
         })
       }
 
@@ -59,6 +63,8 @@ export default function LoginPage() {
       } else {
         alert('ログインに失敗しました。')
       }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -79,76 +85,57 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h2>ログインページ</h2>
-      <div style={{ marginTop: '20px' }}>
-        <input
-          type="email"
-          placeholder="メールアドレス"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: '8px', width: '250px', marginBottom: '10px' }}
-        />
-        <br />
-        <input
-          type="password"
-          placeholder="パスワード"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: '8px', width: '250px', marginBottom: '10px' }}
-        />
-        <br />
+    <main className="auth-shell">
+      <section className="auth-card">
+      <div className="brand-mark" aria-hidden="true">C</div>
+      <p className="auth-eyebrow">Welcome back</p>
+      <h1 className="auth-title">ログイン</h1>
+      <p className="auth-copy">今日の学習を始めましょう。</p>
+      <div className="auth-form">
+        <label className="auth-field">
+          <span className="auth-label">メールアドレス</span>
+          <input
+            className="auth-input"
+            type="email"
+            autoComplete="email"
+            placeholder="example@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label className="auth-field">
+          <span className="auth-label">パスワード</span>
+          <input
+            className="auth-input"
+            type="password"
+            autoComplete="current-password"
+            placeholder="パスワードを入力"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
 
         <button
           onClick={handleLogin}
-          style={{
-            backgroundColor: '#3b82f6',
-            color: '#fff',
-            padding: '10px 20px',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-          }}
+          className="auth-button primary"
+          disabled={submitting}
         >
-          ログイン
+          {submitting ? 'ログイン中…' : 'ログイン'}
         </button>
 
-        {/* 🔹 パスワード忘れボタン */}
-        <div>
-          <button
-            onClick={handlePasswordReset}
-            style={{
-              marginTop: '12px',
-              background: 'none',
-              border: 'none',
-              color: '#3b82f6',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              fontSize: '0.9rem',
-            }}
-          >
-            パスワードを忘れた方はこちら
-          </button>
-        </div>
+        <button onClick={handlePasswordReset} className="auth-link">
+          パスワードを忘れた方
+        </button>
 
-        {/* 🔹 新規登録ページへ */}
-        <div style={{ marginTop: '20px' }}>
-          <button
-            onClick={() => router.push('/signup')}
-            style={{
-              backgroundColor: '#10b981',
-              color: 'white',
-              padding: '10px 20px',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-            }}
-          >
-            新規登録はこちら
-          </button>
-        </div>
+        <div className="auth-divider" />
+        <button
+          onClick={() => router.push('/signup')}
+          className="auth-button secondary"
+        >
+          はじめての方はこちら
+        </button>
       </div>
-    </div>
+      </section>
+    </main>
   )
 }

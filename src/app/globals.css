@@ -1,20 +1,93 @@
-.correlation-wrapper {
-  margin-top: 40px;
-  text-align: center;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.correlation-wrapper h3 {
-  margin-bottom: 12px;
-  font-size: 18px;
+:root {
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
 }
 
-.correlation-chart {
-  background: #fff;
-  border-radius: 8px;
+html {
+  min-width: 320px;
+  background: #f8fafc;
+  text-size-adjust: 100%;
 }
 
-.no-data {
-  margin: 20px 0;
-  color: #999;
-  text-align: center;
+body {
+  margin: 0;
+  color: #0f172a;
+  background: #f8fafc;
+  font-family:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.35);
+  outline-offset: 2px;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+img,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+.app-container {
+  width: 100%;
+  min-height: 100dvh;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    overflow-wrap: anywhere;
+  }
+
+  table {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 700px) {
+  * {
+    scroll-behavior: auto !important;
+  }
 }

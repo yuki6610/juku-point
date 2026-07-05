@@ -1,51 +1,109 @@
+.checkin-shell {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f8fafc;
+}
+
 .checkin-container {
+  width: min(100%, 430px);
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2e8f0;
+  border-radius: 26px;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.075);
   text-align: center;
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 20px;
+}
+
+.checkin-heading > span {
+  color: #6366f1;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.16em;
 }
 
 .checkin-title {
-  font-size: 28px;
-  font-weight: bold;
-  margin-bottom: 20px;
+  margin: 7px 0 8px;
+  font-size: 30px;
+  letter-spacing: -0.04em;
+}
+
+.checkin-heading p {
+  margin: 0 0 24px;
+  color: #64748b;
+  line-height: 1.6;
 }
 
 .warning-box {
-  background: #ffeb3b;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-  font-weight: bold;
+  margin-bottom: 16px;
+  padding: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 13px;
+  font-weight: 700;
 }
 
 .pin-display {
-  width: 80%;
-  height: 50px;
-  margin: 0 auto 20px;
-  background: #f3f3f3;
-  border-radius: 10px;
-  font-size: 30px;
-  line-height: 50px;
+  width: 100%;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  color: #0f172a;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  font-size: 27px;
+  font-weight: 850;
+  letter-spacing: 0.25em;
+}
+
+.pin-display span {
+  color: #94a3b8;
+  font-size: 14px;
+  letter-spacing: 0.15em;
 }
 
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 
 .key-btn {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 20px 0;
-  font-size: 24px;
-  font-weight: bold;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  min-height: 66px;
+  padding: 0;
+  color: #1e293b;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.05);
+  font-size: 21px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.key-btn:active {
+  transform: scale(0.96);
+  background: #f1f5f9;
 }
 
 .ok-btn {
-  background: #4CAF50;
   color: white;
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.key-btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+  .checkin-shell { padding: 12px; align-items: start; }
+  .checkin-container { margin-top: 16px; padding: 24px 16px; border-radius: 22px; }
+  .key-btn { min-height: 62px; }
 }

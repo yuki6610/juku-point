@@ -21,7 +21,7 @@ export async function recordHomework(userId, checkedBy, exp = 15, points = 5) {
       pointsGiven: points,
     })
 
-    // 🔹 経験値とポイントを加算（称号判定も自動で行われる）
+    // 経験値とポイントを加算
     await updateExperience(userId, exp, 'homework_submit', points)
 
     console.log(`📘 宿題提出を登録しました: ${userId}`)

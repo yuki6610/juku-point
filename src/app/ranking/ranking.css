@@ -259,6 +259,95 @@
     text-align:center;
 }
 
+@media (max-width: 600px) {
+  .ranking-wrapper {
+    padding: 12px;
+  }
+
+  .ranking-card {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+
+  .ranking-title {
+    font-size: 22px;
+  }
+
+  .ranking-tabs {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 2px 0 8px;
+    scrollbar-width: thin;
+  }
+
+  .ranking-tabs button {
+    flex: 0 0 auto;
+    min-height: 40px;
+  }
+
+  .top3-container,
+  .hall-podium {
+    gap: 6px;
+  }
+
+  .top-card {
+    min-width: 0;
+    padding: 12px 6px;
+  }
+
+  .top-crown,
+  .hall-medal {
+    font-size: 30px;
+  }
+
+  .top-name,
+  .hall-name {
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+
+  .top-score {
+    font-size: 16px;
+  }
+
+  .hall-first,
+  .hall-second,
+  .hall-third {
+    width: 31%;
+    min-width: 0;
+    padding: 12px 5px;
+  }
+
+  .ranking-row {
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .ranking-left {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .rank-number {
+    flex: 0 0 34px;
+    width: 34px;
+    font-size: 17px;
+  }
+
+  .rank-name {
+    overflow: hidden;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ranking-value {
+    flex: 0 0 auto;
+    font-size: 15px;
+  }
+}
+
 .hall-score{
     margin-top:8px;
     font-size:16px;
@@ -274,4 +363,114 @@
 .ranking-tabs button.active:disabled {
   background: #2563eb;
   color: white;
+}
+
+/* Modern leaderboard */
+.ranking-wrapper {
+  min-height: 100dvh;
+  display: block;
+  padding: 48px clamp(14px, 5vw, 60px) 80px;
+  background: #f8fafc;
+}
+
+.ranking-card {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ranking-heading { margin-bottom: 26px; }
+.ranking-heading > span {
+  color: #6366f1;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+.ranking-title {
+  margin: 7px 0;
+  color: #0f172a;
+  font-size: clamp(30px, 6vw, 44px);
+  letter-spacing: -.045em;
+  text-align: left;
+}
+.ranking-heading p { margin: 0; color: #64748b; }
+
+.ranking-controls {
+  margin-bottom: 22px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(15,23,42,.05);
+}
+.control-label {
+  margin-bottom: 7px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.ranking-tabs { margin-bottom: 14px; }
+.ranking-tabs:last-child { margin-bottom: 0; }
+.ranking-tabs button {
+  min-height: 40px;
+  padding: 8px 14px;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  font-weight: 700;
+}
+.ranking-tabs button.active {
+  color: #fff;
+  background: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.top3-container {
+  align-items: stretch;
+  gap: 12px;
+}
+.top-card {
+  max-width: none;
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(15,23,42,.055);
+}
+.top1 { border-top: 5px solid #f59e0b; }
+.top2 { border-top: 5px solid #94a3b8; }
+.top3 { border-top: 5px solid #b45309; }
+.top-score { color: #4f46e5; }
+
+.ranking-list {
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+}
+.ranking-row { background: #fff; border-color: #f1f5f9; }
+.rank-number { color: #94a3b8; }
+
+.hall-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 28px rgba(15,23,42,.05);
+}
+
+@media (max-width: 600px) {
+  .ranking-wrapper { padding: 28px 10px 70px; }
+  .ranking-heading { padding-inline: 4px; }
+  .ranking-controls { padding: 14px 12px; }
+  .top3-container { gap: 7px; }
+  .top-card { min-height: 140px; }
 }

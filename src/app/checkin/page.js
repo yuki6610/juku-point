@@ -10,6 +10,7 @@ import {
   addDoc,
   collection,
   increment,
+  serverTimestamp,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -48,6 +49,7 @@ const getDistanceM = (lat1, lng1, lat2, lng2) => {
 export default function CheckinPage() {
   const [pin, setPin] = useState("");
   const [warning, setWarning] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   const auth = getAuth();
   const router = useRouter();
@@ -71,7 +73,8 @@ export default function CheckinPage() {
     fn();
   }, []);
 
-  const appendPin = (n) => setPin((prev) => prev + String(n));
+  const appendPin = (n) =>
+    setPin((prev) => (prev.length < 8 ? prev + String(n) : prev));
   const deletePin = () => setPin((prev) => prev.slice(0, -1));
 
   // -----------------------------
@@ -83,7 +86,7 @@ export default function CheckinPage() {
       type,
       lat,
       lng,
-      time: new Date().toISOString(),
+      time: serverTimestamp(),
     });
   };
 
@@ -91,12 +94,14 @@ export default function CheckinPage() {
     // 🔵 メイン処理：PIN 判定（入室 / 退出）
     // ---------------------------------------------------
     const handleCheck = async () => {
+      if (processing) return;
       const user = auth.currentUser;
       if (!user) {
         alert("ログインしてください");
         return;
       }
 
+      setProcessing(true);
       const todayId = getTodayId();
       const checkRef = doc(db, `users/${user.uid}/checkins/${todayId}`);
       const now = new Date();
@@ -121,6 +126,7 @@ export default function CheckinPage() {
               if (dist > ALLOW_DISTANCE_M) {
                 alert("不正を検知しました。logを保存します。");
                 await logIllegal(user.uid, lat, lng, "enter");
+                setProcessing(false);
                 return;
               }
 
@@ -146,6 +152,7 @@ export default function CheckinPage() {
 
               alert("自習を開始しました");
               setPin("");
+              setProcessing(false);
               router.push("/mypage");
             },
 
@@ -156,6 +163,7 @@ export default function CheckinPage() {
               alert("位置情報が取得できません。\n設定で位置情報をONにしてください。");
 
               await logIllegal(user.uid, null, null, "gps_error");
+              setProcessing(false);
             },
 
             // ⭐ 精度オプション（おすすめ）
@@ -177,6 +185,7 @@ export default function CheckinPage() {
 
       if (!snap.exists() || !snap.data().currentSessionActive) {
         alert("自習開始記録がありません");
+        setProcessing(false);
         return;
       }
 
@@ -214,10 +223,11 @@ export default function CheckinPage() {
         type: "selfstudy",
         amount: ptGain,
         note: `自習 ${minutes} 分`,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
       });
 
       alert(`自習終了（${minutes}分）`);
+      setProcessing(false);
       router.push("/mypage");
       return;
     }
@@ -226,15 +236,23 @@ export default function CheckinPage() {
     // ❌ PIN 不一致
     // ---------------------------------------------------
     alert("PINが間違っています");
+    setProcessing(false);
   };
 
   return (
+    <main className="checkin-shell">
     <div className="checkin-container">
       {warning && <div className="warning-box">{warning}</div>}
 
-      <h1 className="checkin-title">自習開始 / 自習終了</h1>
+      <div className="checkin-heading">
+        <span>SELF STUDY</span>
+        <h1 className="checkin-title">自習を記録</h1>
+        <p>教室に表示されているPINを入力してください。</p>
+      </div>
 
-      <div className="pin-display">{pin.replace(/./g, "●")}</div>
+      <div className="pin-display" aria-label={`${pin.length}桁入力済み`}>
+        {pin ? pin.replace(/./g, "●") : <span>PIN</span>}
+      </div>
 
       <div className="keypad">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
@@ -244,9 +262,11 @@ export default function CheckinPage() {
         ))}
         <button className="key-btn" onClick={deletePin}>←</button>
         <button className="key-btn" onClick={() => appendPin(0)}>0</button>
-        <button className="key-btn ok-btn" onClick={handleCheck}>OK</button>
+        <button className="key-btn ok-btn" onClick={handleCheck} disabled={processing}>
+          {processing ? "…" : "OK"}
+        </button>
       </div>
     </div>
+    </main>
   );
 }
-
