@@ -7,6 +7,8 @@ import RotatingAvatar from "./RotatingAvatar";
 export default function VRMAvatarCanvas({
   url,
   height = 320,
+  onLoad,
+  onError,
 }) {
   if (!url) return null;
 
@@ -36,6 +38,8 @@ export default function VRMAvatarCanvas({
         <RotatingAvatar
           url={url}
           scale={1.2}
+          onLoad={onLoad}
+          onError={onError}
         />
 
         <OrbitControls

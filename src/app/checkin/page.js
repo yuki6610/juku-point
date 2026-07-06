@@ -50,6 +50,8 @@ export default function CheckinPage() {
   const [pin, setPin] = useState("");
   const [warning, setWarning] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [todayMinutes, setTodayMinutes] = useState(0);
 
   const auth = getAuth();
   const router = useRouter();
@@ -66,8 +68,18 @@ export default function CheckinPage() {
       const ref = doc(db, `users/${user.uid}/checkins/${todayId}`);
       const snap = await getDoc(ref);
 
+      if (snap.exists()) {
+        const checkin = snap.data();
+        setSessionActive(Boolean(checkin.currentSessionActive));
+        setTodayMinutes(
+          (checkin.sessions || []).reduce(
+            (total, session) => total + Number(session.minutes || 0),
+            0
+          )
+        );
+      }
       if (snap.exists() && snap.data().currentSessionActive) {
-        setWarning("⚠ 自習を終了していません");
+        setWarning("自習を終了していません");
       }
     };
     fn();
@@ -108,7 +120,15 @@ export default function CheckinPage() {
 
         // 管理画面で設定された PIN を取得
         const pinRef = doc(db, "admin_data/checkin");
-        const pinSnap = await getDoc(pinRef);
+        let pinSnap;
+        try {
+          pinSnap = await getDoc(pinRef);
+        } catch (error) {
+          console.error("PIN設定の取得に失敗しました:", error);
+          alert("PIN設定を取得できませんでした。通信状態を確認してください。");
+          setProcessing(false);
+          return;
+        }
 
         const enterPin = pinSnap.exists() ? pinSnap.data().enterPin : "1111";
         const exitPin = pinSnap.exists() ? pinSnap.data().exitPin : "0000";
@@ -250,21 +270,44 @@ export default function CheckinPage() {
         <p>教室に表示されているPINを入力してください。</p>
       </div>
 
-      <div className="pin-display" aria-label={`${pin.length}桁入力済み`}>
-        {pin ? pin.replace(/./g, "●") : <span>PIN</span>}
-      </div>
+      <div className="checkin-workspace">
+        <section className={`checkin-status ${sessionActive ? "is-active" : ""}`}>
+          <span className="status-dot" />
+          <small>CURRENT STATUS</small>
+          <strong>{sessionActive ? "自習中" : "未入室"}</strong>
+          <p>
+            {sessionActive
+              ? "退出すると学習時間とポイントが記録されます。"
+              : "教室の入室PINを入力して学習を始めましょう。"}
+          </p>
+          <div>
+            <span>今日の記録</span>
+            <b>{todayMinutes}<small>分</small></b>
+          </div>
+        </section>
 
-      <div className="keypad">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-          <button key={n} className="key-btn" onClick={() => appendPin(n)}>
-            {n}
-          </button>
-        ))}
-        <button className="key-btn" onClick={deletePin}>←</button>
-        <button className="key-btn" onClick={() => appendPin(0)}>0</button>
-        <button className="key-btn ok-btn" onClick={handleCheck} disabled={processing}>
-          {processing ? "…" : "OK"}
-        </button>
+        <section className="pin-panel">
+          <div className="pin-guide">
+            <strong>{sessionActive ? "退出PINを入力" : "入室PINを入力"}</strong>
+            <small>{pin.length}/8桁</small>
+          </div>
+          <div className="pin-display" aria-label={`${pin.length}桁入力済み`}>
+            {pin ? pin.replace(/./g, "●") : <span>PIN</span>}
+          </div>
+
+          <div className="keypad">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+              <button key={n} className="key-btn" onClick={() => appendPin(n)}>
+                {n}
+              </button>
+            ))}
+            <button className="key-btn" onClick={deletePin} aria-label="1文字削除">←</button>
+            <button className="key-btn" onClick={() => appendPin(0)}>0</button>
+            <button className="key-btn ok-btn" onClick={handleCheck} disabled={processing || !pin}>
+              {processing ? "…" : "決定"}
+            </button>
+          </div>
+        </section>
       </div>
     </div>
     </main>

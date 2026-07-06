@@ -1,198 +1,165 @@
-.summer-page{
-  max-width:700px;
-  margin:0 auto;
-  padding:24px;
+.summer-page {
+  width: min(100%, 1080px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 38px clamp(12px, 4vw, 40px) 90px;
+  color: #293244;
 }
 
-.summer-page h1{
-  text-align:center;
-  margin-bottom:24px;
-  font-size:30px;
+.summer-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 30px;
+  padding: clamp(28px, 5vw, 52px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(255,255,255,.8), transparent 11rem),
+    linear-gradient(135deg, #fff4a8, #ffd8b6 55%, #ccefff);
+  border: 1px solid #f0dfb5;
+  border-radius: 32px;
+  box-shadow: 0 24px 55px rgba(184, 137, 66, .13);
 }
-
-.summer-card{
-  background:#fff;
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:20px;
-  box-shadow:0 4px 12px rgba(0,0,0,.08);
+.summer-hero > div:first-child { position: relative; z-index: 1; }
+.summer-hero span {
+  color: #d76d3c;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .18em;
 }
-
-.summer-card h2{
-  margin:0 0 16px;
-  font-size:20px;
-  color:#444;
+.summer-hero h1 {
+  margin: 10px 0 14px;
+  font-size: clamp(35px, 6vw, 62px);
+  line-height: 1.12;
+  letter-spacing: -.06em;
 }
-
-.big-number{
-  text-align:center;
-  font-size:42px;
-  font-weight:bold;
-  color:#ff6b00;
+.summer-hero p { max-width: 620px; margin: 0; color: #6f665f; line-height: 1.8; }
+.summer-countdown {
+  display: grid;
+  min-width: 170px;
+  padding: 24px;
+  place-items: center;
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(255,255,255,.9);
+  border-radius: 24px;
+  backdrop-filter: blur(12px);
 }
+.summer-countdown small { color: #7e6d61; font-weight: 750; }
+.summer-countdown strong { color: #ef7540; font-size: 72px; line-height: 1.05; letter-spacing: -.07em; }
+.summer-countdown span { color: #b45d35; font-size: 10px; font-weight: 900; letter-spacing: .2em; }
 
-.meal-name{
-  text-align:center;
-  font-size:34px;
-  font-weight:bold;
-  color:#d84315;
-  margin-bottom:8px;
+.summer-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e8e6df;
+  border-radius: 17px;
 }
+.summer-info > span { font-size: 27px; }
+.summer-info strong { font-size: 15px; }
+.summer-info p { margin: 3px 0 0; color: #7a7f87; font-size: 13px; }
 
-.summer-card p{
-  margin:6px 0;
-  text-align:center;
-  color:#666;
+.top3-wrap {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 18px;
 }
-
-.rank-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:12px 8px;
-  border-bottom:1px solid #eee;
-  font-size:18px;
+.top-card {
+  position: relative;
+  min-width: 0;
+  padding: 22px;
+  overflow: hidden;
+  color: #394154;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e5e7ed;
+  border-radius: 20px;
+  box-shadow: 0 8px 22px rgba(50, 62, 85, .06);
 }
+.top-card.gold { background: #fff5c9; border-color: #efd36a; }
+.top-card.silver { background: #f0f5fa; }
+.top-card.bronze { background: #ffeadc; border-color: #f2c7aa; }
+.medal { font-size: 33px; }
+.top-name { margin-top: 12px; overflow-wrap: anywhere; font-size: 18px; font-weight: 900; }
+.top-point { margin-top: 5px; color: #ef7540; font-size: 18px; font-weight: 900; }
 
-.rank-row:last-child{
-  border-bottom:none;
+.summer-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
 }
-
-.rank-row span:first-child{
-  width:60px;
-  font-weight:bold;
+.summer-card {
+  margin-bottom: 18px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e5e7ed;
+  border-radius: 21px;
+  box-shadow: 0 8px 24px rgba(50, 62, 85, .055);
 }
+.summer-stats .summer-card { margin: 0; }
+.summer-card > span { color: #7a8292; font-size: 12px; font-weight: 800; }
+.point-stat { background: #eaf8ff; border-color: #ccebf8; }
+.meal-stat { background: #eeffe9; border-color: #d5efce; }
+.big-number { margin-top: 8px; color: #314059; font-size: clamp(32px, 6vw, 50px); font-weight: 950; letter-spacing: -.05em; }
+.big-number small { color: #718097; font-size: 17px; letter-spacing: 0; }
 
-.rank-row span:nth-child(2){
-  flex:1;
-  padding-left:12px;
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 14px;
 }
+.section-heading span { color: #ef7540; font-size: 9px; font-weight: 950; letter-spacing: .18em; }
+.section-heading h2 { margin: 4px 0 0; font-size: 22px; }
+.section-heading > small { color: #8a91a0; }
 
-.rank-row span:last-child{
-  font-weight:bold;
-  color:#1976d2;
+.rank-row {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  align-items: center;
+  min-height: 58px;
+  padding: 8px 10px;
+  border-top: 1px solid #edf0f4;
 }
+.rank-number { color: #7a8497; font-weight: 900; }
+.rank-name { min-width: 0; overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.rank-point { color: #5f63c9; font-weight: 900; }
 
-.my-info{
-  text-align:center;
+.my-info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
-
-.my-info p{
-  font-size:22px;
-  margin:10px 0;
-  font-weight:bold;
+.my-info p {
+  margin: 0;
+  padding: 18px 10px;
+  color: #465168;
+  text-align: center;
+  background: #f5f7fb;
+  border-radius: 13px;
+  font-size: 20px;
+  font-weight: 900;
 }
+.my-info strong { color: #858d9d; font-size: 11px; }
 
-@media(max-width:768px){
-
-  .summer-page{
-    padding:16px;
-  }
-
-  .summer-page h1{
-    font-size:26px;
-  }
-
-  .summer-card{
-    padding:16px;
-  }
-
-  .summer-card h2{
-    font-size:18px;
-  }
-
-  .big-number{
-    font-size:34px;
-  }
-
-  .meal-name{
-    font-size:28px;
-  }
-
-  .rank-row{
-    font-size:16px;
-    padding:10px 4px;
-  }
-
-  .rank-row span:first-child{
-    width:48px;
-  }
-
-  .my-info p{
-    font-size:20px;
-  }
-}
-.summer-info{
-  background:#fff7d6;
-  border-left:6px solid #f59e0b;
-  padding:14px;
-  border-radius:10px;
-  margin-bottom:18px;
-  line-height:1.8;
-}
-
-.top3-wrap{
-  display:flex;
-  justify-content:center;
-  align-items:flex-end;
-  gap:12px;
-  margin-bottom:20px;
-}
-
-.top-card{
-  flex:1;
-  text-align:center;
-  border-radius:14px;
-  padding:14px;
-  color:#fff;
-  box-shadow:0 3px 10px rgba(0,0,0,.15);
-}
-
-.top-card.gold{
-  background:#f59e0b;
-  transform:scale(1.08);
-}
-
-.top-card.silver{
-  background:#9ca3af;
-}
-
-.top-card.bronze{
-  background:#b87333;
-}
-
-.medal{
-  font-size:36px;
-  margin-bottom:6px;
-}
-
-.top-name{
-  font-weight:bold;
-  margin-bottom:6px;
-}
-
-.top-point{
-  font-size:20px;
-  font-weight:bold;
-}
-
-.rank-row{
-  display:grid;
-  grid-template-columns:70px 1fr 110px;
-  align-items:center;
-  padding:10px 0;
-  border-bottom:1px solid #eee;
-}
-
-.my-info{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
-  text-align:center;
-}
-
-.my-info p{
-  background:#f8fafc;
-  border-radius:10px;
-  padding:12px;
+@media (max-width: 650px) {
+  .summer-page { padding: 14px 10px 70px; }
+  .summer-hero { grid-template-columns: 1fr; padding: 25px 20px; border-radius: 24px; }
+  .summer-countdown { grid-template-columns: auto auto auto; gap: 8px; padding: 14px; }
+  .summer-countdown strong { font-size: 40px; }
+  .top3-wrap { gap: 7px; }
+  .top-card { padding: 14px 8px; text-align: center; }
+  .top-name { font-size: 13px; }
+  .top-point { font-size: 13px; }
+  .summer-stats { grid-template-columns: 1fr; }
+  .summer-card { padding: 17px 13px; }
+  .my-info { grid-template-columns: 1fr; }
 }

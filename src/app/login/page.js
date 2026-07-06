@@ -11,15 +11,19 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [message, setMessage] = useState(null)
   const router = useRouter()
 
-  const handleLogin = async () => {
+  const handleLogin = async (event) => {
+    event?.preventDefault()
     if (submitting) return
     if (!email || !password) {
-      alert('メールアドレスとパスワードを入力してください。')
+      setMessage({ tone: 'error', text: 'メールアドレスとパスワードを入力してください。' })
       return
     }
 
+    setMessage(null)
     setSubmitting(true)
     try {
       const auth = getAuth()
@@ -48,20 +52,21 @@ export default function LoginPage() {
       const adminSnap = await getDoc(adminRef)
 
       if (adminSnap.exists()) {
-        alert(`👑 管理者 ${user.displayName || 'Admin'} さん、ようこそ！`)
         router.push('/admin')
       } else {
-        alert(`ようこそ ${user.displayName || '生徒'} さん！`)
         router.push('/mypage')
       }
     } catch (error) {
       console.error('ログインエラー:', error)
       if (error.code === 'auth/user-not-found') {
-        alert('ユーザーが見つかりません。')
-      } else if (error.code === 'auth/wrong-password') {
-        alert('パスワードが違います。')
+        setMessage({ tone: 'error', text: 'ユーザーが見つかりません。' })
+      } else if (
+        error.code === 'auth/wrong-password' ||
+        error.code === 'auth/invalid-credential'
+      ) {
+        setMessage({ tone: 'error', text: 'メールアドレスまたはパスワードが違います。' })
       } else {
-        alert('ログインに失敗しました。')
+        setMessage({ tone: 'error', text: 'ログインに失敗しました。時間をおいてお試しください。' })
       }
     } finally {
       setSubmitting(false)
@@ -71,16 +76,17 @@ export default function LoginPage() {
   // 🔹 パスワード再設定メール送信
   const handlePasswordReset = async () => {
     if (!email) {
-      alert('パスワード再設定メールを送るには、メールアドレスを入力してください。')
+      setMessage({ tone: 'error', text: '先にメールアドレスを入力してください。' })
       return
     }
 
     try {
       const auth = getAuth()
       await sendPasswordResetEmail(auth, email)
-      alert('パスワード再設定メールを送信しました。メールボックスをご確認ください。')
+      setMessage({ tone: 'success', text: '再設定メールを送信しました。メールをご確認ください。' })
     } catch (err) {
-      alert('送信に失敗しました：' + err.message)
+      console.error('再設定メールの送信に失敗しました:', err)
+      setMessage({ tone: 'error', text: '再設定メールを送信できませんでした。' })
     }
   }
 
@@ -91,7 +97,7 @@ export default function LoginPage() {
       <p className="auth-eyebrow">Welcome back</p>
       <h1 className="auth-title">ログイン</h1>
       <p className="auth-copy">今日の学習を始めましょう。</p>
-      <div className="auth-form">
+      <form className="auth-form" onSubmit={handleLogin}>
         <label className="auth-field">
           <span className="auth-label">メールアドレス</span>
           <input
@@ -105,25 +111,38 @@ export default function LoginPage() {
         </label>
         <label className="auth-field">
           <span className="auth-label">パスワード</span>
-          <input
-            className="auth-input"
-            type="password"
-            autoComplete="current-password"
-            placeholder="パスワードを入力"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="auth-password">
+            <input
+              className="auth-input"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="パスワードを入力"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              aria-label={showPassword ? 'パスワードを隠す' : 'パスワードを表示'}
+            >
+              {showPassword ? '隠す' : '表示'}
+            </button>
+          </div>
         </label>
 
+        {message && (
+          <p className={`auth-message ${message.tone}`} role="status">{message.text}</p>
+        )}
+
         <button
-          onClick={handleLogin}
+          type="submit"
           className="auth-button primary"
           disabled={submitting}
         >
           {submitting ? 'ログイン中…' : 'ログイン'}
         </button>
 
-        <button onClick={handlePasswordReset} className="auth-link">
+        <button type="button" onClick={handlePasswordReset} className="auth-link">
           パスワードを忘れた方
         </button>
 
@@ -134,7 +153,7 @@ export default function LoginPage() {
         >
           はじめての方はこちら
         </button>
-      </div>
+      </form>
       </section>
     </main>
   )

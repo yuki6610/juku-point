@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "../../firebaseConfig";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
@@ -15,10 +15,24 @@ const getPointValue = (h) => {
   return 0;
 };
 
+const toDate = (value) => {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  if (value instanceof Date) return value;
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  if (typeof value.seconds === "number") return new Date(value.seconds * 1000);
+  return null;
+};
+
 export default function PointHistoryPage() {
   const [grouped, setGrouped] = useState({});
   const [loading, setLoading] = useState(true);
   const [openDates, setOpenDates] = useState({});
+  const [filter, setFilter] = useState("all");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const auth = getAuth();
@@ -29,31 +43,37 @@ export default function PointHistoryPage() {
         return;
       }
 
-      const ref = collection(db, `users/${user.uid}/pointHistory`);
-      const qd = query(ref, orderBy("createdAt", "desc"));
-      const snap = await getDocs(qd);
+      try {
+        const ref = collection(db, `users/${user.uid}/pointHistory`);
+        const qd = query(ref, orderBy("createdAt", "desc"));
+        const snap = await getDocs(qd);
 
-      const list = snap.docs
-        .map((d) => {
-          const data = d.data();
-          const createdAt =
-            data.createdAt?.toDate?.() ??
-            (data.createdAt instanceof Date ? data.createdAt : null);
+        const list = snap.docs
+          .map((d) => {
+            const data = d.data();
+            const createdAt = toDate(data.createdAt);
 
-          return {
-            id: d.id,
-            ...data,
-            createdAt,
-          };
-        })
-        // 念のため最終ソート（createdAt がズレても安全）
-        .sort((a, b) => {
-          if (!a.createdAt || !b.createdAt) return 0;
-          return b.createdAt - a.createdAt;
-        });
+            return {
+              id: d.id,
+              ...data,
+              createdAt,
+            };
+          })
+          .sort((a, b) => {
+            if (!a.createdAt || !b.createdAt) return 0;
+            return b.createdAt - a.createdAt;
+          });
 
-      setGrouped(groupByDate(list));
-      setLoading(false);
+        const groups = groupByDate(list);
+        setGrouped(groups);
+        const newestDate = Object.keys(groups)[0];
+        if (newestDate) setOpenDates({ [newestDate]: true });
+      } catch (e) {
+        console.error("ポイント履歴の取得に失敗しました:", e);
+        setError("ポイント履歴を取得できませんでした。");
+      } finally {
+        setLoading(false);
+      }
     });
 
     return () => unsub();
@@ -67,8 +87,12 @@ export default function PointHistoryPage() {
 
     list.forEach((item) => {
       const key = item.createdAt
-        ? item.createdAt.toISOString().split("T")[0]
-        : "不明";
+        ? new Intl.DateTimeFormat("ja-JP", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(item.createdAt)
+        : "日付不明";
 
       if (!groups[key]) groups[key] = [];
       groups[key].push(item);
@@ -89,26 +113,53 @@ export default function PointHistoryPage() {
 
     return {
       selfstudy: "⏱ 自習",
+      classAttendance: "🏫 授業出席",
       wordtest: "✏️ 単語テスト",
+      wordtest_undo: "↩ 単語テスト取消",
       homework: "📘 宿題提出",
+      homework_missed: "⚠ 宿題未提出",
       reward: "🎁 景品交換",
-      undo_homework: "❌ 宿題取消",
-      undotest: "❌ 単語テスト取消",
-    }[h.type] || "その他";
+      undo_homework: "↩ 宿題提出取消",
+      homework_undo: "↩ 宿題提出取消",
+      adjustment: "⚙ ポイント調整",
+    }[h.type] || "📌 その他";
   };
 
   /* =====================
      説明文
   ===================== */
   const description = (h) => {
+    const explicitDescription = h.description || h.note || h.reason;
+    if (explicitDescription) return explicitDescription;
+
     if (h.type === "score") {
       if (h.scoreType === "exam") {
-        return `テスト成績承認（${h.point}pt）`;
+        return "五教科テストの成績が承認されました";
       }
-      return `内申点承認（${h.point}pt）`;
+      return "内申点が承認されました";
     }
 
-    return h.description || h.note || "(説明なし)";
+    if (h.type === "wordtest" || h.type === "wordtest_undo") {
+      const result =
+        Number.isFinite(h.correct) && Number.isFinite(h.total)
+          ? `${h.correct}/${h.total}問正解`
+          : "受験記録";
+      const week = h.week ? `・${h.week}` : "";
+      return h.type === "wordtest_undo"
+        ? `単語テスト ${result}${week} のポイント取消`
+        : `単語テスト ${result}${week}`;
+    }
+
+    return {
+      selfstudy: "自習時間に応じて獲得",
+      classAttendance: "通常授業への出席",
+      homework: "宿題を提出",
+      homework_missed: "宿題未提出による減点",
+      undo_homework: "宿題提出記録の取消",
+      homework_undo: "宿題提出記録の取消",
+      reward: "景品との交換に利用",
+      adjustment: "管理者によるポイント調整",
+    }[h.type] || "ポイントの増減";
   };
 
   const toggle = (date) => {
@@ -117,6 +168,16 @@ export default function PointHistoryPage() {
       [date]: !prev[date],
     }));
   };
+
+  const allItems = useMemo(() => Object.values(grouped).flat(), [grouped]);
+  const earnedTotal = useMemo(
+    () => allItems.reduce((sum, item) => sum + Math.max(getPointValue(item), 0), 0),
+    [allItems]
+  );
+  const spentTotal = useMemo(
+    () => allItems.reduce((sum, item) => sum + Math.abs(Math.min(getPointValue(item), 0)), 0),
+    [allItems]
+  );
 
   return (
     <main className="points-shell">
@@ -127,13 +188,54 @@ export default function PointHistoryPage() {
         <p>獲得・利用したポイントを日付ごとに確認できます。</p>
       </header>
 
+      <section className="points-summary" aria-label="ポイント集計">
+        <article>
+          <span>獲得</span>
+          <strong>+{earnedTotal.toLocaleString()}<small>pt</small></strong>
+        </article>
+        <article>
+          <span>利用</span>
+          <strong>-{spentTotal.toLocaleString()}<small>pt</small></strong>
+        </article>
+        <article>
+          <span>記録数</span>
+          <strong>{allItems.length}<small>件</small></strong>
+        </article>
+      </section>
+
+      <div className="points-filters" aria-label="履歴の絞り込み">
+        {[
+          ["all", "すべて"],
+          ["earned", "獲得"],
+          ["spent", "利用"],
+        ].map(([value, label]) => (
+          <button
+            type="button"
+            key={value}
+            className={filter === value ? "active" : ""}
+            onClick={() => setFilter(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <p>読み込み中...</p>
+      ) : error ? (
+        <p className="points-error" role="alert">{error}</p>
       ) : Object.keys(grouped).length === 0 ? (
         <p>まだ履歴がありません。</p>
       ) : (
         Object.keys(grouped).map((date) => {
           const isOpen = openDates[date];
+          const visibleItems = grouped[date].filter((item) => {
+            const point = getPointValue(item);
+            if (filter === "earned") return point >= 0;
+            if (filter === "spent") return point < 0;
+            return true;
+          });
+          if (visibleItems.length === 0) return null;
 
           return (
             <div key={date} className="date-section">
@@ -144,7 +246,7 @@ export default function PointHistoryPage() {
 
               {isOpen && (
                 <div className="date-body">
-                  {grouped[date].map((h) => {
+                  {visibleItems.map((h) => {
                     const point = getPointValue(h);
 
                     return (

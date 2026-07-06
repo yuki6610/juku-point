@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { db, auth } from '../../../firebaseConfig'
+import { auth } from '../../../firebaseConfig'
 import { onAuthStateChanged } from 'firebase/auth'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
 import './study-log.css'
 
@@ -13,6 +12,8 @@ export default function StudyLogPage() {
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [logsLoading, setLogsLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const router = useRouter()
 
@@ -24,54 +25,55 @@ export default function StudyLogPage() {
         return
       }
 
-      const adminRef = doc(db, "admins", user.uid)
-      const adminSnap = await getDoc(adminRef)
-
-      if (adminSnap.exists()) {
+      try {
+        const token = await user.getIdToken()
+        const response = await fetch('/api/admin/study-logs', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error)
+        setStudents(result.students || [])
         setIsAdmin(true)
-        loadStudents()
+      } catch (e) {
+        setError(e.message || '学習記録を取得できませんでした。')
+      } finally {
+        setLoading(false)
       }
-
-      setLoading(false)
     })
 
     return () => unsub()
-  }, [])
-
-  // 🧑‍🎓 生徒情報取得
-  const loadStudents = async () => {
-    const snap = await getDocs(collection(db, "users"))
-    const list = snap.docs.map(d => ({
-      id: d.id,
-      ...d.data()
-    }))
-    setStudents(list)
-  }
+  }, [router])
 
   // 📘 自習ログ取得
   const loadLogs = async (uid) => {
     setSelectedStudent(uid)
     setLogs([])
-
-    const checkinCol = collection(db, `users/${uid}/checkins`)
-    const snap = await getDocs(checkinCol)
-
-    const list = snap.docs.map(d => ({
-      date: d.id,
-      ...d.data()
-    }))
-
-    list.sort((a, b) => (a.date < b.date ? 1 : -1))
-    setLogs(list)
+    setLogsLoading(true)
+    setError('')
+    try {
+      const token = await auth.currentUser?.getIdToken()
+      if (!token) throw new Error('ログイン情報を確認できません。')
+      const response = await fetch(`/api/admin/study-logs?uid=${encodeURIComponent(uid)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error)
+      setLogs(result.logs || [])
+    } catch (e) {
+      setError(e.message || '自習ログを取得できませんでした。')
+    } finally {
+      setLogsLoading(false)
+    }
   }
 
   if (loading) return <p>読み込み中...</p>
-  if (!isAdmin) return <p>アクセス権がありません。</p>
+  if (!isAdmin) return <p role="alert">{error || 'アクセス権がありません。'}</p>
 
   return (
     <div className="studylog-container">
       
       <h1 className="studylog-title">📘 自習履歴（チェックインログ）</h1>
+      {error && <p className="studylog-error" role="alert">{error}</p>}
 
       {/* ▼ 2カラムで並べる */}
       <div className="studylog-layout">
@@ -81,13 +83,14 @@ export default function StudyLogPage() {
           <h3 className="student-title">生徒一覧</h3>
 
           {students.map((s) => (
-            <div
+            <button
+              type="button"
               key={s.id}
               className={`student-item ${selectedStudent === s.id ? "active" : ""}`}
               onClick={() => loadLogs(s.id)}
             >
-              {s.realName || s.displayName || "名前未登録"}
-            </div>
+              {s.name}
+            </button>
           ))}
         </div>
 
@@ -95,7 +98,8 @@ export default function StudyLogPage() {
         <div className="log-card">
           <h3 className="log-title">📅 自習ログ</h3>
 
-          {selectedStudent && logs.length === 0 && (
+          {logsLoading && <p className="empty-log">読み込み中...</p>}
+          {selectedStudent && !logsLoading && logs.length === 0 && (
             <p className="empty-log">自習記録がありません。</p>
           )}
 
@@ -103,7 +107,7 @@ export default function StudyLogPage() {
             const dateLabel = log.date;
 
             // ✨ 今日の入退室状況（current session）
-            const currentEnter = log.enterAt ? new Date(log.enterAt).toLocaleTimeString() : "ー";
+            const currentEnter = log.enterAt ? new Date(log.enterAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : "ー";
 
             // ✨ 過去のセッション
             const sessions = log.sessions || [];
@@ -127,8 +131,8 @@ export default function StudyLogPage() {
                 {/* ▼ 完了済みセッション一覧 */}
                 {sessions.map((s, idx) => (
                   <div key={idx} className="log-detail session-box">
-                    <p>入室：{new Date(s.enterAt).toLocaleTimeString()}</p>
-                    <p>退出：{new Date(s.exitAt).toLocaleTimeString()}</p>
+                    <p>入室：{s.enterAt ? new Date(s.enterAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : 'ー'}</p>
+                    <p>退出：{s.exitAt ? new Date(s.exitAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : 'ー'}</p>
                     <p>⏱ 自習：{s.minutes} 分</p>
                     <p>🏷 自習扱い：はい</p>
                   </div>

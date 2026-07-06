@@ -104,6 +104,19 @@ export default function StudentBehaviorPage() {
       }
     : null
 
+  const homeworkTotal = homeworkData
+    ? Object.values(homeworkData).reduce((sum, value) => sum + value, 0)
+    : 0
+  const attendanceTotal = summary
+    ? (summary.attendance?.ontime || 0) + (summary.attendance?.late || 0)
+    : 0
+  const homeworkRate = homeworkTotal
+    ? Math.round((homeworkData.提出 / homeworkTotal) * 100)
+    : 0
+  const ontimeRate = attendanceTotal
+    ? Math.round(((summary.attendance?.ontime || 0) / attendanceTotal) * 100)
+    : 0
+
   return (
     <div className="page behavior-page">
       <header className="behavior-heading">
@@ -129,6 +142,24 @@ export default function StudentBehaviorPage() {
       {!summary ? (
         <p className="empty">この学期の記録はまだありません</p>
       ) : (
+        <>
+        <section className="behavior-overview" aria-label="学期サマリー">
+          <div>
+            <span>HOMEWORK</span>
+            <strong>{homeworkRate}<small>%</small></strong>
+            <p>宿題提出率</p>
+          </div>
+          <div>
+            <span>ON TIME</span>
+            <strong>{ontimeRate}<small>%</small></strong>
+            <p>時間通りに出席</p>
+          </div>
+          <div>
+            <span>WORD TEST</span>
+            <strong>{summary.wordTest?.averageRate || 0}<small>%</small></strong>
+            <p>単語テスト平均</p>
+          </div>
+        </section>
         <div className="summary-grid">
           {/* 宿題 */}
           <div className="summary-card">
@@ -146,8 +177,8 @@ export default function StudentBehaviorPage() {
             <h3>出席</h3>
             <Pie data={attendanceData} />
             <ul className="legend">
-              <li><span className="blue" />時間通り：{attendanceData.時間通り}</li>
-              <li><span className="purple" />遅刻：{attendanceData.遅刻}</li>
+              <li><span className="green" />時間通り：{attendanceData.時間通り}</li>
+              <li><span className="orange" />遅刻：{attendanceData.遅刻}</li>
             </ul>
           </div>
 
@@ -177,6 +208,7 @@ export default function StudentBehaviorPage() {
             <p>{summary.wordTest?.completed || 0}回実施</p>
           </div>
         </div>
+        </>
       )}
     </div>
   )

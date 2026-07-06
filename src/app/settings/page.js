@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { auth, db, storage } from "@/firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, getDoc, getDocFromServer, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import "./settings.css";
 
 const Avatar3DWrapper = dynamic(
@@ -26,6 +26,25 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [savingName, setSavingName] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState("");
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [avatarStatus, setAvatarStatus] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    };
+  }, [avatarPreviewUrl]);
+
+  const handleAvatarLoaded = useCallback(() => {
+    setAvatarStatus((current) =>
+      current === "アバターをアップロードしています…" ? current : "アバターを表示できました。"
+    );
+  }, []);
+
+  const handleAvatarError = useCallback(() => {
+    setAvatarStatus("このVRMファイルを表示できません。別のファイルをお試しください。");
+  }, []);
 
   // -----------------------------
   // ユーザーデータ読み込み
@@ -65,18 +84,20 @@ export default function SettingsPage() {
     if (!name.trim()) return alert("名前を入力してください");
 
     setSavingName(true);
-
-    // Firestore の更新
-    await updateDoc(doc(db, "users", user.uid), {
-      displayName: name,
-      updatedAt: new Date(),
-    });
-
-    // Firebase Auth の名前も更新
-    await updateProfile(user, { displayName: name });
-
-    setSavingName(false);
-    alert("名前を更新しました！");
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        displayName: name.trim(),
+        updatedAt: new Date(),
+      });
+      await updateProfile(user, { displayName: name.trim() });
+      setName(name.trim());
+      alert("名前を更新しました！");
+    } catch (error) {
+      console.error("名前の更新に失敗しました:", error);
+      alert("名前を更新できませんでした。通信状態を確認してください。");
+    } finally {
+      setSavingName(false);
+    }
   };
 
   // -----------------------------
@@ -94,23 +115,73 @@ export default function SettingsPage() {
         return;
       }
 
+      setSavingAvatar(true);
+      setAvatarStatus("アバターをアップロードしています…");
+      let uploadedAvatarRef = null;
       try {
-        const storageRef = ref(storage, `avatars/${user.uid}/avatar.vrm`);
+        const extension = avatarFile.name.toLowerCase().endsWith(".vrm")
+          ? "vrm"
+          : "glb";
+        const storageRef = ref(
+          storage,
+          `avatars/${user.uid}/avatar-${Date.now()}.${extension}`
+        );
+        uploadedAvatarRef = storageRef;
 
-        await uploadBytes(storageRef, avatarFile);
+        await uploadBytes(storageRef, avatarFile, {
+          contentType: avatarFile.type || "application/octet-stream",
+          customMetadata: { ownerUid: user.uid },
+        });
 
         const downloadURL = await getDownloadURL(storageRef);
+        const previousAvatarUrl = avatarUrl;
+        const avatarVersion = Date.now();
 
-        await updateDoc(doc(db, "users", user.uid), {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
           avatarUrl: downloadURL,
+          avatarStoragePath: storageRef.fullPath,
+          avatarVersion,
+          avatarUpdatedAt: new Date(),
           updatedAt: new Date(),
         });
 
+        const savedSnapshot = await getDocFromServer(userRef);
+        const savedData = savedSnapshot.data();
+        if (
+          savedData?.avatarUrl !== downloadURL ||
+          Number(savedData?.avatarVersion) !== avatarVersion
+        ) {
+          throw new Error("プロフィールへの保存を確認できませんでした。");
+        }
+
+        localStorage.setItem(
+          `avatar:${user.uid}`,
+          JSON.stringify({ avatarUrl: downloadURL, avatarVersion })
+        );
         setAvatarUrl(downloadURL);
+        setAvatarFile(null);
+        setAvatarPreviewUrl("");
+        setAvatarStatus("新しいアバターを反映しました。");
+
+        if (previousAvatarUrl && previousAvatarUrl !== downloadURL) {
+          try {
+            deleteObject(ref(storage, previousAvatarUrl)).catch(() => {});
+          } catch {
+            // 過去URLがFirebase Storage以外でも、新しい保存結果は維持する
+          }
+        }
+
         alert("アバターを更新しました！");
       } catch (e) {
         console.error(e);
-        alert(`${e.code}\n${e.message}`);
+        if (uploadedAvatarRef) {
+          deleteObject(uploadedAvatarRef).catch(() => {});
+        }
+        setAvatarStatus(`更新に失敗しました：${e.message || "原因不明のエラー"}`);
+        alert(`${e.code || "avatar/update-failed"}\n${e.message}`);
+      } finally {
+        setSavingAvatar(false);
       }
     };
   if (loading) return <p>読み込み中...</p>;
@@ -152,26 +223,42 @@ export default function SettingsPage() {
           <h2 className="settings-section-title">3Dアバター</h2>
 
           <p className="settings-desc">
-          VRMファイルをアップロードしてください。
+          VRMファイルを選ぶと、保存前にプレビューできます。
           </p>
 
           <input
             type="file"
-            accept=".vrm"
+            accept=".vrm,model/gltf-binary,application/octet-stream"
             className="settings-input"
             onChange={(e)=>{
-              if(e.target.files?.length){
-                setAvatarFile(e.target.files[0]);
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (!file.name.toLowerCase().endsWith(".vrm")) {
+                alert("VRM形式のファイルを選択してください。");
+                e.target.value = "";
+                return;
               }
+              if (file.size > 50 * 1024 * 1024) {
+                alert("ファイルサイズは50MB以下にしてください。");
+                e.target.value = "";
+                return;
+              }
+              setAvatarFile(file);
+              setAvatarPreviewUrl(URL.createObjectURL(file));
+              setAvatarStatus("保存前のプレビューを表示しています。");
             }}
           />
 
           <button
             className="settings-save-btn"
             onClick={saveAvatar}
+            disabled={!avatarFile || savingAvatar}
           >
-            アバターを保存
+            {savingAvatar ? "アップロード中…" : "このアバターを保存"}
           </button>
+          {avatarStatus && (
+            <p className="settings-avatar-status" role="status">{avatarStatus}</p>
+          )}
           <a
             href="https://avatarmaker.vket.com/"
             target="_blank"
@@ -187,8 +274,17 @@ export default function SettingsPage() {
 
           <div className="settings-preview-box">
 
-            {avatarUrl && <Avatar3DWrapper url={avatarUrl} />}
-            {!avatarUrl && <p className="settings-empty">アバターはまだ設定されていません</p>}
+            {(avatarPreviewUrl || avatarUrl) && (
+              <Avatar3DWrapper
+                key={avatarPreviewUrl || avatarUrl}
+                url={avatarPreviewUrl || avatarUrl}
+                onLoad={handleAvatarLoaded}
+                onError={handleAvatarError}
+              />
+            )}
+            {!avatarPreviewUrl && !avatarUrl && (
+              <p className="settings-empty">アバターはまだ設定されていません</p>
+            )}
 
           </div>
           </section>

@@ -1,72 +1,48 @@
-/* コンテナ */
-.guide-container {
-  padding: 20px;
-  max-width: 700px;
-  margin: 0 auto;
-  line-height: 1.7;
-  font-size: 16px;
+.guide-shell { min-height: 100vh; padding: 45px 18px 70px; background: var(--student-bg); color: var(--student-text); }
+.guide-container { width: min(100%, 820px); margin: 0 auto; }
+.guide-heading { margin-bottom: 22px; }
+.guide-heading > span { color: var(--student-primary); font-size: 10px; font-weight: 900; letter-spacing: .18em; }
+.guide-heading h1 { margin: 7px 0; font-size: clamp(32px, 6vw, 48px); letter-spacing: -.055em; }
+.guide-heading p { margin: 0; color: var(--student-muted); }
+.guide-search {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  min-height: 56px;
+  margin-bottom: 15px;
+  padding: 0 15px;
+  background: #fff;
+  border: 1px solid var(--student-line);
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(38, 49, 77, .05);
 }
-
-/* タイトル */
-.guide-title {
-  text-align: center;
-  margin-bottom: 24px;
-  font-size: 24px;
+.guide-search > span { color: #8178e3; font-size: 22px; }
+.guide-search input { width: 100%; border: 0; outline: 0; background: transparent; }
+.guide-list { display: grid; gap: 9px; }
+.guide-section { overflow: hidden; background: #fff; border: 1px solid var(--student-line); border-radius: 17px; }
+.guide-section summary {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
 }
-
-/* セクション */
-.guide-section {
-  margin-bottom: 28px;
-  background: #ffffff;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-}
-
-/* セクションタイトル */
-.guide-section h2 {
-  margin-bottom: 10px;
-  font-size: 18px;
-}
-
-/* リスト */
-.guide-section ul {
-  padding-left: 20px;
-  margin: 0;
-}
-
-.guide-section li {
-  margin-bottom: 6px;
-}
-
-/* ボタン */
-.guide-back-btn {
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  background: #888;
-  color: white;
-  font-size: 16px;
-  border: none;
-  margin-top: 20px;
-}
-
-/* --- スマホ最適化 --- */
-@media (max-width: 480px) {
-  .guide-container {
-    padding: 14px;
-    font-size: 15px;
-  }
-
-  .guide-title {
-    font-size: 20px;
-  }
-
-  .guide-section {
-    padding: 14px;
-  }
-
-  .guide-section h2 {
-    font-size: 16px;
-  }
+.guide-section summary::-webkit-details-marker { display: none; }
+.guide-icon { display: grid; width: 42px; height: 42px; place-items: center; color: #5f55d3; background: #efedff; border-radius: 13px; font-weight: 900; }
+.guide-section summary > span:nth-child(2) { display: grid; gap: 3px; }
+.guide-section summary small { color: #8992a3; }
+.guide-section summary b { color: #929bad; font-size: 20px; transition: transform .2s; }
+.guide-section[open] summary b { transform: rotate(45deg); }
+.guide-content { padding: 4px 18px 20px 72px; color: #5f697e; line-height: 1.75; border-top: 1px solid #f0f2f6; }
+.guide-content ul,.guide-content ol { margin: 13px 0 0; padding-left: 20px; }
+.guide-content p { margin: 12px 0 0; }
+.guide-content h3 { margin: 15px 0 -5px; color: #354056; }
+.guide-empty { padding: 40px; color: #7c869a; text-align: center; }
+@media (max-width: 560px) {
+  .guide-shell { padding: 27px 11px 35px; }
+  .guide-section summary { padding: 11px; }
+  .guide-content { padding: 4px 14px 18px; }
 }

@@ -131,13 +131,25 @@ export default function SummerPage() {
         
         return (
           <div className="summer-page">
-
-            <h1>🍖 夏期イベント</h1>
+            <header className="summer-hero">
+              <div>
+                <span>SUMMER CHALLENGE 2026</span>
+                <h1>夏を頑張った分、<br />楽しみが大きくなる。</h1>
+                <p>景品ストアで交換した対象ポイントが、イベントの食事代に加算されます。</p>
+              </div>
+              <div className="summer-countdown">
+                <small>イベント終了まで</small>
+                <strong>{remainDays}</strong>
+                <span>DAYS</span>
+              </div>
+            </header>
 
             <div className="summer-info">
-              🏆 <strong>ランキング1位の生徒がイベント当日の食事内容を決定します！</strong>
-              <br />
-              ポイントを集めて1位を目指そう！
+              <span>🏆</span>
+              <div>
+                <strong>ランキング1位が食事内容を決定！</strong>
+                <p>対象景品を交換して、みんなでイベントを盛り上げよう。</p>
+              </div>
             </div>
 
             {/* TOP3 */}
@@ -175,31 +187,24 @@ export default function SummerPage() {
 
             </div>
 
-            <div className="summer-card">
-              <h2>総交換ポイント</h2>
-              <div className="big-number">
-                {totalPoint.toLocaleString()} pt
+            <div className="summer-stats">
+              <div className="summer-card point-stat">
+                <span>みんなの交換ポイント</span>
+                <div className="big-number">{totalPoint.toLocaleString()} <small>pt</small></div>
               </div>
-            </div>
-
-            <div className="summer-card">
-              <h2>現在の食事代</h2>
-              <div className="big-number">
-                {Math.round(totalPoint * yenPerPoint).toLocaleString()} 円
-              </div>
-            </div>
-
-            <div className="summer-card">
-              <h2>⏰ イベント終了まで</h2>
-              <div className="big-number">
-                あと {remainDays} 日
+              <div className="summer-card meal-stat">
+                <span>現在の食事代</span>
+                <div className="big-number">{Math.round(totalPoint * yenPerPoint).toLocaleString()} <small>円</small></div>
               </div>
             </div>
 
 
             <div className="summer-card">
 
-              <h2>🏆 ランキング</h2>
+              <div className="section-heading">
+                <div><span>LEADERBOARD</span><h2>みんなのランキング</h2></div>
+                <small>{ranking.length}人が参加中</small>
+              </div>
                 
                 {ranking.map((r, i) => (
                   <div className="rank-row" key={r.uid}>
@@ -229,7 +234,9 @@ export default function SummerPage() {
 
               <div className="summer-card">
 
-                <h2>🙋 あなた</h2>
+                <div className="section-heading">
+                  <div><span>YOUR STATUS</span><h2>あなたの現在地</h2></div>
+                </div>
 
                 <div className="my-info">
 

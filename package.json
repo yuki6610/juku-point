@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@opentelemetry/api": "1.9.1",
     "@pixiv/three-vrm": "^3.5.4",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",

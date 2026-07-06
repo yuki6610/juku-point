@@ -5,6 +5,14 @@ import { db } from '@/firebaseConfig'
 import { getAuth,onAuthStateChanged } from 'firebase/auth'
 import './universities.css'
 
+const UNIVERSITY_GROUPS = [
+  { id: 'imperial', label: '旧帝大', names: ['北海道大学','東北大学','東京大学','名古屋大学','京都大学','大阪大学','九州大学'] },
+  { id: 'kankandoritsu', label: '関関同立', names: ['関西大学','関西学院大学','同志社大学','立命館大学'] },
+  { id: 'sankinkoryu', label: '産近甲龍', names: ['京都産業大学','近畿大学','甲南大学','龍谷大学'] },
+  { id: 'hyogo', label: '兵庫県内', prefecture: '兵庫県' },
+  { id: 'national', label: '国公立', types: ['国立','公立'] },
+]
+
 export default function UniversitiesPage(){
 
 /* ================= 基本状態 ================= */
@@ -31,6 +39,7 @@ const [selectedType,setSelectedType] = useState('')
 const [selectedFaculty,setSelectedFaculty] = useState('')
 const [selectedDept,setSelectedDept] = useState('')
 const [selectedSubject,setSelectedSubject] = useState('')
+const [selectedGroup,setSelectedGroup] = useState('')
 
 /* ================= カレンダー入力 ================= */
 const [calTitle,setCalTitle] = useState('')
@@ -114,7 +123,7 @@ const subjects = useMemo(()=>{
     /* ================= フィルタ判定 ================= */
     const hasFilter =
       keyword || selectedPref || selectedType ||
-      selectedFaculty || selectedDept || selectedSubject
+      selectedFaculty || selectedDept || selectedSubject || selectedGroup
 
     /* ================= フィルタ結果 ================= */
     const filtered = universities.filter(u=>{
@@ -125,6 +134,12 @@ const subjects = useMemo(()=>{
       if(selectedFaculty && !u.searchIndex?.faculties?.includes(selectedFaculty)) return false
       if(selectedDept && !u.searchIndex?.departments?.includes(selectedDept)) return false
       if(selectedSubject && !u.searchIndex?.subjects?.includes(selectedSubject)) return false
+      if(selectedGroup){
+        const group=UNIVERSITY_GROUPS.find(g=>g.id===selectedGroup)
+        if(group?.names && !group.names.includes(u.name)) return false
+        if(group?.prefecture && u.prefecture!==group.prefecture) return false
+        if(group?.types && !group.types.includes(u.establishedType)) return false
+      }
       return true
     })
 
@@ -220,11 +235,35 @@ const subjects = useMemo(()=>{
 
     /* ========================== JSX ========================== */
     return(
-    <div className="page">
-    <h1 className="title">大学検索</h1>
-    {countdown!==null&&(<div className="countdown">🎯 共通テストまであと {countdown} 日</div>)}
+    <main className="university-shell">
+    <div className="page university-page">
+    <header className="university-heading">
+      <div>
+        <span>UNIVERSITY FINDER</span>
+        <h1>大学・入試情報</h1>
+        <p>大学群や条件から調べて、気になる入試方式を志望校へ追加できます。</p>
+      </div>
+      {countdown!==null&&(<div className="countdown"><small>共通テストまで</small><strong>{countdown}</strong><span>日</span></div>)}
+    </header>
+
+    <section className="university-groups">
+      <div className="university-section-heading"><span>QUICK SEARCH</span><h2>大学群から探す</h2></div>
+      <div className="group-chips">
+        {UNIVERSITY_GROUPS.map(group=>(
+          <button
+            type="button"
+            key={group.id}
+            className={selectedGroup===group.id?'active':''}
+            onClick={()=>setSelectedGroup(selectedGroup===group.id?'':group.id)}
+          >
+            {group.label}
+          </button>
+        ))}
+      </div>
+    </section>
 
     {/* ================= フィルタ ================= */}
+    <div className="university-section-heading"><span>FILTER</span><h2>条件を絞り込む</h2></div>
     <div className="filters">
     <input placeholder="大学名" value={keyword} onChange={e=>setKeyword(e.target.value)}/>
     <select value={selectedPref} onChange={e=>setSelectedPref(e.target.value)}>
@@ -246,12 +285,16 @@ const subjects = useMemo(()=>{
 
     {/* ================= 検索結果 ================= */}
     <div className="results-area">
-    {!hasFilter?(<p>検索条件を選択してください</p>):(
-    filtered.map(u=>(
-    <div key={u.id} className="card" onClick={()=>{setSelectedUniversity(u);loadAdmissions(u.id)}}>
-    <div>{u.name}</div><div>{u.prefecture} / {u.establishedType}</div>
-    </div>
-    )))}
+    {!hasFilter?(<p className="search-empty">大学群または検索条件を選択してください</p>):(
+    <>
+    <div className="results-count">{filtered.length}校が見つかりました</div>
+    {filtered.map(u=>(
+    <button type="button" key={u.id} className="card" onClick={()=>{setSelectedUniversity(u);loadAdmissions(u.id)}}>
+    <span><strong>{u.name}</strong><small>{u.prefecture} / {u.establishedType}</small></span><b>詳細を見る →</b>
+    </button>
+    ))}
+    </>
+    )}
     </div>
 
     {/* ================= モーダル ================= */}
@@ -276,7 +319,7 @@ const subjects = useMemo(()=>{
     )}
 
     {/* ================= 志望校 ================= */}
-    <h2>⭐ 志望校リスト</h2>
+    <div className="university-section-heading wishlist-heading"><span>MY LIST</span><h2>志望校リスト</h2></div>
 
     {wishlistDetails.map((w,i)=>(
     <div key={w.id} className="wishlist-card">
@@ -313,5 +356,6 @@ const subjects = useMemo(()=>{
     )}
 
     </div>
+    </main>
     )
     }

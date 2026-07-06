@@ -1,7 +1,7 @@
 .points-shell {
   min-height: 100dvh;
   padding: 48px 18px 80px;
-  background: #f8fafc;
+  background: var(--student-bg);
 }
 
 .points-container { width: min(100%, 760px); margin: 0 auto; }
@@ -19,6 +19,50 @@
   letter-spacing: -0.045em;
 }
 .points-heading p { margin: 0; color: #64748b; }
+
+.points-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.points-summary article {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid var(--student-line);
+  border-radius: 17px;
+}
+.points-summary span { color: #7d879a; font-size: 11px; font-weight: 800; }
+.points-summary strong { font-size: 23px; letter-spacing: -.04em; }
+.points-summary article:first-child strong { color: #0b9670; }
+.points-summary article:nth-child(2) strong { color: #db6d45; }
+.points-summary small { margin-left: 3px; font-size: 11px; letter-spacing: 0; }
+.points-filters {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 14px;
+  padding: 5px;
+  background: #e9edf5;
+  border-radius: 13px;
+}
+.points-filters button {
+  flex: 1;
+  min-height: 40px;
+  color: #768198;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.points-filters button.active {
+  color: #554bc9;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(41, 50, 74, .08);
+}
+.points-error { padding: 14px; color: #991b1b; background: #fef2f2; border-radius: 12px; }
 
 .date-section {
   overflow: hidden;
@@ -66,4 +110,7 @@
   .points-heading p { line-height: 1.6; }
   .date-header { padding: 15px; }
   .date-body { padding-inline: 15px; }
+  .points-summary { gap: 6px; }
+  .points-summary article { padding: 13px 9px; }
+  .points-summary strong { font-size: 19px; }
 }

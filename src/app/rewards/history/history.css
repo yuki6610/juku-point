@@ -1,127 +1,45 @@
-/* === 全体レイアウト === */
-.history-container {
-  padding: 16px;
-  max-width: 900px;
-  margin: 0 auto;
-  background-color: #fafafa;
-  min-height: 100vh;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
+.history-shell { min-height: 100vh; padding: 45px 18px 70px; background: var(--student-bg); color: var(--student-text); }
+.history-container { width: min(100%, 820px); margin: 0 auto; }
+.history-heading { margin-bottom: 22px; }
+.history-heading > span { color: var(--student-primary); font-size: 10px; font-weight: 900; letter-spacing: .18em; }
+.history-heading h1 { margin: 7px 0; font-size: clamp(32px, 6vw, 48px); letter-spacing: -.055em; }
+.history-heading p { margin: 0; color: var(--student-muted); }
+.history-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 14px; }
+.history-summary > div { padding: 17px; background: #fff; border: 1px solid var(--student-line); border-radius: 17px; }
+.history-summary span { color: #7d8799; font-size: 11px; }
+.history-summary strong { display: block; margin-top: 7px; font-size: 25px; letter-spacing: -.04em; }
+.history-summary small { margin-left: 4px; font-size: 11px; }
+.history-filters { display: flex; gap: 6px; margin-bottom: 13px; padding: 5px; background: #e8ecf4; border-radius: 13px; }
+.history-filters button { flex: 1; min-height: 40px; color: #788297; background: transparent; border: 0; border-radius: 9px; font-weight: 800; }
+.history-filters button.active { color: #5d52d3; background: #fff; box-shadow: 0 4px 12px rgba(38,49,77,.08); }
+.history-list { display: grid; gap: 8px; }
+.history-item {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
   align-items: center;
+  gap: 12px;
+  min-height: 78px;
+  padding: 13px 16px;
+  background: #fff;
+  border: 1px solid var(--student-line);
+  border-radius: 16px;
 }
-
-.title {
-  font-size: 22px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 20px;
-  color: #1e293b;
-}
-
-/* === テーブルデザイン === */
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #ffffff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-/* ヘッダー */
-.history-table th {
-  background: #f3f4f6;
-  color: #374151;
-  padding: 10px;
-  font-weight: 600;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: center;
-  font-size: 14px;
-}
-
-/* データ部分 */
-.history-table td {
-  color: #334155;
-  padding: 10px;
-  text-align: center;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 14px;
-}
-
-/* 交互に背景を変えて見やすく */
-.history-table tr:nth-child(even) {
-  background-color: #f9fafb;
-}
-
-/* === スマホ対応 === */
-@media (max-width: 700px) {
-  .history-table {
-    display: block;
-    overflow-x: auto;
-    white-space: nowrap;
-    border-radius: 8px;
-  }
-
-  .history-table th,
-  .history-table td {
-    padding: 8px 6px;
-    font-size: 13px;
-  }
-
-  .title {
-    font-size: 20px;
-  }
-
-  .bottom-buttons {
-    position: static;
-    margin-top: 30px;
-  }
-
-  .back-button {
-    width: 100%;
-  }
-}
-
-/* === テキスト === */
-.no-history,
-.loading-text {
-  text-align: center;
-  font-size: 15px;
-  color: #6b7280;
-  margin-top: 40px;
-}
-
-/* === ボタン === */
-.bottom-buttons {
-  position: fixed;
-  left: 20px;
-  bottom: 20px;
-}
-
-.back-button {
-  background-color: #2563eb;
-  color: white;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  transition: background 0.2s ease;
-}
-
-.back-button:hover {
-  background-color: #1e40af;
-}
-
-/* === ステータス表示（確認中・確認済） === */
-.status-pending {
-  color: #d97706;
-  font-weight: 600;
-}
-
-.status-verified {
-  color: #22c55e;
-  font-weight: 600;
+.history-icon { display: grid; width: 42px; height: 42px; place-items: center; color: #0c7b5d; background: #e6f8f1; border-radius: 13px; font-size: 20px; }
+.history-copy,.history-meta { display: grid; gap: 4px; }
+.history-copy span { color: #8790a1; font-size: 12px; }
+.history-meta { justify-items: end; }
+.history-meta > strong { color: #dc754e; }
+.history-meta > span { padding: 4px 8px; border-radius: 999px; font-size: 10px; font-weight: 850; }
+.history-meta .verified { color: #08765b; background: #e5f8f1; }
+.history-meta .pending { color: #a85c1c; background: #fff3df; }
+.store-link { width: 100%; min-height: 48px; margin-top: 14px; color: #fff; background: #6158d6; border: 0; border-radius: 13px; font-weight: 850; }
+.no-history,.history-error,.loading-text { padding: 40px 15px; text-align: center; }
+.history-error { color: #991b1b; background: #fef2f2; border-radius: 13px; }
+@media (max-width: 560px) {
+  .history-shell { padding: 27px 11px 35px; }
+  .history-summary { gap: 6px; }
+  .history-summary > div { padding: 13px 9px; }
+  .history-summary strong { font-size: 20px; }
+  .history-item { grid-template-columns: 40px 1fr; padding: 12px; }
+  .history-meta { grid-column: 2; grid-row: 2; grid-template-columns: 1fr auto; align-items: center; justify-items: start; }
 }

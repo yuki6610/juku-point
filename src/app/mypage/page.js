@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "../../firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDocFromServer, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import dynamic from "next/dynamic";
 const AvatarCanvas = dynamic(
@@ -77,11 +77,23 @@ export default function MyPage() {
       setUser(currentUser);
 
       try {
-        const snap = await getDoc(doc(db, "users", currentUser.uid));
+        const snap = await getDocFromServer(doc(db, "users", currentUser.uid));
         if (snap.exists()) {
           const d = snap.data();
           await autoUnbanIfExpired(currentUser.uid, d);
-          setData(d);
+          let avatarOverride = null;
+          try {
+            avatarOverride = JSON.parse(
+              localStorage.getItem(`avatar:${currentUser.uid}`) || "null"
+            );
+          } catch {
+            localStorage.removeItem(`avatar:${currentUser.uid}`);
+          }
+          const useLocalAvatar =
+            avatarOverride?.avatarUrl &&
+            Number(avatarOverride.avatarVersion || 0) >=
+              Number(d.avatarVersion || 0);
+          setData(useLocalAvatar ? { ...d, ...avatarOverride } : d);
 
           const lastLevel = parseInt(localStorage.getItem("lastLevel") || "0");
           if ((d.level ?? 1) > lastLevel) {
@@ -104,17 +116,11 @@ export default function MyPage() {
   }, [router]);
 
   useEffect(() => {
+    setShowAvatar(false);
     if (!data.avatarUrl) return;
-
-    const show = () => setShowAvatar(true);
-    if ("requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(show, { timeout: 1500 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-
-    const timeoutId = window.setTimeout(show, 500);
+    const timeoutId = window.setTimeout(() => setShowAvatar(true), 100);
     return () => window.clearTimeout(timeoutId);
-  }, [data.avatarUrl]);
+  }, [data.avatarUrl, data.avatarVersion]);
 
   if (loading) return <p className="loading-text">読み込み中...</p>;
   if (!user) return null;
@@ -124,6 +130,9 @@ export default function MyPage() {
   const exp = data.experience ?? 0;
   const expNeeded = 100 + (level - 1) * 10;
   const expPercent = Math.min((exp / expNeeded) * 100, 100);
+  const avatarRenderUrl = data.avatarUrl
+    ? `${data.avatarUrl}${data.avatarUrl.includes("?") ? "&" : "?"}v=${data.avatarVersion || "legacy"}`
+    : "";
   const menuItems = [
     { icon: "◷", label: "自習を記録", note: "入退室・学習時間", path: "/checkin", tone: "blue" },
     { icon: "◇", label: "景品交換", note: "ポイントを使う", path: "/rewards", tone: "green" },
@@ -150,9 +159,9 @@ export default function MyPage() {
 
       <header className="dashboard-header">
         <div>
-          <p className="dashboard-eyebrow">MY DASHBOARD</p>
-          <h1>こんにちは、{data.displayName || "生徒"}さん</h1>
-          <p>今日も小さな一歩を積み重ねよう。</p>
+          <p className="dashboard-eyebrow">TODAY</p>
+          <h1>{data.displayName || "生徒"}さんのホーム</h1>
+          <p>今日やることを、ここから始めましょう。</p>
         </div>
         <button
           className="header-logout"
@@ -185,6 +194,23 @@ export default function MyPage() {
         </section>
       )}
 
+      <section className="home-focus" aria-label="今日の学習">
+        <div className="home-focus-copy">
+          <span>TODAY&apos;S ACTION</span>
+          <h2>今日の学習を記録しよう</h2>
+          <p>教室に着いたら、入室PINを入力して自習を始めます。</p>
+          <button type="button" onClick={() => router.push("/checkin")}>
+            自習を記録する
+            <span>→</span>
+          </button>
+        </div>
+        <div className="home-term-summary">
+          <span>今学期の学習</span>
+          <strong>{Math.round((data.termStudyMinutes || 0) / 60 * 10) / 10}<small>時間</small></strong>
+          <p>{data.termSelfStudyCount || 0}回の自習を記録</p>
+        </div>
+      </section>
+
       <section className="dashboard-stats" aria-label="学習状況">
         <article className="stat-tile">
           <span className="stat-label">LEVEL</span>
@@ -216,7 +242,13 @@ export default function MyPage() {
             className="avatar-frame"
             style={{ backgroundImage: `url(${getSeasonImage()})` }}
           >
-            {showAvatar && <AvatarCanvas url={data.avatarUrl} height={320} />}
+            {showAvatar && (
+              <AvatarCanvas
+                key={avatarRenderUrl}
+                url={avatarRenderUrl}
+                height={250}
+              />
+            )}
             {!data.avatarUrl && (
               <div className="avatar-empty">
                 <span>アバター未設定</span>
@@ -237,8 +269,8 @@ export default function MyPage() {
             <div className="exp-fill" style={{ width: `${expPercent}%` }} />
           </div>
           <p>あと {Math.max(expNeeded - exp, 0)} XPでレベルアップ</p>
-          <button className="primary-action" onClick={() => router.push("/checkin")}>
-            学習を始める
+          <button className="primary-action" onClick={() => router.push("/points")}>
+            ポイント履歴を見る
           </button>
         </div>
       </section>

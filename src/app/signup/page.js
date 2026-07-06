@@ -17,15 +17,23 @@ export default function SignupPage() {
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState(null);
   const router = useRouter();
 
-  const handleRegister = async () => {
+  const handleRegister = async (event) => {
+    event?.preventDefault();
     if (submitting) return;
     if (!email || !realName || !password) {
-      alert("メール・本名・パスワードは必須です。");
+      setMessage({ tone: "error", text: "メール・本名・パスワードは必須です。" });
+      return;
+    }
+    if (password.length < 6) {
+      setMessage({ tone: "error", text: "パスワードは6文字以上にしてください。" });
       return;
     }
 
+    setMessage(null);
     setSubmitting(true);
     try {
       const auth = getAuth();
@@ -43,18 +51,17 @@ export default function SignupPage() {
       });
 
       await signOut(auth);
-      alert("登録が完了しました！ログインしてください。");
       router.replace("/login");
     } catch (error) {
       console.error("登録エラー:", error);
       if (error.code === "auth/email-already-in-use") {
-        alert("このメールアドレスはすでに登録されています。");
+        setMessage({ tone: "error", text: "このメールアドレスはすでに登録されています。" });
       } else if (error.code === "auth/invalid-email") {
-        alert("メールアドレスの形式が正しくありません。");
+        setMessage({ tone: "error", text: "メールアドレスの形式が正しくありません。" });
       } else if (error.code === "auth/weak-password") {
-        alert("パスワードは6文字以上にしてください。");
+        setMessage({ tone: "error", text: "パスワードは6文字以上にしてください。" });
       } else {
-        alert("登録に失敗しました。");
+        setMessage({ tone: "error", text: "登録に失敗しました。時間をおいてお試しください。" });
       }
     } finally {
       setSubmitting(false);
@@ -69,7 +76,7 @@ export default function SignupPage() {
         <h1 className="auth-title">新規登録</h1>
         <p className="auth-copy">必要な情報を入力して始めましょう。</p>
 
-        <div className="auth-form">
+        <form className="auth-form" onSubmit={handleRegister}>
           <label className="auth-field">
           <span className="auth-label">メールアドレス</span>
           <input
@@ -105,18 +112,33 @@ export default function SignupPage() {
 
           <label className="auth-field">
           <span className="auth-label">パスワード</span>
-          <input
-            className="auth-input"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            placeholder="6文字以上"
-          />
+          <div className="auth-password">
+            <input
+              className="auth-input"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              placeholder="6文字以上"
+              minLength={6}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+            >
+              {showPassword ? "隠す" : "表示"}
+            </button>
+          </div>
+          <small className="auth-hint">英数字を組み合わせると、より安全です。</small>
           </label>
 
+          {message && (
+            <p className={`auth-message ${message.tone}`} role="status">{message.text}</p>
+          )}
+
           <button
-            onClick={handleRegister}
+            type="submit"
             className="auth-button primary"
             disabled={submitting}
           >
@@ -129,7 +151,7 @@ export default function SignupPage() {
           >
             ログインへ戻る
           </button>
-        </div>
+        </form>
       </section>
     </main>
   );

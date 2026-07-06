@@ -13,6 +13,14 @@
   gap: 10px;
 }
 
+.studylog-error {
+  padding: 12px 14px;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+}
+
 /* レイアウト：2カラム */
 .studylog-layout {
   display: grid;
@@ -39,6 +47,11 @@
 }
 
 .student-item {
+  display: block;
+  width: 100%;
+  color: #334155;
+  border: 0;
+  text-align: left;
   padding: 12px 14px;
   border-radius: 8px;
   background: #f1f5f9;
@@ -111,4 +124,13 @@
 
 .back-btn:hover {
   background: #334155;
+}
+
+@media (max-width: 760px) {
+  .studylog-container { padding: 20px 12px; }
+  .studylog-title { font-size: 25px; }
+  .studylog-layout { grid-template-columns: 1fr; gap: 14px; }
+  .student-list-card { height: auto; max-height: 320px; }
+  .log-row { display: block; }
+  .log-detail { margin-top: 10px; text-align: left; }
 }

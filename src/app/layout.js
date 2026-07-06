@@ -1,5 +1,5 @@
 import "./globals.css";
-import ReturnToMypageButton from "../components/ReturnToMypageButton";
+import StudentNavigation from "../components/StudentNavigation";
 
 export const metadata = {
   title: "塾ポイントアプリ",
@@ -19,7 +19,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <div className="app-container">{children}</div>
-        <ReturnToMypageButton />
+        <StudentNavigation />
       </body>
     </html>
   );

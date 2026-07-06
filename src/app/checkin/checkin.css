@@ -1,19 +1,12 @@
 .checkin-shell {
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: #f8fafc;
+  padding: 42px 18px 70px;
+  background: var(--student-bg);
 }
 
 .checkin-container {
-  width: min(100%, 430px);
-  padding: 30px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid #e2e8f0;
-  border-radius: 26px;
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.075);
-  text-align: center;
+  width: min(100%, 900px);
+  margin: 0 auto;
 }
 
 .checkin-heading > span {
@@ -30,7 +23,7 @@
 }
 
 .checkin-heading p {
-  margin: 0 0 24px;
+  margin: 0 0 26px;
   color: #64748b;
   line-height: 1.6;
 }
@@ -45,12 +38,62 @@
   font-weight: 700;
 }
 
+.checkin-workspace {
+  display: grid;
+  grid-template-columns: minmax(230px, .75fr) minmax(320px, 1.25fr);
+  gap: 15px;
+}
+.checkin-status,
+.pin-panel {
+  background: #fff;
+  border: 1px solid var(--student-line);
+  border-radius: 23px;
+  box-shadow: 0 12px 32px rgba(38, 49, 77, .06);
+}
+.checkin-status {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 440px;
+  padding: 30px;
+  overflow: hidden;
+  background: linear-gradient(150deg, #f6f8ff, #eef4ff);
+}
+.status-dot {
+  width: 12px;
+  height: 12px;
+  margin-bottom: 18px;
+  background: #a8b1c2;
+  border: 4px solid #e4e8ef;
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+.checkin-status.is-active .status-dot { background: #18a47e; border-color: #c9f3e7; }
+.checkin-status > small { color: #78849a; font-size: 10px; font-weight: 900; letter-spacing: .16em; }
+.checkin-status > strong { margin-top: 7px; font-size: 34px; letter-spacing: -.05em; }
+.checkin-status > p { color: #68748a; line-height: 1.75; }
+.checkin-status > div {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  margin-top: 35px;
+  padding-top: 18px;
+  border-top: 1px solid #dfe5ee;
+}
+.checkin-status > div > span { color: #78849a; font-size: 12px; }
+.checkin-status b { font-size: 32px; }
+.checkin-status b small { margin-left: 4px; font-size: 12px; }
+.pin-panel { padding: 24px; }
+.pin-guide { display: flex; justify-content: space-between; margin-bottom: 10px; text-align: left; }
+.pin-guide small { color: #929bac; }
+
 .pin-display {
   width: 100%;
   height: 66px;
   display: grid;
   place-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 13px;
   color: #0f172a;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
@@ -102,8 +145,12 @@
   opacity: 0.6;
 }
 
-@media (max-width: 480px) {
-  .checkin-shell { padding: 12px; align-items: start; }
-  .checkin-container { margin-top: 16px; padding: 24px 16px; border-radius: 22px; }
-  .key-btn { min-height: 62px; }
+@media (max-width: 700px) {
+  .checkin-shell { padding: 25px 11px 35px; }
+  .checkin-workspace { grid-template-columns: 1fr; }
+  .checkin-status { min-height: 0; padding: 20px; border-radius: 19px; }
+  .checkin-status > p { margin-bottom: 0; }
+  .checkin-status > div { margin-top: 16px; padding-top: 13px; }
+  .pin-panel { padding: 17px 13px; border-radius: 19px; }
+  .key-btn { min-height: 58px; border-radius: 14px; }
 }

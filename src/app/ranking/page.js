@@ -1,30 +1,55 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { db } from "../../firebaseConfig";
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-} from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { app } from "../../firebaseApp";
 import { getCurrentSeason } from "../utils/season";
 import "./ranking.css";
+
+const auth = getAuth(app);
+const PUBLIC_FIELDS = [
+  "displayName",
+  "grade",
+  "level",
+  "termPoints",
+  "points",
+  "termStudyMinutes",
+  "totalStudyMinutes",
+  "termWordScore",
+  "totalWordTestScore",
+  "termSelfStudyCount",
+  "selfStudyCount",
+  "termHomeworkCount",
+  "homeworkCount",
+];
 
 export default function RankingPage() {
   const [users, setUsers] = useState([]);
   const [category, setCategory] = useState("points");
   const [grade, setGrade] = useState("all"); // ⭐ 学年フィルタ追加
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
     const [mode, setMode] = useState("term");
     const [hallOfFame, setHallOfFame] = useState(null);
 
   useEffect(() => {
-    fetchRanking();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        setUsers([]);
+        setLoading(false);
+        setError("ランキングを見るにはログインしてください。");
+        return;
+      }
+      fetchRanking(currentUser);
+    });
+
+    return unsubscribe;
   }, []);
 
-    const fetchRanking = async () => {
+    const fetchRanking = async (currentUser = auth.currentUser) => {
       setLoading(true);
+      setError("");
+      try {
         
         const currentSeason = getCurrentSeason();
       // ----------------------------
@@ -37,36 +62,93 @@ export default function RankingPage() {
       if (term === "1") {
         previousSeason = `${Number(year) - 1}_3`;
       } else {
-        previousSeason = `${year}-${Number(term) - 1}`;
+        previousSeason = `${year}_${Number(term) - 1}`;
       }
 
-      const hallSnap = await getDoc(doc(db, "hallOfFame", previousSeason));
+      if (!currentUser) throw new Error("ログインが必要です。");
+      const token = await currentUser.getIdToken();
+      let result;
+      let response;
+      try {
+        response = await fetch(
+          `/api/ranking?previousSeason=${encodeURIComponent(previousSeason)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch {
+        result = await fetchRankingFromFirestore(previousSeason);
+      }
+      if (response) {
+        const apiResult = await response.json().catch(() => ({}));
+        if (response.ok) {
+          result = apiResult;
+        } else if (response.status === 401 || response.status === 403) {
+          throw new Error(apiResult.error || "ログイン情報を確認できませんでした。");
+        } else {
+          result = await fetchRankingFromFirestore(previousSeason);
+        }
+      }
+      setHallOfFame(result.hallOfFame);
+      setUsers(result.users || []);
+      } catch (e) {
+        setError(e.message || "ランキングを取得できませんでした。");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      if (hallSnap.exists()) {
-        setHallOfFame(hallSnap.data());
-      } else {
-        setHallOfFame(null);
+    const fetchRankingFromFirestore = async (previousSeason) => {
+      const {
+        collection,
+        doc,
+        getDoc,
+        getDocs,
+        getFirestore,
+      } = await import("firebase/firestore");
+      const clientDb = getFirestore(app);
+      const usersSnap = await getDocs(collection(clientDb, "users"));
+      let adminIds = new Set();
+      let hallOfFame = null;
+
+      try {
+        const adminsSnap = await getDocs(collection(clientDb, "admins"));
+        adminIds = new Set(adminsSnap.docs.map((snapshot) => snapshot.id));
+      } catch {
+        // 管理者一覧が非公開でも、生徒ランキング自体の取得は継続する。
+      }
+      if (previousSeason) {
+        try {
+          const hallSnap = await getDoc(
+            doc(clientDb, "hallOfFame", previousSeason),
+          );
+          hallOfFame = hallSnap.exists() ? hallSnap.data() : null;
+        } catch {
+          // 前学期データが非公開でも、今学期ランキングは表示する。
+        }
       }
 
-      // ----------------------------
-      // 全ユーザー取得
-      // ----------------------------
-      const snap = await getDocs(collection(db, "users"));
-      let list = snap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
+      const fallbackUsers = usersSnap.docs
+        .filter((snapshot) => {
+          const source = snapshot.data();
+          return (
+            !adminIds.has(snapshot.id) &&
+            source.role !== "admin" &&
+            source.isAdmin !== true
+          );
+        })
+        .map((snapshot) => {
+          const source = snapshot.data();
+          const user = { id: snapshot.id };
+          for (const field of PUBLIC_FIELDS) user[field] = source[field] ?? null;
+          user.rewardCount = Array.isArray(source.rewardHistory)
+            ? source.rewardHistory.length
+            : 0;
+          return user;
+        });
 
-      // ----------------------------
-      // 管理者除外
-      // ----------------------------
-      const adminsSnap = await getDocs(collection(db, "admins"));
-      const adminIds = new Set(adminsSnap.docs.map((d) => d.id));
-
-      list = list.filter((u) => !adminIds.has(u.id));
-
-      setUsers(list);
-      setLoading(false);
+      return {
+        users: fallbackUsers,
+        hallOfFame,
+      };
     };
 
     const rankedUsers = useMemo(() => {
@@ -123,11 +205,7 @@ export default function RankingPage() {
           break;
 
         case "rewardsCount":
-          list.forEach((u) => {
-            u._rewardCount = Array.isArray(u.rewardHistory)
-              ? u.rewardHistory.length
-              : 0;
-          });
+          list.forEach((u) => { u._rewardCount = u.rewardCount ?? 0; });
 
           list.sort((a, b) => (b._rewardCount ?? 0) - (a._rewardCount ?? 0));
           break;
@@ -346,7 +424,18 @@ export default function RankingPage() {
           </section>
 
           {loading ? (
-            <p>読み込み中...</p>
+            <p className="ranking-state">ランキングを読み込んでいます…</p>
+          ) : error ? (
+            <div className="ranking-state error" role="alert">
+              <p>{error}</p>
+              {auth.currentUser && (
+                <button type="button" onClick={() => fetchRanking()}>
+                  もう一度読み込む
+                </button>
+              )}
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <p className="ranking-state">この条件に該当するランキングはまだありません。</p>
           ) : (
             <>
               {mode === "term" && grade === "all" && (

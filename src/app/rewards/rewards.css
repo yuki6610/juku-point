@@ -1,411 +1,202 @@
-/* ===== 全体レイアウト ===== */
 .rewards-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px 80px;
-  background-color: #fafafa;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  text-align: center;
-  position: relative;
+  min-height: 100vh;
+  padding: 38px clamp(14px, 5vw, 72px) 90px;
+  color: #16231d;
+  background:
+    linear-gradient(90deg, rgba(29, 78, 56, .035) 1px, transparent 1px),
+    linear-gradient(rgba(29, 78, 56, .035) 1px, transparent 1px),
+    #f5f7f2;
+  background-size: 28px 28px;
 }
-
-/* ===== タイトル・ポイント ===== */
-.title {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 10px;
-  color: #333;
-}
-
-.points-text {
-  font-size: 1.1rem;
-  margin-bottom: 16px;
-  color: #444;
-}
-
-.points-value {
-  font-weight: bold;
-  color: #007bff;
-}
-
-/* ===== フィルタバー ===== */
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.search-input {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.95rem;
-  width: 200px;
-  transition: all 0.2s;
-}
-
-.search-input:focus {
-  border-color: #007bff;
-}
-
-/* ===== 景品グリッド（横2カラム） ===== */
-.rewards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  justify-items: center;
-  margin-top: 10px;
-}
-
-/* ===== 景品カード ===== */
-.reward-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  padding: 14px;
-  width: 100%;
-  max-width: 180px;
-  text-align: center;
-  transition: .2s;
-}
-
-.reward-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
-}
-
-.reward-image-container {
-  width: 90px;
-  height: 90px;
-  margin: 0 auto 10px auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.reward-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.reward-icon {
-  font-size: 2.6rem;
-}
-
-/* ===== 交換ボタン ===== */
-.redeem-button {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.redeem-button:hover {
-  background-color: #1e7e34;
-}
-
-.redeem-button:disabled {
-  background: #ccc;
-}
-
-/* 📱 スマホ調整 */
-@media (max-width: 600px) {
-  .rewards-container {
-    padding: 24px 12px 80px;
-    border-radius: 0;
-  }
-
-  .title {
-    font-size: 1.55rem;
-  }
-
-  .filter-bar {
-    align-items: stretch;
-  }
-
-  .search-input {
-    width: 100%;
-  }
-
-  .rewards-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .reward-card {
-    min-width: 0;
-    padding: 12px 8px;
-    max-width: none;
-  }
-
-  .reward-image-container {
-    width: 80px;
-    height: 80px;
-  }
-
-  .reward-modal-overlay {
-    align-items: flex-end;
-  }
-
-  .reward-modal {
-    width: 100%;
-    max-width: none;
-    max-height: 88dvh;
-    overflow-y: auto;
-    border-radius: 18px 18px 0 0;
-    padding-bottom: calc(22px + env(safe-area-inset-bottom));
-  }
-}
-
-/* ============================
-   ℹ️ 説明アイコン
-============================ */
-.info-icon {
-  cursor: pointer;
-  font-size: 20px;
-  padding: 4px;
-  color: #555;
-  transition: 0.2s ease;
-}
-
-.info-icon:hover {
-  color: #000;
-  transform: scale(1.1);
-}
-
-/* ============================
-   モーダル
-============================ */
-.reward-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 5000;
-}
-
-.reward-modal {
-  background: white;
-  width: 92%;
-  max-width: 420px;
-  padding: 24px 22px;
-  border-radius: 16px;
-  text-align: center;
-}
-
-.modal-description {
-  background: #f3f4f6;
-  padding: 12px;
-  border-radius: 10px;
-  font-size: 14.5px;
-  margin-bottom: 14px;
-}
-
-.reward-icon {
-  font-size: 40px;
-}
-
-/* 文房具 */
-.reward-icon.note { color: #4f9fff; }       /* ノート → 青 */
-.reward-icon.pen { color: #ff0000; }        /* ペン → コーラル */
-.reward-icon.highlighter { color: #ffd700; }/* 蛍光ペン → 黄色 */
-.reward-icon.pencil { color: #ffa500; }     /* シャーペン → オレンジ */
-.reward-icon.ruler { color: #8a2be2; }      /* 定規 → 紫 */
-.reward-icon.sticky { color: #ffcc00; }     /* ふせん → ゴールド */
-.reward-icon.eraser { color: #4f9fff; }     /* 消しゴム → ピンク */
-
-/* お菓子 */
-.reward-icon.snack { color: #8b4513; }/* ブラウン */
-.reward-icon.ice {color: #4fc3f7;}
-
-.reward-icon.soft {color: #ffb74d;}
-.reward-icon.ticket { color: #4f46e5; }
-
-/* 限定報酬 */
-.reward-icon.dinner { color: #e63946; }     /* ご飯奢り → 赤 */
-.reward-icon.costco { color: #1d3557; }     /* コストコ商品/買い出し → 紺 */
-
-/* その他 */
-.reward-icon.game { color: #32cd32; }
-.reward-icon.apple { color: #d00000; }
-.reward-icon.shirt { color: #2a9d8f; }
-.reward-icon.music { color: #6a4c93; }
-
-/* デフォルト */
-.reward-icon.default { color: #666; }
-.reward-icon.unknown { color: #999; }
-
-/* Modern storefront */
-.rewards-container {
-  background: #f8fafc;
-  box-shadow: none;
-  text-align: left;
-}
+.rewards-container > * { width: min(100%, 1180px); margin-inline: auto; }
 
 .rewards-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 25px;
   margin-bottom: 26px;
+  padding: clamp(24px, 5vw, 50px);
+  color: #f5fff9;
+  background: #173f30;
+  border-radius: 32px;
+  box-shadow: 0 25px 60px rgba(23, 63, 48, .18);
 }
-
 .rewards-heading > div:first-child > span {
-  color: #6366f1;
+  color: #9ee7bd;
   font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0.16em;
+  font-weight: 900;
+  letter-spacing: .2em;
 }
-
 .rewards-heading .title {
-  margin: 7px 0;
-  font-size: clamp(30px, 5vw, 42px);
-  letter-spacing: -0.045em;
+  margin: 8px 0;
+  font-size: clamp(36px, 7vw, 68px);
+  line-height: 1;
+  letter-spacing: -.065em;
 }
-
-.rewards-heading p { margin: 0; color: #64748b; }
-
+.rewards-heading p { margin: 0; color: #b8d4c5; }
 .points-wallet {
-  min-width: 180px;
-  padding: 17px 20px;
-  color: #fff;
-  background: linear-gradient(135deg, #4f46e5, #4338ca);
-  border-radius: 18px;
-  box-shadow: 0 14px 28px rgba(79, 70, 229, 0.2);
-  text-align: right;
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: end;
+  min-width: 190px;
+  padding: 20px 24px;
+  color: #163a2d;
+  background: #d9ff75;
+  border-radius: 22px;
+  transform: rotate(2deg);
+  box-shadow: 8px 8px 0 #0d2b20;
 }
-
-.points-wallet small { display: block; opacity: 0.75; font-size: 10px; letter-spacing: 0.13em; }
-.points-wallet strong { margin-right: 4px; font-size: 30px; letter-spacing: -0.04em; }
+.points-wallet small { grid-column: 1 / 3; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+.points-wallet strong { font-size: 36px; line-height: 1; letter-spacing: -.05em; }
+.points-wallet span { margin-left: 5px; font-weight: 900; }
 
 .reward-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 22px;
-  padding: 14px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-}
-
-.reward-controls .filter-bar { flex: 1; justify-content: flex-start; margin: 0; }
-.search-input { width: min(100%, 340px); min-height: 46px; background: #f8fafc; border-color: #e2e8f0; border-radius: 12px; }
-.rewards-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
-.reward-card {
-  max-width: none;
-  padding: 18px;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
-  content-visibility: auto;
-  contain-intrinsic-size: 280px;
-}
-.redeem-button { width: 100%; min-height: 44px; background: #4f46e5; }
-.redeem-button:hover { background: #4338ca; }
-.info-icon {
-  width: 32px;
-  min-height: 32px;
-  padding: 0;
-  color: #4f46e5;
-  background: #eef2ff;
-  border: 0;
-  border-radius: 50%;
-  font-size: 14px;
-  font-weight: 850;
-}
-
-@media (max-width: 600px) {
-  .rewards-heading { align-items: stretch; flex-direction: column; }
-  .points-wallet { width: 100%; text-align: left; }
-  .reward-controls { align-items: stretch; flex-direction: column; }
-  .rewards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .reward-card { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05); }
-}
-
-.sort-button {
-  width: 46px;
-  min-height: 46px;
+  position: sticky;
+  z-index: 5;
+  top: 10px;
   display: grid;
+  grid-template-columns: 1fr 190px;
+  gap: 10px;
+  margin-bottom: 26px;
+  padding: 10px;
+  background: rgba(255,255,255,.88);
+  border: 1px solid #dce4dc;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(29, 61, 45, .07);
+  backdrop-filter: blur(14px);
+}
+.filter-bar { display: flex; gap: 8px; min-width: 0; }
+.search-input,.category-select {
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 15px;
+  color: #1d3528;
+  background: #f4f7f3;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  outline: none;
+}
+.search-input { flex: 1; font-size: 15px; }
+.search-input:focus,.category-select:focus { border-color: #3c815f; background: #fff; }
+.category-dropdown,.category-select { width: 100%; }
+.sort-button {
+  display: grid;
+  flex: 0 0 48px;
+  width: 48px;
   place-items: center;
-  color: #4f46e5;
-  background: #eef2ff;
+  color: #fff;
+  background: #245a43;
   border: 0;
   border-radius: 12px;
   cursor: pointer;
 }
-
 .affordable-toggle {
-  min-height: 46px;
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #475569;
-  font-size: 14px;
-  font-weight: 700;
+  padding: 0 12px;
+  color: #3d5549;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
 }
+.affordable-toggle input { accent-color: #245a43; }
 
-.category-select {
-  min-height: 46px;
-  padding: 9px 36px 9px 12px;
-  color: #334155;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
 }
-
-.reward-name-row {
+.reward-card {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  min-width: 0;
+  padding: 10px 10px 12px;
+  background: #fff;
+  border: 1px solid #dfe6df;
+  border-radius: 20px;
+  box-shadow: 0 5px 0 #dce4dc;
+  transition: transform .2s, box-shadow .2s;
 }
-.reward-name {
-  min-height: 42px;
-  margin: 0;
-  color: #0f172a;
-  font-weight: 800;
-  line-height: 1.4;
-}
-.reward-cost {
-  margin: 12px 0;
-  color: #4f46e5;
-  font-size: 22px;
-  font-weight: 850;
-}
-.reward-limit,
-.reward-stock {
-  margin: 4px 0;
-  color: #64748b;
-  font-size: 12px;
-}
-.low-stock { color: #dc2626; font-weight: 800; }
+.reward-card:hover { transform: translateY(-4px); box-shadow: 0 10px 0 #d5ded6; }
 .reward-image-container {
-  width: 108px;
-  height: 108px;
-  margin-bottom: 16px;
-  background: #f8fafc;
-  border-radius: 18px;
+  display: grid;
+  aspect-ratio: 1.2;
+  place-items: center;
+  overflow: hidden;
+  background: #edf3ec;
+  border-radius: 14px;
 }
+.reward-image { width: 100%; height: 100%; object-fit: cover; }
+.reward-icon { width: 36%; height: 36%; color: #397457; }
+.reward-icon.ticket { color: #e56d36; transform: rotate(-8deg); }
+.reward-name-row { display: flex; align-items: start; gap: 7px; padding: 14px 4px 0; }
+.reward-name { flex: 1; margin: 0; font-size: 16px; font-weight: 850; line-height: 1.45; }
+.info-icon {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  color: #668073;
+  background: #eef3ef;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.reward-cost { margin: 8px 4px 3px; color: #173f30; font-size: 23px; font-weight: 950; letter-spacing: -.04em; }
+.reward-limit,.reward-stock { margin: 2px 4px; color: #73847a; font-size: 12px; }
+.low-stock { color: #c54b32; font-weight: 800; }
+.redeem-button {
+  min-height: 44px;
+  margin-top: auto;
+  padding: 10px;
+  color: #fff;
+  background: #173f30;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.redeem-button:hover { background: #245a43; }
+.redeem-button:disabled { color: #829088; background: #e4e9e5; cursor: not-allowed; }
+.loading-text { padding: 80px; text-align: center; }
 
-@media (max-width: 600px) {
-  .filter-bar { display: grid; grid-template-columns: 1fr auto; }
-  .search-input { grid-column: 1 / -1; }
-  .affordable-toggle { min-width: 0; }
-  .category-dropdown,
-  .category-select { width: 100%; }
-  .reward-image-container { width: 82px; height: 82px; }
+.reward-modal-overlay {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  padding: 18px;
+  place-items: center;
+  background: rgba(10, 27, 20, .68);
+  backdrop-filter: blur(8px);
+}
+.reward-modal {
+  width: min(100%, 480px);
+  padding: 28px;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 30px 90px rgba(0,0,0,.3);
+}
+.reward-modal h2 { margin-top: 0; }
+.modal-cost { color: #245a43; font-size: 20px; font-weight: 900; }
+.modal-description { color: #52645a; line-height: 1.8; }
+.modal-limit,.modal-stock { color: #64766b; }
+.modal-buttons { display: flex; justify-content: flex-end; margin-top: 22px; }
+.modal-cancel { min-height: 42px; padding: 8px 18px; border: 0; border-radius: 10px; cursor: pointer; }
+
+@media (max-width: 900px) { .rewards-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 650px) {
+  .rewards-container { padding: 14px 10px 70px; }
+  .rewards-heading { grid-template-columns: 1fr; border-radius: 24px; }
+  .points-wallet { width: 100%; transform: none; }
+  .reward-controls { position: static; grid-template-columns: 1fr; }
+  .filter-bar { flex-wrap: wrap; }
+  .search-input { flex-basis: calc(100% - 58px); }
+  .affordable-toggle { min-height: 42px; }
+  .rewards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .reward-card { border-radius: 16px; }
   .reward-name { font-size: 14px; }
-  .reward-cost { font-size: 19px; }
+  .reward-cost { font-size: 20px; }
 }

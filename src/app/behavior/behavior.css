@@ -1,243 +1,111 @@
-/* =========================
-   全体レイアウト
-========================= */
 .page.behavior-page {
-  padding: 40px 20px;
-  text-align: center;
-  background: #f5f7fb;
   min-height: 100vh;
+  padding: 46px 18px 70px;
+  color: var(--student-text);
+  background: var(--student-bg);
 }
-
-.behavior-page h1 {
-  font-size: 26px;
-  font-weight: 700;
-  margin-bottom: 20px;
-}
-
-/* =========================
-   年度・学期セレクト
-========================= */
-.select-row {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 30px;
-}
-
-.select-row select {
-  padding: 8px 14px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  font-size: 14px;
-  background: #fff;
-  cursor: pointer;
-}
-
-/* =========================
-   カードグリッド
-========================= */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-/* =========================
-   各カード
-========================= */
-.summary-card {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 28px 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-  transition: 0.2s ease;
-}
-
-.summary-card:hover {
-  transform: translateY(-4px);
-}
-
-.summary-card h3 {
-  font-size: 18px;
-  margin-bottom: 20px;
-  font-weight: 600;
-}
-
-/* =========================
-   円グラフ
-========================= */
-.pie-wrap {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.pie {
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 6px #fff;
-}
-
-.pie.empty {
-  background: #eee;
-}
-
-/* =========================
-   凡例
-========================= */
-.legend {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  text-align: left;
-  font-size: 14px;
-}
-
-.legend li {
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.legend span {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-/* 色 */
-.green { background: #81c784; }
-.orange { background: #ffcc80; }
-.red { background: #e53935; }
-.blue { background: #81c784; }
-.purple { background: #e53935; }
-
-/* =========================
-   忘れ物カード
-========================= */
-.summary-card.simple {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.big-number {
-  font-size: 72px;
-  font-weight: 700;
-  color: #d32f2f;
-  line-height: 1;
-}
-
-.big-number span {
-  font-size: 20px;
-  margin-left: 6px;
-  color: #333;
-}
-
-.attendance-detail {
-  display: grid;
-  gap: 12px;
-  color: #64748b;
-  font-size: 16px;
-}
-
-.attendance-detail strong {
-  color: #0f172a;
-  font-size: 28px;
-}
-
-.big-number.word-rate {
-  color: #4f46e5;
-}
-
-.summary-card.simple p {
-  color: #64748b;
-  text-align: center;
-}
-
-/* =========================
-   空データ表示
-========================= */
-.empty {
-  font-size: 16px;
-  color: #777;
-  margin-top: 40px;
-}
-
-/* =========================
-   レスポンシブ
-========================= */
-@media (max-width: 900px) {
-  .summary-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .pie {
-    width: 140px;
-    height: 140px;
-  }
-
-  .big-number {
-    font-size: 56px;
-  }
-}
-
-/* Modern student dashboard */
-.page.behavior-page {
-  padding: 48px 20px 80px;
-  background: #f8fafc;
-  text-align: left;
-}
-
-.behavior-heading {
-  width: min(100%, 1000px);
-  margin: 0 auto 26px;
-}
-
+.behavior-page > * { width: min(100%, 1040px); margin-inline: auto; }
+.behavior-heading { margin-bottom: 22px; }
 .behavior-heading > span {
-  color: #6366f1;
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0.16em;
+  color: var(--student-primary);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .18em;
 }
-
 .behavior-page .behavior-heading h1 {
   margin: 7px 0;
-  font-size: clamp(29px, 6vw, 40px);
-  letter-spacing: -0.045em;
+  font-size: clamp(32px, 6vw, 48px);
+  letter-spacing: -.055em;
 }
-
-.behavior-heading p { margin: 0; color: #64748b; }
-
+.behavior-heading p { margin: 0; color: var(--student-muted); }
 .behavior-page .select-row {
-  width: min(100%, 1000px);
+  display: flex;
+  gap: 9px;
   justify-content: flex-start;
-  margin-inline: auto;
-}
-
-.behavior-page .select-row select {
-  min-height: 46px;
-  padding: 8px 14px;
+  margin-bottom: 16px;
+  padding: 9px;
   background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border: 1px solid var(--student-line);
+  border-radius: 15px;
+}
+.behavior-page .select-row select {
+  flex: 1;
+  min-height: 46px;
+  padding: 8px 12px;
+  color: #364158;
+  background: #f5f7fb;
+  border: 1px solid transparent;
+  border-radius: 10px;
   font-size: 16px;
 }
-
-.behavior-page .summary-card {
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+.behavior-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
 }
-
-@media (max-width: 560px) {
-  .page.behavior-page { padding: 28px 12px 70px; }
-  .behavior-page .select-row { display: grid; grid-template-columns: 1fr 1fr; }
-  .behavior-page .summary-card { padding: 22px 18px; }
+.behavior-overview > div {
+  padding: 20px;
+  background: linear-gradient(145deg, #fff, #f6f7ff);
+  border: 1px solid var(--student-line);
+  border-radius: 19px;
+}
+.behavior-overview span { color: #8279e6; font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+.behavior-overview strong { display: block; margin-top: 9px; font-size: 40px; line-height: 1; letter-spacing: -.06em; }
+.behavior-overview strong small { margin-left: 3px; color: #7b8497; font-size: 14px; }
+.behavior-overview p { margin: 7px 0 0; color: #788297; font-size: 12px; }
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 11px;
+}
+.summary-card {
+  grid-column: span 3;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--student-line);
+  border-radius: 20px;
+  box-shadow: 0 9px 26px rgba(38, 49, 77, .05);
+}
+.summary-card.simple { grid-column: span 2; min-height: 190px; }
+.summary-card h3 { margin: 0 0 18px; font-size: 18px; }
+.pie-wrap { display: flex; justify-content: center; margin-bottom: 18px; }
+.pie {
+  width: 140px;
+  height: 140px;
+  background: #edf0f5;
+  border: 11px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #e7eaf0;
+}
+.pie.empty { background: #edf0f5; }
+.legend { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.legend li { display: flex; align-items: center; gap: 8px; color: #667187; font-size: 13px; }
+.legend span { width: 11px; height: 11px; border-radius: 4px; }
+.green { background: #4caf50; }
+.orange { background: #ffb300; }
+.red { background: #e53935; }
+.big-number { color: #ef7b54; font-size: 58px; font-weight: 900; line-height: 1; letter-spacing: -.06em; }
+.big-number span { margin-left: 5px; color: #657086; font-size: 15px; letter-spacing: 0; }
+.big-number.word-rate { color: #665cdb; }
+.attendance-detail { display: grid; gap: 12px; color: #7a8497; }
+.attendance-detail span { display: flex; align-items: end; justify-content: space-between; }
+.attendance-detail strong { color: #29324a; font-size: 29px; }
+.summary-card.simple p { color: #7b8497; }
+.empty {
+  padding: 50px 20px;
+  color: #7a8497;
+  text-align: center;
+  background: #fff;
+  border: 1px dashed #d5dae5;
+  border-radius: 18px;
+}
+@media (max-width: 700px) {
+  .page.behavior-page { padding: 27px 11px 35px; }
+  .behavior-overview { gap: 6px; }
+  .behavior-overview > div { padding: 14px 9px; }
+  .behavior-overview strong { font-size: 29px; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .summary-card,
+  .summary-card.simple { grid-column: auto; min-height: 0; padding: 19px 16px; }
 }
