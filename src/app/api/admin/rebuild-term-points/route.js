@@ -5,19 +5,24 @@ export const dynamic = "force-dynamic";
 
 function currentSeason() {
   const now = new Date();
-  const month = now.getMonth() + 1;
-  const calendarYear = now.getFullYear();
+  const japanNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const month = japanNow.getUTCMonth() + 1;
+  const calendarYear = japanNow.getUTCFullYear();
   const year = month <= 3 ? calendarYear - 1 : calendarYear;
   const term = month >= 4 && month <= 8 ? 1 : month >= 9 ? 2 : 3;
   const start =
-    term === 1 ? new Date(year, 3, 1) :
-    term === 2 ? new Date(year, 8, 1) :
-    new Date(year + 1, 0, 1);
+    term === 1 ? japanMidnight(year, 3, 1) :
+    term === 2 ? japanMidnight(year, 8, 1) :
+    japanMidnight(year + 1, 0, 1);
   const end =
-    term === 1 ? new Date(year, 8, 1) :
-    term === 2 ? new Date(year + 1, 0, 1) :
-    new Date(year + 1, 3, 1);
+    term === 1 ? japanMidnight(year, 8, 1) :
+    term === 2 ? japanMidnight(year + 1, 0, 1) :
+    japanMidnight(year + 1, 3, 1);
   return { id: `${year}_${term}`, start, end };
+}
+
+function japanMidnight(year, monthIndex, day) {
+  return new Date(Date.UTC(year, monthIndex, day) - 9 * 60 * 60 * 1000);
 }
 
 function historyDate(value) {

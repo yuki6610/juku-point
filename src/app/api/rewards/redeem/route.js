@@ -128,8 +128,9 @@ export async function POST(request) {
 }
 
 function getSeasonId(date) {
-  const month = date.getMonth() + 1;
-  const calendarYear = date.getFullYear();
+  const japanDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  const month = japanDate.getUTCMonth() + 1;
+  const calendarYear = japanDate.getUTCFullYear();
   const year = month <= 3 ? calendarYear - 1 : calendarYear;
   const term = month >= 4 && month <= 8 ? 1 : month >= 9 ? 2 : 3;
   return `${year}_${term}`;
