@@ -69,12 +69,7 @@ export async function resetSeason(currentSeason, lastResetSeason) {
       },
 
       rewardsCount: {
-        top3: makeTop3(
-          users,
-          (u) => Array.isArray(u.rewardHistory)
-            ? u.rewardHistory.length
-            : 0
-        ),
+        top3: makeTop3(users, (u) => u.termRewardsCount ?? 0),
       },
 
       createdAt: serverTimestamp(),
@@ -84,6 +79,22 @@ export async function resetSeason(currentSeason, lastResetSeason) {
   // 学期データリセット
   // -------------------------
   users.forEach((u) => {
+    batch.set(doc(db, "users", u.id, "termArchives", lastResetSeason), {
+      seasonId: lastResetSeason,
+      displayName: u.displayName ?? "",
+      grade: u.grade ?? null,
+      termPoints: u.termPoints ?? 0,
+      termHomeworkCount: u.termHomeworkCount ?? 0,
+      termWordScore: u.termWordScore ?? 0,
+      termWordTestCount: u.termWordTestCount ?? 0,
+      termSelfStudyCount: u.termSelfStudyCount ?? 0,
+      termStudyMinutes: u.termStudyMinutes ?? 0,
+      termRewardsCount: u.termRewardsCount ?? 0,
+      walletPointsAtClose: u.points ?? 0,
+      levelAtClose: u.level ?? 1,
+      closedAt: serverTimestamp(),
+    });
+
     batch.update(doc(db, "users", u.id), {
       termPoints: 0,
 
@@ -96,6 +107,7 @@ export async function resetSeason(currentSeason, lastResetSeason) {
       termSelfStudyCount: 0,
 
       termStudyMinutes: 0,
+      termRewardsCount: 0,
     });
   });
 

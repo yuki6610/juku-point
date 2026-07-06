@@ -21,6 +21,7 @@ const PUBLIC_FIELDS = [
   "selfStudyCount",
   "termHomeworkCount",
   "homeworkCount",
+  "termRewardsCount",
 ];
 
 export default function RankingPage() {
@@ -205,7 +206,10 @@ export default function RankingPage() {
           break;
 
         case "rewardsCount":
-          list.forEach((u) => { u._rewardCount = u.rewardCount ?? 0; });
+          list.forEach((u) => {
+            u._rewardCount =
+              mode === "term" ? (u.termRewardsCount ?? 0) : (u.rewardCount ?? 0);
+          });
 
           list.sort((a, b) => (b._rewardCount ?? 0) - (a._rewardCount ?? 0));
           break;

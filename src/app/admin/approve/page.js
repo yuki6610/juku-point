@@ -8,6 +8,7 @@ import {
   collection, collectionGroup, doc, getDoc, onSnapshot,
   updateDoc, deleteDoc, serverTimestamp, addDoc, increment
 } from 'firebase/firestore'
+import { getCurrentSeason } from '../../utils/season'
 
 const GRADE_OPTIONS = ['全学年', '中1', '中2', '中3']
 
@@ -127,11 +128,13 @@ export default function AdminApprovePage() {
       point,
       exp,
       description: score.type === 'exam' ? 'テスト成績承認' : '内申点承認',
+      seasonId: getCurrentSeason().id,
       createdAt: serverTimestamp(),
     })
 
     await updateDoc(userRef, {
       points: increment(point),
+      termPoints: increment(point),
       experience: increment(exp),
     })
   }

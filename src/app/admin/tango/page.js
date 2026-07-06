@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore'
 import { updateExperience} from '../../utils/updateExperience'
 import { incrementCounter } from "../../../lib/updateCounters"
+import { getCurrentSeason } from "../../utils/season"
 
 export default function WordTestPage() {
   const router = useRouter()
@@ -140,6 +141,7 @@ export default function WordTestPage() {
           correct,
           total,
           week: selectedWeek,
+          seasonId: getCurrentSeason().id,
           createdAt: new Date()
         })
       }
@@ -202,6 +204,7 @@ export default function WordTestPage() {
             correct,
             total: snap.data().total,
             week: selectedWeek,
+            seasonId: getCurrentSeason().id,
             createdAt: new Date(),
           })
         }

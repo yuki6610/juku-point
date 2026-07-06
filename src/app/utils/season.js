@@ -3,7 +3,7 @@ export function getCurrentSeason() {
   const now = new Date()
 
   const month = now.getMonth() + 1
-  const year = now.getFullYear()
+  const calendarYear = now.getFullYear()
 
   let term
 
@@ -14,6 +14,9 @@ export function getCurrentSeason() {
   } else {
     term = 3
   }
+
+  // 1〜3月は前年度の3学期
+  const year = month <= 3 ? calendarYear - 1 : calendarYear
 
   return {
     year,

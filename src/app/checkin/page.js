@@ -16,6 +16,7 @@ import { getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import "./checkin.css";
 import { updateExperience } from "../utils/updateExperience";
+import { getCurrentSeason } from "../utils/season";
 
 // ---- 今日ID yyyy-mm-dd ----
 const getTodayId = () => {
@@ -243,6 +244,7 @@ export default function CheckinPage() {
         type: "selfstudy",
         amount: ptGain,
         note: `自習 ${minutes} 分`,
+        seasonId: getCurrentSeason().id,
         createdAt: serverTimestamp(),
       });
 

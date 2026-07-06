@@ -42,6 +42,7 @@ export default function LoginPage() {
           displayName: user.displayName || '未設定',
           level: 1,
           points: 0,
+          termPoints: 0,
           experience: 0,
           createdAt: serverTimestamp(),
         })

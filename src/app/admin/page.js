@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebaseConfig";
+import { auth, db } from "../../firebaseConfig";
 import { getCurrentSeason } from "../utils/season";
 import { resetSeason } from "../utils/resetSeason";
 import "./admin.css";
@@ -123,6 +123,7 @@ const menuGroups = [
 export default function AdminPage() {
   const router = useRouter();
   const [switchingSeason, setSwitchingSeason] = useState(false);
+  const [rebuildingPoints, setRebuildingPoints] = useState(false);
   const currentSeason = getCurrentSeason();
   const termLabel = `${currentSeason.year}年度 ${currentSeason.term}学期`;
 
@@ -159,6 +160,26 @@ export default function AdminPage() {
       window.alert("学期切替に失敗しました。");
     } finally {
       setSwitchingSeason(false);
+    }
+  };
+
+  const rebuildTermPoints = async () => {
+    if (rebuildingPoints) return;
+    if (!window.confirm("今学期のポイント履歴から学期ポイントを再集計しますか？")) return;
+    setRebuildingPoints(true);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      const response = await fetch("/api/admin/rebuild-term-points", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      window.alert(`${result.updated}人分の学期ポイントを再集計しました。`);
+    } catch (error) {
+      window.alert(error.message || "再集計に失敗しました。");
+    } finally {
+      setRebuildingPoints(false);
     }
   };
 
@@ -252,9 +273,14 @@ export default function AdminPage() {
             学期終了時のみ使用します。ランキング保存と学期集計のリセットを行います。
           </p>
         </div>
-        <button type="button" onClick={startNewSeason} disabled={switchingSeason}>
-          {switchingSeason ? "切り替えています…" : "新学期を開始"}
-        </button>
+        <div className="admin-term-actions">
+          <button type="button" className="rebuild" onClick={rebuildTermPoints} disabled={rebuildingPoints}>
+            {rebuildingPoints ? "再集計中…" : "学期ポイントを再集計"}
+          </button>
+          <button type="button" onClick={startNewSeason} disabled={switchingSeason}>
+            {switchingSeason ? "切り替えています…" : "新学期を開始"}
+          </button>
+        </div>
       </section>
     </main>
   );

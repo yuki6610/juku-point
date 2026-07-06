@@ -316,6 +316,17 @@
   opacity: 0.6;
 }
 
+.admin-term-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-system-section button.rebuild {
+  color: #5148a5;
+  background: #efedff;
+  border-color: #d8d3f7;
+}
+
 @media (max-width: 1100px) {
   .admin-menu-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

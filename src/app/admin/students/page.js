@@ -9,10 +9,14 @@ import {
   doc,
   updateDoc,
   getDoc,
+  increment,
+  serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 import GradeTag from '@/components/GradeTag';
+import { getCurrentSeason } from '../../utils/season';
 import './students.css';
 
 export default function StudentsPage() {
@@ -94,7 +98,28 @@ export default function StudentsPage() {
   /* ---------- 値直接編集 ---------- */
   const updateUserValue = async (uid, field, value) => {
     const safe = Math.max(0, Number(value));
-    await updateDoc(doc(db, 'users', uid), { [field]: safe });
+    const target = students.find((s) => s.uid === uid);
+    const update = { [field]: safe };
+    if (field === 'points') {
+      const difference = safe - Number(target?.points || 0);
+      update.termPoints = increment(difference);
+      if (difference !== 0) {
+        const batch = writeBatch(db);
+        batch.update(doc(db, 'users', uid), update);
+        batch.set(doc(collection(db, 'users', uid, 'pointHistory')), {
+          type: 'adminAdjustment',
+          amount: difference,
+          note: '管理者によるポイント調整',
+          seasonId: getCurrentSeason().id,
+          createdAt: serverTimestamp(),
+        });
+        await batch.commit();
+      } else {
+        await updateDoc(doc(db, 'users', uid), update);
+      }
+    } else {
+      await updateDoc(doc(db, 'users', uid), update);
+    }
 
     setStudents((prev) =>
       prev.map((s) => (s.uid === uid ? { ...s, [field]: safe } : s))

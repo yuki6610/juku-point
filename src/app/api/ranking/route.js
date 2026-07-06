@@ -17,6 +17,7 @@ const PUBLIC_FIELDS = [
   "selfStudyCount",
   "termHomeworkCount",
   "homeworkCount",
+  "termRewardsCount",
 ];
 
 export async function GET(request) {

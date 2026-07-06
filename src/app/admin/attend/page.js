@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../../../firebaseConfig";
 import "./attend.css";
+import { getCurrentSeason } from "../../utils/season";
 
 // 🎯 授業出席1回あたりのポイント（ここを変えれば調整しやすい）
 const ATTENDANCE_POINT = 100;
@@ -158,6 +159,7 @@ export default function HighSchoolAttendancePage() {
     // 🔹 2) ユーザのポイントと授業出席回数カウント
     await updateDoc(userRef, {
       points: increment(ATTENDANCE_POINT),
+      termPoints: increment(ATTENDANCE_POINT),
       classAttendanceCount: increment(1),
     });
 
@@ -166,6 +168,7 @@ export default function HighSchoolAttendancePage() {
       type: "classAttendance",
       amount: ATTENDANCE_POINT,
       note: `授業出席 (${selectedDate})`,
+      seasonId: getCurrentSeason().id,
       createdAt: serverTimestamp(),
     });
 

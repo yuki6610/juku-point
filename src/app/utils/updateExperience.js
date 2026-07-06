@@ -12,10 +12,12 @@ import { db } from '../../firebaseConfig'
 export async function updateExperience(uid, gainedExp, reason = 'checkin', gainedPoints = 0) {
   const userRef = doc(db, 'users', uid)
   const userSnap = await getDoc(userRef)
+  if (!userSnap.exists()) throw new Error('ユーザーが見つかりません。')
   let data = userSnap.data()
 
-  let currentLevel = data.level ?? 1
-  let currentExp = (data.experience ?? 0) + gainedExp
+  const oldLevel = data.level ?? 1
+  let currentLevel = oldLevel
+  let currentExp = Math.max(0, (data.experience ?? 0) + gainedExp)
   let levelUps = 0
   const maxLevel = 999
 
@@ -35,4 +37,11 @@ export async function updateExperience(uid, gainedExp, reason = 'checkin', gaine
     termPoints: increment(gainedPoints),
     lastUpdated: new Date(),
   })
+
+  return {
+    oldLevel,
+    newLevel: currentLevel,
+    levelUps,
+    experience: currentExp,
+  }
 }

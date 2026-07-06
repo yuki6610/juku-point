@@ -8,6 +8,7 @@ import { db } from '../../../firebaseConfig'
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore'
 import { updateExperience} from '../../utils/updateExperience'
 import { incrementCounter } from "../../../lib/updateCounters"
+import { getCurrentSeason } from "../../utils/season"
 
 export default function HomeworkPage() {
   const router = useRouter()
@@ -98,6 +99,7 @@ export default function HomeworkPage() {
       type: "homework",
       amount: 50,
       note: "宿題提出",
+      seasonId: getCurrentSeason().id,
       createdAt: new Date().toISOString(),
     })
 
@@ -152,8 +154,14 @@ export default function HomeworkPage() {
       type: "undo_homework",
       amount: -50,
       note: "宿題提出取消",
+      seasonId: getCurrentSeason().id,
       createdAt: new Date().toISOString(),
     })
+
+    await incrementCounter(studentId, [
+      "homeworkCount",
+      "termHomeworkCount",
+    ], -1)
 
     setStudents(prev =>
       prev.map(s =>
@@ -197,6 +205,7 @@ export default function HomeworkPage() {
       type: 'homework_missed',
       amount: -50,
       note: '宿題未提出',
+      seasonId: getCurrentSeason().id,
       createdAt: new Date().toISOString(),
     })
 
