@@ -1,0 +1,313 @@
+.admin-app-shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  color: #243047;
+  background: #f4f6fa;
+}
+
+.admin-app-content {
+  min-width: 0;
+}
+
+.admin-desktop-sidebar {
+  position: relative;
+  z-index: 30;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px 18px;
+  overflow-y: auto;
+  background: #fff;
+  border-right: 1px solid #e4e8ef;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 8px 22px;
+}
+
+.admin-brand > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #7c72e5, #5b86df);
+  border-radius: 13px;
+  box-shadow: 0 8px 18px rgba(100, 91, 205, 0.2);
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.admin-brand strong,
+.admin-brand small {
+  display: block;
+}
+
+.admin-brand strong {
+  font-size: 15px;
+}
+
+.admin-brand small {
+  margin-top: 2px;
+  color: #8a94a7;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.admin-nav {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-nav section > p {
+  margin: 0 10px 6px;
+  color: #a0a8b7;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.admin-nav section > button {
+  width: 100%;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 7px 10px;
+  color: #667187;
+  background: transparent;
+  border: 0;
+  border-radius: 11px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-nav section > button > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  color: #8490a5;
+  background: #f1f3f7;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-nav section > button > strong {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-nav section > button:hover {
+  color: #5149b6;
+  background: #f6f5ff;
+}
+
+.admin-nav section > button.active {
+  color: #4f47b4;
+  background: #eeecff;
+}
+
+.admin-nav section > button.active > span {
+  color: #fff;
+  background: #7469dc;
+}
+
+.admin-student-switch {
+  margin-top: auto;
+  padding: 15px;
+  color: #45526b;
+  background: linear-gradient(145deg, #edf7ff, #f4efff);
+  border: 1px solid #dce6f3;
+  border-radius: 16px;
+}
+
+.admin-student-switch p {
+  margin: 0 0 5px;
+  color: #6e65cb;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.admin-student-switch strong,
+.admin-student-switch small {
+  display: block;
+}
+
+.admin-student-switch strong {
+  font-size: 13px;
+}
+
+.admin-student-switch small {
+  margin-top: 4px;
+  color: #7b879b;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.admin-student-switch button {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 11px;
+  padding: 8px 10px;
+  color: #fff;
+  background: #6d63d5;
+  border: 0;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.admin-mobile-header {
+  display: none;
+}
+
+.admin-nav-overlay {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  background: rgba(28, 37, 55, 0.4);
+  backdrop-filter: blur(5px);
+}
+
+.admin-mobile-drawer {
+  width: min(86vw, 286px);
+  height: 100dvh;
+  position: relative;
+  background: #fff;
+  box-shadow: 20px 0 50px rgba(28, 37, 55, 0.18);
+}
+
+.admin-mobile-drawer .admin-sidebar {
+  width: 100%;
+  border: 0;
+}
+
+.admin-drawer-close {
+  position: absolute;
+  z-index: 2;
+  top: 18px;
+  right: 12px;
+  width: 38px;
+  min-height: 38px;
+  color: #7c8799;
+  background: #f1f3f7;
+  border: 0;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.admin-auth-state {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #718096;
+  background: #f4f6fa;
+  text-align: center;
+}
+
+.admin-auth-state > div {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #e2e7ef;
+  border-radius: 18px;
+}
+
+.admin-auth-state button {
+  padding: 9px 16px;
+  color: #fff;
+  background: #6d63d5;
+  border: 0;
+  border-radius: 10px;
+}
+
+@media (max-width: 900px) {
+  .admin-app-shell {
+    display: block;
+  }
+
+  .admin-desktop-sidebar {
+    display: none;
+  }
+
+  .admin-mobile-header {
+    position: sticky;
+    z-index: 80;
+    top: 0;
+    min-height: 60px;
+    display: grid;
+    grid-template-columns: 42px 1fr 44px;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid #e5e9f0;
+    backdrop-filter: blur(16px);
+  }
+
+  .admin-mobile-header > div small,
+  .admin-mobile-header > div strong {
+    display: block;
+  }
+
+  .admin-mobile-header > div small {
+    color: #8278dd;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+  }
+
+  .admin-mobile-header > div strong {
+    margin-top: 1px;
+    font-size: 14px;
+  }
+
+  .admin-menu-trigger,
+  .admin-student-shortcut {
+    min-height: 42px;
+    border: 0;
+    border-radius: 11px;
+  }
+
+  .admin-menu-trigger {
+    display: grid;
+    align-content: center;
+    gap: 4px;
+    padding: 10px;
+    background: #f1f3f7;
+  }
+
+  .admin-menu-trigger span {
+    width: 19px;
+    height: 2px;
+    display: block;
+    background: #5e687b;
+    border-radius: 2px;
+  }
+
+  .admin-student-shortcut {
+    color: #5d54c5;
+    background: #eeecff;
+    font-size: 11px;
+    font-weight: 850;
+  }
+}

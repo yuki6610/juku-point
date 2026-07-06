@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
+import AdminNavigation from "../../components/AdminNavigation";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -43,10 +44,7 @@ export default function AdminLayout({ children }) {
 
   if (status === "checking") {
     return (
-      <main
-        role="status"
-        style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}
-      >
+      <main className="admin-auth-state" role="status">
         管理者権限を確認しています…
       </main>
     );
@@ -54,10 +52,7 @@ export default function AdminLayout({ children }) {
 
   if (status === "error") {
     return (
-      <main
-        role="alert"
-        style={{ minHeight: "60vh", display: "grid", placeItems: "center" }}
-      >
+      <main className="admin-auth-state" role="alert">
         <div>
           <p>管理者権限を確認できませんでした。</p>
           <button type="button" onClick={() => window.location.reload()}>
@@ -68,5 +63,10 @@ export default function AdminLayout({ children }) {
     );
   }
 
-  return children;
+  return (
+    <div className="admin-app-shell">
+      <AdminNavigation />
+      <div className="admin-app-content">{children}</div>
+    </div>
+  );
 }
