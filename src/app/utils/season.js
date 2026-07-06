@@ -1,6 +1,23 @@
 // 現在の学期を取得
 export function getCurrentSeason() {
   const now = new Date()
+  const dateId = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+
+  const configured2026 = {
+    1: { start: '2026-03-30', end: '2026-09-02' },
+    2: { start: '2026-09-03', end: '2026-12-26' },
+    3: { start: '2026-12-28', end: '2027-03-27' },
+  }
+
+  for (const [term, period] of Object.entries(configured2026)) {
+    if (dateId >= period.start && dateId <= period.end) {
+      return { year: 2026, term: Number(term), id: `2026_${term}` }
+    }
+  }
 
   const month = now.getMonth() + 1
   const calendarYear = now.getFullYear()

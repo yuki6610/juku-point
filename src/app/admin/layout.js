@@ -6,6 +6,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 import AdminNavigation from "../../components/AdminNavigation";
+import "./admin-pages-modern.css";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();

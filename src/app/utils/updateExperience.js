@@ -35,6 +35,9 @@ export async function updateExperience(uid, gainedExp, reason = 'checkin', gaine
     level: currentLevel,
     points: increment(gainedPoints),
     termPoints: increment(gainedPoints),
+    totalEarnedPoints: increment(
+      gainedPoints > 0 || reason.includes('undo') ? gainedPoints : 0
+    ),
     lastUpdated: new Date(),
   })
 

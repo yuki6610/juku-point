@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -15,6 +14,8 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./lesson-attendance.css";
+import "./attendance-adjustments.css";
+import "./annual-calendar.css";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const TEACHING_DAYS = [1, 2, 3, 4, 5, 6];
@@ -27,18 +28,44 @@ const studentKey = (student) =>
 const gradeLabel = (grade) =>
   grade <= 6 ? `小${grade}` : ({ 7: "中1", 8: "中2", 9: "中3" }[grade] || "対象外");
 
-function createDefaultCalendar(year) {
-  const counts = Object.fromEntries(TEACHING_DAYS.map((day) => [day, 0]));
+const defaultTerms = (year) =>
+  year === 2026
+    ? {
+        1: { start: "2026-03-30", end: "2026-09-02" },
+        2: { start: "2026-09-03", end: "2026-12-26" },
+        3: { start: "2026-12-28", end: "2027-03-27" },
+      }
+    : {
+        1: { start: "", end: "" },
+        2: { start: "", end: "" },
+        3: { start: "", end: "" },
+      };
+
+function createDefaultCalendar(year, terms) {
+  const candidates = Object.fromEntries(TEACHING_DAYS.map((day) => [day, []]));
   const dates = {};
-  const cursor = new Date(year, 0, 1);
-  while (cursor.getFullYear() === year) {
+  const first = terms?.[1]?.start || `${year}-04-01`;
+  const last = terms?.[3]?.end || `${year + 1}-03-31`;
+  const cursor = new Date(`${first}T00:00:00`);
+  const end = new Date(`${last}T00:00:00`);
+  while (cursor <= end) {
     const weekday = cursor.getDay();
-    if (TEACHING_DAYS.includes(weekday) && counts[weekday] < 48) {
-      dates[dateId(cursor)] = true;
-      counts[weekday] += 1;
-    }
+    if (TEACHING_DAYS.includes(weekday)) candidates[weekday].push(dateId(cursor));
     cursor.setDate(cursor.getDate() + 1);
   }
+
+  TEACHING_DAYS.forEach((weekday) => {
+    const list = candidates[weekday];
+    const removeCount = Math.max(0, list.length - 48);
+    const removed = new Set(
+      Array.from({ length: removeCount }, (_, index) =>
+        Math.round(((index + 1) * (list.length + 1)) / (removeCount + 1)) - 1
+      )
+    );
+    list.forEach((id, index) => {
+      if (!removed.has(index)) dates[id] = true;
+    });
+  });
   return dates;
 }
 
@@ -57,27 +84,32 @@ function datesInMonth(year, month) {
 }
 
 export default function LessonAttendancePage() {
+  const router = useRouter();
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
+  const initialAcademicYear = now.getMonth() + 1 <= 3 ? now.getFullYear() - 1 : now.getFullYear();
+  const [year, setYear] = useState(initialAcademicYear);
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [tab, setTab] = useState("overview");
   const [students, setStudents] = useState([]);
   const [calendar, setCalendar] = useState({});
+  const [termSettings, setTermSettings] = useState(defaultTerms(initialAcademicYear));
   const [records, setRecords] = useState({});
   const [selectedKey, setSelectedKey] = useState("");
   const [recordDate, setRecordDate] = useState(todayId());
   const [status, setStatus] = useState("present");
   const [originalDate, setOriginalDate] = useState("");
   const [note, setNote] = useState("");
-  const [newStudent, setNewStudent] = useState({ name: "", grade: 1, weekdays: [] });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
 
   const loadStudents = async () => {
-    const [usersSnap, elementarySnap] = await Promise.all([
+    const [usersResult, elementaryResult] = await Promise.allSettled([
       getDocs(collection(db, "users")),
       getDocs(collection(db, "adminStudents")),
     ]);
+    const usersSnap = usersResult.status === "fulfilled" ? usersResult.value : { docs: [] };
+    const elementarySnap =
+      elementaryResult.status === "fulfilled" ? elementaryResult.value : { docs: [] };
     const middle = usersSnap.docs
       .map((item) => ({ id: item.id, source: "user", ...item.data() }))
       .filter((item) => Number(item.grade) >= 7 && Number(item.grade) <= 9);
@@ -92,8 +124,12 @@ export default function LessonAttendancePage() {
   };
 
   const loadCalendar = async () => {
-    const snapshot = await getDoc(doc(db, "adminLessonCalendars", String(year)));
-    setCalendar(snapshot.exists() ? snapshot.data().dates || {} : {});
+    const [calendarSnapshot, termSnapshot] = await Promise.all([
+      getDoc(doc(db, "adminLessonCalendars", String(year))),
+      getDoc(doc(db, "adminTermSettings", String(year))),
+    ]);
+    setCalendar(calendarSnapshot.exists() ? calendarSnapshot.data().dates || {} : {});
+    setTermSettings(termSnapshot.exists() ? termSnapshot.data().terms || defaultTerms(year) : defaultTerms(year));
   };
 
   const loadRecords = async () => {
@@ -120,8 +156,15 @@ export default function LessonAttendancePage() {
     if (students.length) loadRecords().catch(() => setNotice("出欠記録を読み込めませんでした。"));
   }, [students]);
 
-  const monthDates = useMemo(() => datesInMonth(year, month), [year, month]);
-  const cutoff = year === now.getFullYear() && month === now.getMonth() + 1 ? todayId() : `${year}-${pad(month)}-31`;
+  const selectedCalendarYear = month >= 4 ? year : year + 1;
+  const monthDates = useMemo(
+    () => datesInMonth(selectedCalendarYear, month),
+    [selectedCalendarYear, month]
+  );
+  const cutoff =
+    selectedCalendarYear === now.getFullYear() && month === now.getMonth() + 1
+      ? todayId()
+      : `${selectedCalendarYear}-${pad(month)}-31`;
 
   const summaries = useMemo(() => students.map((student) => {
     const key = studentKey(student);
@@ -136,15 +179,15 @@ export default function LessonAttendancePage() {
     ).length;
     const actual = Object.values(ownRecords).filter(
       (record) =>
-        record.date?.startsWith(`${year}-${pad(month)}`) &&
+        record.date?.startsWith(`${selectedCalendarYear}-${pad(month)}`) &&
         ["present", "makeup"].includes(record.status)
     ).length;
     const absent = Object.values(ownRecords).filter(
-      (record) => record.status === "absent" && record.date?.startsWith(`${year}-${pad(month)}`)
+      (record) => record.status === "absent" && record.date?.startsWith(`${selectedCalendarYear}-${pad(month)}`)
     );
     const pending = absent.filter((record) => !record.makeupDate).length;
     return { student, key, planned, accounted, actual, missing: Math.max(0, planned - accounted), pending };
-  }), [students, records, calendar, monthDates, cutoff, year, month]);
+  }), [students, records, calendar, monthDates, cutoff, selectedCalendarYear, month]);
 
   const selectedStudent = students.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
@@ -165,42 +208,32 @@ export default function LessonAttendancePage() {
     }
   };
 
-  const addElementaryStudent = async () => {
-    if (!newStudent.name.trim() || !newStudent.weekdays.length) {
-      return setNotice("氏名と通塾曜日を入力してください。");
-    }
-    setBusy(true);
-    try {
-      await addDoc(collection(db, "adminStudents"), {
-        name: newStudent.name.trim(),
-        grade: Number(newStudent.grade),
-        weekdays: newStudent.weekdays,
-        active: true,
-        createdBy: auth.currentUser?.uid || null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      setNewStudent({ name: "", grade: 1, weekdays: [] });
-      await loadStudents();
-      setNotice("小学生を登録しました。ログインアカウントは作成していません。");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const removeElementaryStudent = async (student) => {
-    if (!window.confirm(`${student.name}さんを管理対象から削除しますか？`)) return;
-    await deleteDoc(doc(db, "adminStudents", student.id));
-    await loadStudents();
-  };
-
   const initializeCalendar = async () => {
-    const dates = createDefaultCalendar(year);
+    const dates = createDefaultCalendar(year, termSettings);
     await setDoc(doc(db, "adminLessonCalendars", String(year)), {
       year, dates, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null,
     });
     setCalendar(dates);
     setNotice("月〜土を各48回にした原案を作成しました。休校日に合わせて調整してください。");
+  };
+
+  const saveTermSettings = async () => {
+    const settings = [1, 2, 3].map((term) => termSettings[term]);
+    if (settings.some((item) => !item?.start || !item?.end || item.start > item.end)) {
+      return setNotice("各学期の開始日と終了日を確認してください。");
+    }
+    setBusy(true);
+    try {
+      await setDoc(doc(db, "adminTermSettings", String(year)), {
+        academicYear: year,
+        terms: termSettings,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.uid || null,
+      });
+      setNotice(`${year}年度の学期期間を保存しました。`);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const toggleCalendarDate = async (id) => {
@@ -253,6 +286,36 @@ export default function LessonAttendancePage() {
     count: Object.keys(calendar).filter((id) => new Date(`${id}T00:00:00`).getDay() === weekday).length,
   }));
 
+  const annualMonths = useMemo(() => {
+    const start = termSettings?.[1]?.start
+      ? new Date(`${termSettings[1].start}T00:00:00`)
+      : new Date(year, 3, 1);
+    const end = termSettings?.[3]?.end
+      ? new Date(`${termSettings[3].end}T00:00:00`)
+      : new Date(year + 1, 2, 31);
+    const result = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    while (cursor <= end) {
+      result.push({
+        year: cursor.getFullYear(),
+        month: cursor.getMonth() + 1,
+        dates: datesInMonth(cursor.getFullYear(), cursor.getMonth() + 1),
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return result;
+  }, [termSettings, year]);
+
+  const termForDate = (id) => {
+    for (const term of [1, 2, 3]) {
+      const setting = termSettings?.[term];
+      if (setting?.start && setting?.end && id >= setting.start && id <= setting.end) {
+        return term;
+      }
+    }
+    return null;
+  };
+
   return (
     <main className="attendance-admin">
       <header className="attendance-hero">
@@ -263,15 +326,15 @@ export default function LessonAttendancePage() {
         </div>
         <div className="attendance-period">
           <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((value) =>
-              <option key={value} value={value}>{value}年</option>
+            {[initialAcademicYear - 1, initialAcademicYear, initialAcademicYear + 1].map((value) =>
+              <option key={value} value={value}>{value}年度</option>
             )}
           </select>
-          <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
+          {tab !== "calendar" && <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
             {Array.from({ length: 12 }, (_, index) => index + 1).map((value) =>
               <option key={value} value={value}>{value}月</option>
             )}
-          </select>
+          </select>}
         </div>
       </header>
 
@@ -336,27 +399,57 @@ export default function LessonAttendancePage() {
 
       {tab === "students" && (
         <section className="attendance-section">
-          <div className="student-create">
-            <div><span>ELEMENTARY STUDENT</span><h2>小学生を管理者登録</h2><p>生徒用ログインアカウントは作成されません。</p></div>
-            <input placeholder="生徒氏名" value={newStudent.name} onChange={(event) => setNewStudent({ ...newStudent, name: event.target.value })} />
-            <select value={newStudent.grade} onChange={(event) => setNewStudent({ ...newStudent, grade: Number(event.target.value) })}>{[1,2,3,4,5,6].map((value) => <option key={value} value={value}>小学{value}年</option>)}</select>
-            <div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={newStudent.weekdays.includes(day) ? "active" : ""} onClick={() => setNewStudent({ ...newStudent, weekdays: newStudent.weekdays.includes(day) ? newStudent.weekdays.filter((value) => value !== day) : [...newStudent.weekdays, day].sort() })}>{WEEKDAYS[day]}</button>)}</div>
-            <button className="primary-action" disabled={busy} onClick={addElementaryStudent}>登録する</button>
+          <div className="schedule-heading">
+            <div><h2>通塾曜日を設定</h2><p>小学生と、既存アカウントを持つ中学生が自動で表示されます。</p></div>
+            <button onClick={() => router.push("/admin/elementary-students")}>小学生の登録・編集</button>
           </div>
           <div className="schedule-list">{students.map((student) => {
             const current = student.lessonSchedule?.weekdays || student.weekdays || [];
-            return <article key={studentKey(student)}><div><strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "既存アカウント"}</span></div><div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={current.includes(day) ? "active" : ""} disabled={busy} onClick={() => saveSchedule(student, current.includes(day) ? current.filter((value) => value !== day) : [...current, day].sort())}>{WEEKDAYS[day]}</button>)}</div>{student.source === "elementary" && <button className="delete-student" onClick={() => removeElementaryStudent(student)}>削除</button>}</article>;
+            return <article key={studentKey(student)}><div><strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "中学生アカウント"}</span></div><div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={current.includes(day) ? "active" : ""} disabled={busy} onClick={() => saveSchedule(student, current.includes(day) ? current.filter((value) => value !== day) : [...current, day].sort())}>{WEEKDAYS[day]}</button>)}</div></article>;
           })}</div>
         </section>
       )}
 
       {tab === "calendar" && (
         <section className="attendance-section">
-          <div className="calendar-toolbar"><div><h2>{year}年 授業カレンダー</h2><p>色が付いた日を授業日として集計します。</p></div><button onClick={initializeCalendar}>月〜土 各48回の原案を作成</button></div>
+          <div className="term-settings-panel">
+            <div className="term-settings-heading">
+              <div><h2>{year}年度 学期設定</h2><p>年度ごとに塾の学期開始日・終了日を設定します。</p></div>
+              <button disabled={busy} onClick={saveTermSettings}>学期期間を保存</button>
+            </div>
+            <div className="term-settings-grid">
+              {[1, 2, 3].map((term) => (
+                <article key={term} className={`term-${term}`}>
+                  <strong>{term}学期</strong>
+                  <label>開始日<input type="date" value={termSettings?.[term]?.start || ""} onChange={(event) => setTermSettings((current) => ({ ...current, [term]: { ...current[term], start: event.target.value } }))} /></label>
+                  <label>終了日<input type="date" value={termSettings?.[term]?.end || ""} onChange={(event) => setTermSettings((current) => ({ ...current, [term]: { ...current[term], end: event.target.value } }))} /></label>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div className="calendar-toolbar"><div><h2>{year}年度 年間授業カレンダー</h2><p>3月〜翌3月を一画面で表示します。色が付いた日が授業日です。</p></div><button onClick={initializeCalendar}>月〜土 各48回の原案を作成</button></div>
           <div className="weekday-counts">{weekdayCounts.map(({ weekday, count }) => <span key={weekday} className={count === 48 ? "complete" : ""}>{WEEKDAYS[weekday]}曜 <strong>{count}</strong>/48</span>)}</div>
-          <div className="month-calendar">
-            <div className="calendar-week">{WEEKDAYS.map((day) => <span key={day}>{day}</span>)}</div>
-            <div className="calendar-grid" style={{ "--offset": new Date(year, month - 1, 1).getDay() }}>{monthDates.map((date) => <button key={date.id} style={date.day === 1 ? { gridColumnStart: date.weekday + 1 } : undefined} disabled={!TEACHING_DAYS.includes(date.weekday)} className={calendar[date.id] ? "lesson-day" : ""} onClick={() => toggleCalendarDate(date.id)}><strong>{date.day}</strong><small>{calendar[date.id] ? "授業日" : TEACHING_DAYS.includes(date.weekday) ? "休校" : ""}</small></button>)}</div>
+          <div className="annual-calendar-grid">
+            {annualMonths.map((item) => (
+              <article className="annual-month" key={`${item.year}-${item.month}`}>
+                <header><strong>{item.month}月</strong><span>{item.year}</span></header>
+                <div className="annual-week">{WEEKDAYS.map((day) => <span key={day}>{day}</span>)}</div>
+                <div className="annual-days">
+                  {item.dates.map((date) => {
+                    const lessonTerm = termForDate(date.id);
+                    const enabled = Boolean(lessonTerm) && TEACHING_DAYS.includes(date.weekday);
+                    return <button
+                      key={date.id}
+                      style={date.day === 1 ? { gridColumnStart: date.weekday + 1 } : undefined}
+                      disabled={!enabled}
+                      title={lessonTerm ? `${lessonTerm}学期` : "学期外"}
+                      className={`${calendar[date.id] ? "lesson-day" : ""} ${lessonTerm ? `term-${lessonTerm}` : "outside-term"}`}
+                      onClick={() => toggleCalendarDate(date.id)}
+                    ><strong>{date.day}</strong></button>;
+                  })}
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       )}

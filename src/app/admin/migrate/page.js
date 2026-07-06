@@ -357,14 +357,8 @@ export default function ImportSchoolsPage(){
   }
 
   return(
-    <div
-      style={{
-        maxWidth:700,
-        margin:'40px auto',
-        padding:20
-      }}
-    >
-
+    <main className="admin-utility-page">
+      <span>DATA MAINTENANCE</span>
       <h1>高校データ一括登録</h1>
 
       <p>
@@ -378,10 +372,10 @@ export default function ImportSchoolsPage(){
         {running ? '登録中...' : '高校データを登録'}
       </button>
 
-      <p style={{marginTop:20}}>
+      <p className="admin-utility-message">
         {message}
       </p>
 
-    </div>
+    </main>
   )
 }

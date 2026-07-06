@@ -91,6 +91,7 @@ export async function resetSeason(currentSeason, lastResetSeason) {
       termStudyMinutes: u.termStudyMinutes ?? 0,
       termRewardsCount: u.termRewardsCount ?? 0,
       walletPointsAtClose: u.points ?? 0,
+      totalEarnedPointsAtClose: u.totalEarnedPoints ?? u.points ?? 0,
       levelAtClose: u.level ?? 1,
       closedAt: serverTimestamp(),
     });

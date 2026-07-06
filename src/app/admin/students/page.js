@@ -9,7 +9,6 @@ import {
   doc,
   updateDoc,
   getDoc,
-  increment,
   serverTimestamp,
   writeBatch,
 } from 'firebase/firestore';
@@ -102,14 +101,14 @@ export default function StudentsPage() {
     const update = { [field]: safe };
     if (field === 'points') {
       const difference = safe - Number(target?.points || 0);
-      update.termPoints = increment(difference);
       if (difference !== 0) {
         const batch = writeBatch(db);
         batch.update(doc(db, 'users', uid), update);
         batch.set(doc(collection(db, 'users', uid, 'pointHistory')), {
-          type: 'adminAdjustment',
+          type: 'balanceAdjustment',
           amount: difference,
-          note: '管理者によるポイント調整',
+          note: '管理者による現在ポイント調整',
+          affectsEarnedPoints: false,
           seasonId: getCurrentSeason().id,
           createdAt: serverTimestamp(),
         });

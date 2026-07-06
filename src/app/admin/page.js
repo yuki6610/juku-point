@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  serverTimestamp,
+  writeBatch,
+} from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 import { getCurrentSeason } from "../utils/season";
 import { resetSeason } from "../utils/resetSeason";
@@ -53,11 +60,25 @@ const menuGroups = [
     description: "生徒情報、成績、志望校判定を管理します。",
     items: [
       {
+        title: "授業・振替管理",
+        desc: "小中学生の欠席、振替、授業回数を照合",
+        icon: "▦",
+        path: "/admin/lesson-attendance",
+        tone: "violet",
+      },
+      {
         title: "生徒管理",
         desc: "学年・コース・ポイント・レベル",
         icon: "◎",
         path: "/admin/students",
         tone: "indigo",
+      },
+      {
+        title: "小学生登録",
+        desc: "アカウントを持たない小学生を登録",
+        icon: "＋",
+        path: "/admin/elementary-students",
+        tone: "sky",
       },
       {
         title: "成績承認",
@@ -165,7 +186,7 @@ export default function AdminPage() {
 
   const rebuildTermPoints = async () => {
     if (rebuildingPoints) return;
-    if (!window.confirm("今学期のポイント履歴から学期ポイントを再集計しますか？")) return;
+    if (!window.confirm("2026年度1学期の学期ポイントを累計ポイントへ同期しますか？")) return;
     setRebuildingPoints(true);
     try {
       const token = await auth.currentUser?.getIdToken();
@@ -174,10 +195,32 @@ export default function AdminPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      if (!response.ok) throw new Error(result.error || "APIで再集計できませんでした。");
       window.alert(`${result.updated}人分の学期ポイントを再集計しました。`);
     } catch (error) {
-      window.alert(error.message || "再集計に失敗しました。");
+      try {
+        const [usersSnapshot, adminsSnapshot] = await Promise.all([
+          getDocs(collection(db, "users")),
+          getDocs(collection(db, "admins")),
+        ]);
+        const adminIds = new Set(adminsSnapshot.docs.map((item) => item.id));
+        const batch = writeBatch(db);
+        let updated = 0;
+        usersSnapshot.docs.forEach((item) => {
+          if (adminIds.has(item.id)) return;
+          batch.update(item.ref, {
+            totalEarnedPoints: Math.max(0, Number(item.data().termPoints || 0)),
+            termPointsSeason: "2026_1",
+            termPointsRebuiltAt: serverTimestamp(),
+          });
+          updated += 1;
+        });
+        await batch.commit();
+        window.alert(`${updated}人分を直接同期しました。`);
+      } catch (fallbackError) {
+        console.error("学期ポイント同期に失敗しました:", error, fallbackError);
+        window.alert("再集計に失敗しました。管理者権限と通信状態を確認してください。");
+      }
     } finally {
       setRebuildingPoints(false);
     }

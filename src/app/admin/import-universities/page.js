@@ -54,15 +54,17 @@ export default function RebuildSearchIndex(){
   }
 
   return(
-    <div style={{padding:40}}>
-      <h1>searchIndex再構築</h1>
+    <main className="admin-utility-page">
+      <span>DATA MAINTENANCE</span>
+      <h1>大学検索データの再構築</h1>
+      <p>大学・学部・学科・受験科目の検索情報を最新状態に更新します。</p>
       <button onClick={rebuild} disabled={loading}>
         {loading?'処理中...':'再構築する'}
       </button>
 
-      <div style={{marginTop:20}}>
+      <div className="admin-utility-log">
         {log.map((l,i)=><div key={i}>{l}</div>)}
       </div>
-    </div>
+    </main>
   )
 }

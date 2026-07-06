@@ -40,7 +40,6 @@ export async function POST(request) {
       const userData = userSnap.data();
       const rewardData = rewardSnap.data();
       const currentPoints = Number(userData.points || 0);
-      const currentTermPoints = Number(userData.termPoints || 0);
       const cost = Number(rewardData.cost || 0);
       const history = Array.isArray(userData.rewardHistory)
         ? userData.rewardHistory
@@ -78,7 +77,6 @@ export async function POST(request) {
       };
       const userUpdate = {
         points: currentPoints - cost,
-        termPoints: currentTermPoints - cost,
         termRewardsCount: FieldValue.increment(1),
         rewardHistory: FieldValue.arrayUnion(historyItem),
         updatedAt: redeemedAt,
@@ -109,7 +107,6 @@ export async function POST(request) {
 
       return {
         points: currentPoints - cost,
-        termPoints: currentTermPoints - cost,
         historyItem: {
           ...historyItem,
           date: redeemedAt.toDate().toISOString(),
@@ -131,6 +128,10 @@ function getSeasonId(date) {
   const japanDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
   const month = japanDate.getUTCMonth() + 1;
   const calendarYear = japanDate.getUTCFullYear();
+  const dateId = `${calendarYear}-${String(month).padStart(2, "0")}-${String(japanDate.getUTCDate()).padStart(2, "0")}`;
+  if (dateId >= "2026-03-30" && dateId <= "2026-09-02") return "2026_1";
+  if (dateId >= "2026-09-03" && dateId <= "2026-12-26") return "2026_2";
+  if (dateId >= "2026-12-28" && dateId <= "2027-03-27") return "2026_3";
   const year = month <= 3 ? calendarYear - 1 : calendarYear;
   const term = month >= 4 && month <= 8 ? 1 : month >= 9 ? 2 : 3;
   return `${year}_${term}`;

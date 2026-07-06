@@ -160,6 +160,7 @@ export default function HighSchoolAttendancePage() {
     await updateDoc(userRef, {
       points: increment(ATTENDANCE_POINT),
       termPoints: increment(ATTENDANCE_POINT),
+      totalEarnedPoints: increment(ATTENDANCE_POINT),
       classAttendanceCount: increment(1),
     });
 

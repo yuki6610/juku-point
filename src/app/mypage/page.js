@@ -127,6 +127,8 @@ export default function MyPage() {
 
   const level = data.level ?? 1;
   const points = data.points ?? 0;
+  const termPoints = data.termPoints ?? 0;
+  const totalEarnedPoints = data.totalEarnedPoints ?? 0;
   const exp = data.experience ?? 0;
   const expNeeded = 100 + (level - 1) * 10;
   const expPercent = Math.min((exp / expNeeded) * 100, 100);
@@ -221,6 +223,16 @@ export default function MyPage() {
           <span className="stat-label">POINTS</span>
           <strong>{points.toLocaleString()}</strong>
           <small>利用可能ポイント</small>
+        </article>
+        <article className="stat-tile">
+          <span className="stat-label">TERM POINTS</span>
+          <strong>{termPoints.toLocaleString()}</strong>
+          <small>今学期の獲得</small>
+        </article>
+        <article className="stat-tile">
+          <span className="stat-label">TOTAL POINTS</span>
+          <strong>{totalEarnedPoints.toLocaleString()}</strong>
+          <small>これまでの累計獲得</small>
         </article>
         <article className="stat-tile">
           <span className="stat-label">EXPERIENCE</span>

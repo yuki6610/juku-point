@@ -1,0 +1,369 @@
+/* 管理画面全体：既存機能を保ったまま、PC向けの明るい作業画面へ統一 */
+.admin-app-content {
+  --admin-ink: #29364e;
+  --admin-muted: #78869a;
+  --admin-line: #dfe6ef;
+  --admin-soft: #f6f8fc;
+  --admin-accent: #7167d4;
+  --admin-accent-soft: #efedff;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 85% 0, rgba(216, 231, 255, .55), transparent 26rem),
+    #f6f8fb;
+}
+
+.admin-app-content :is(
+  .hw-page,.wt-page,.hsatt-container,.ss-container,.studylog-container,
+  .illegal-container,.admin-history-container,.rewards-admin-container,
+  .admin-score-page,.students-page,.admin-behavior-page,.history-page,.page
+) {
+  width: min(100%, 1280px) !important;
+  max-width: 1280px !important;
+  min-height: 100dvh;
+  margin: 0 auto !important;
+  padding: 36px 42px 72px !important;
+  color: var(--admin-ink) !important;
+  background: transparent !important;
+}
+
+.admin-app-content :is(
+  .hw-title,.wt-title,.hsatt-title,.ss-title,.studylog-title,.illegal-title,
+  .admin-history-title,.admin-title,.students-title,.admin-score-page>h1,
+  .admin-behavior-page>h1,.history-title,.page>h1
+) {
+  margin: 0 0 24px !important;
+  color: var(--admin-ink) !important;
+  font-size: clamp(30px, 3vw, 42px) !important;
+  font-weight: 900 !important;
+  line-height: 1.08;
+  letter-spacing: -.045em;
+  text-align: left !important;
+}
+
+.admin-app-content :is(
+  .hw-title,.wt-title,.hsatt-title,.ss-title,.studylog-title,.illegal-title,
+  .admin-history-title,.admin-title,.students-title
+)::before {
+  content: "ADMIN WORKSPACE";
+  display: block;
+  margin-bottom: 8px;
+  color: var(--admin-accent);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .19em;
+}
+
+.admin-app-content :is(input,select,textarea) {
+  min-height: 44px;
+  box-sizing: border-box;
+  color: #354157 !important;
+  background: #fff !important;
+  border: 1px solid #d6deea !important;
+  border-radius: 11px !important;
+  outline: none;
+}
+
+.admin-app-content :is(input,select,textarea):focus {
+  border-color: #9c94e6 !important;
+  box-shadow: 0 0 0 3px rgba(113,103,212,.12);
+}
+
+.admin-app-content button {
+  font-family: inherit;
+  transition: border-color .16s, background .16s, box-shadow .16s, transform .16s;
+}
+
+.admin-app-content button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.admin-app-content :is(.hw-filters,.wt-filters,.hsatt-date-box,.filter-row,.filter-buttons,.student-select-box) {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  margin: 0 0 18px !important;
+  padding: 15px 17px;
+  color: #647187;
+  background: rgba(255,255,255,.9);
+  border: 1px solid var(--admin-line);
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(49,62,88,.04);
+}
+
+.admin-app-content :is(.hw-grid,.wt-grid,.students-grid,.rewards-grid-admin) {
+  gap: 11px !important;
+}
+
+.admin-app-content :is(.hw-card,.wt-card,.student-card,.reward-card-admin,.approve-card,.saved-card) {
+  padding: 18px !important;
+  color: var(--admin-ink) !important;
+  background: #fff !important;
+  border: 1px solid var(--admin-line) !important;
+  border-radius: 17px !important;
+  box-shadow: 0 7px 20px rgba(40,54,82,.045) !important;
+  text-align: left !important;
+}
+
+.admin-app-content :is(.hw-card,.wt-card,.student-card,.reward-card-admin,.approve-card,.saved-card):hover {
+  border-color: #cbd3e0 !important;
+  box-shadow: 0 12px 28px rgba(40,54,82,.08) !important;
+}
+
+.admin-app-content :is(.hw-name,.wt-name,.student-name) {
+  color: #2e3a51 !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+}
+
+.admin-app-content :is(.hw-buttons,.wt-input-row,.approve-actions,.discipline-buttons,.bottom-buttons) {
+  display: flex;
+  gap: 7px !important;
+}
+
+.admin-app-content :is(.hw-btn-submit,.wt-btn-submit,.save-btn,.add-button,.save-button) {
+  color: #fff !important;
+  background: var(--admin-accent) !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 7px 15px rgba(113,103,212,.16);
+}
+
+.admin-app-content :is(.hw-btn-undo,.hw-btn-miss,.delete-button,.delete-btn) {
+  color: #a94b57 !important;
+  background: #fff0f2 !important;
+  border: 1px solid #f0d0d5 !important;
+  border-radius: 10px !important;
+}
+
+.admin-app-content :is(.hw-back-btn,.wt-back-btn,.hsatt-back-btn,.back-btn,.back-button) {
+  display: none !important;
+}
+
+.admin-app-content :is(.hsatt-table,.ss-table,.illegal-table,.admin-history-table) {
+  width: 100% !important;
+  overflow: hidden;
+  color: var(--admin-ink) !important;
+  background: #fff !important;
+  border: 1px solid var(--admin-line) !important;
+  border-radius: 18px !important;
+  border-collapse: separate !important;
+  border-spacing: 0;
+  box-shadow: 0 8px 24px rgba(40,54,82,.045);
+}
+
+.admin-app-content :is(.hsatt-table,.ss-table,.illegal-table,.admin-history-table) th {
+  padding: 13px 15px !important;
+  color: #738096 !important;
+  background: #f5f7fb !important;
+  border: 0 !important;
+  font-size: 11px !important;
+  font-weight: 850;
+  text-align: left;
+}
+
+.admin-app-content :is(.hsatt-table,.ss-table,.illegal-table,.admin-history-table) td {
+  padding: 14px 15px !important;
+  color: #445168 !important;
+  background: #fff !important;
+  border-width: 1px 0 0 !important;
+  border-color: #edf0f4 !important;
+}
+
+.admin-app-content .hsatt-row {
+  min-height: 58px;
+  padding: 10px 14px !important;
+  background: #fff !important;
+  border-color: #edf0f4 !important;
+}
+
+.admin-app-content :is(.hsatt-btn,.ss-exit-btn,.map-btn,.verify-button,.ss-refresh-btn) {
+  min-height: 38px;
+  padding: 8px 12px !important;
+  color: #564daa !important;
+  background: var(--admin-accent-soft) !important;
+  border: 1px solid #d8d3f7 !important;
+  border-radius: 9px !important;
+  font-weight: 800;
+}
+
+.admin-app-content .studylog-layout {
+  grid-template-columns: 310px minmax(0,1fr) !important;
+  gap: 12px !important;
+}
+
+.admin-app-content :is(.student-list-card,.log-card,.form-card,.admin-form-card,.score-block) {
+  color: var(--admin-ink) !important;
+  background: #fff !important;
+  border: 1px solid var(--admin-line) !important;
+  border-radius: 19px !important;
+  box-shadow: 0 8px 22px rgba(40,54,82,.045) !important;
+}
+
+.admin-app-content .history-page {
+  width: min(100%,1000px) !important;
+  margin: 0 auto !important;
+  padding: 36px 42px 72px !important;
+}
+
+.admin-app-content .history-card,
+.admin-app-content .edit-box {
+  margin-top: 10px;
+  padding: 18px !important;
+  color: var(--admin-ink) !important;
+  background: #fff !important;
+  border: 1px solid var(--admin-line) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 7px 20px rgba(40,54,82,.045) !important;
+}
+
+.admin-app-content .student-list-card button {
+  color: #4c5970 !important;
+  background: #f7f9fc !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+}
+
+.admin-app-content .student-list-card button.active {
+  color: #5148aa !important;
+  background: var(--admin-accent-soft) !important;
+  border-color: #d7d2f6 !important;
+}
+
+.admin-app-content .admin-score-page {
+  color: var(--admin-ink) !important;
+}
+
+.admin-app-content .admin-score-page .student-select-box select {
+  width: min(100%,460px);
+}
+
+.admin-app-content .score-block {
+  padding: 22px !important;
+}
+
+.admin-app-content .score-block h2,
+.admin-app-content .saved-list h2 {
+  color: #303c53 !important;
+}
+
+.admin-app-content .score-block label {
+  color: #68758a !important;
+}
+
+.admin-app-content .score-block button {
+  background: var(--admin-accent) !important;
+  box-shadow: 0 8px 17px rgba(113,103,212,.18);
+}
+
+.admin-app-content .page {
+  max-width: 1180px !important;
+}
+
+.admin-app-content .page > select {
+  max-width: 360px;
+  margin-bottom: 18px;
+}
+
+.admin-app-content .approve-card {
+  border-left: 1px solid var(--admin-line) !important;
+}
+
+.admin-app-content .approve-actions button {
+  min-height: 42px;
+}
+
+.admin-app-content .approve-actions button:first-child {
+  color: #fff;
+  background: var(--admin-accent);
+}
+
+.admin-app-content .rewards-admin-container .admin-form-card {
+  padding: 21px !important;
+}
+
+.admin-app-content .modal-overlay,
+.admin-app-content .students-modal-overlay {
+  background: rgba(36,46,67,.34) !important;
+  backdrop-filter: blur(6px);
+}
+
+.admin-app-content :is(.modal-content,.students-modal) {
+  color: var(--admin-ink) !important;
+  background: #fff !important;
+  border: 1px solid var(--admin-line);
+  border-radius: 20px !important;
+  box-shadow: 0 25px 60px rgba(31,43,67,.2) !important;
+}
+
+.admin-app-content .judge-page .row,
+.admin-app-content .judge-page .comment-box,
+.admin-app-content .judge-page .compare-table {
+  background: #fff !important;
+  border-color: var(--admin-line) !important;
+  border-radius: 15px;
+}
+
+.admin-utility-page {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  padding: 42px;
+}
+
+.admin-utility-page > span {
+  color: var(--admin-accent);
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .19em;
+}
+
+.admin-utility-page h1 {
+  margin: 8px 0 10px;
+  color: var(--admin-ink);
+  font-size: 38px;
+  letter-spacing: -.045em;
+}
+
+.admin-utility-page > p {
+  color: var(--admin-muted);
+}
+
+.admin-utility-page > button {
+  min-height: 48px;
+  margin-top: 18px;
+  padding: 10px 18px;
+  color: #fff;
+  background: var(--admin-accent);
+  border: 0;
+  border-radius: 11px;
+  font-weight: 850;
+  box-shadow: 0 8px 18px rgba(113,103,212,.18);
+  cursor: pointer;
+}
+
+.admin-utility-log {
+  display: grid;
+  gap: 5px;
+  margin-top: 20px;
+  padding: 16px;
+  color: #536178;
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+}
+
+.admin-utility-message {
+  margin-top: 18px !important;
+  padding: 13px;
+  background: #fff;
+  border: 1px solid var(--admin-line);
+  border-radius: 11px;
+}
+
+@media (max-width: 1100px) {
+  .admin-app-content :is(
+    .hw-page,.wt-page,.hsatt-container,.ss-container,.studylog-container,
+    .illegal-container,.admin-history-container,.rewards-admin-container,
+    .admin-score-page,.students-page,.admin-behavior-page,.history-page,.page
+  ) { padding: 28px 24px 60px !important; }
+}

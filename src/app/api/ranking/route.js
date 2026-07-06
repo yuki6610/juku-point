@@ -9,6 +9,7 @@ const PUBLIC_FIELDS = [
   "level",
   "termPoints",
   "points",
+  "totalEarnedPoints",
   "termStudyMinutes",
   "totalStudyMinutes",
   "termWordScore",

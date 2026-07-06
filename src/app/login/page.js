@@ -43,6 +43,7 @@ export default function LoginPage() {
           level: 1,
           points: 0,
           termPoints: 0,
+          totalEarnedPoints: 0,
           experience: 0,
           createdAt: serverTimestamp(),
         })

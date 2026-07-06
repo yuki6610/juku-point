@@ -13,6 +13,7 @@ const PUBLIC_FIELDS = [
   "level",
   "termPoints",
   "points",
+  "totalEarnedPoints",
   "termStudyMinutes",
   "totalStudyMinutes",
   "termWordScore",
@@ -160,7 +161,8 @@ export default function RankingPage() {
           list.sort((a, b) =>
             mode === "term"
               ? (b.termPoints ?? 0) - (a.termPoints ?? 0)
-              : (b.points ?? 0) - (a.points ?? 0)
+              : (b.totalEarnedPoints ?? 0) -
+                (a.totalEarnedPoints ?? 0)
           );
           break;
 
@@ -256,7 +258,7 @@ export default function RankingPage() {
         case "points":
           return mode === "term"
             ? `${u.termPoints ?? 0} Pt`
-            : `${u.points ?? 0} Pt`;
+            : `${u.totalEarnedPoints ?? 0} Pt`;
 
         case "level":
           return `Lv.${u.level ?? 0}`;

@@ -1,9 +1,9 @@
 .admin-app-shell {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 264px minmax(0, 1fr);
+  grid-template-columns: 278px minmax(0, 1fr);
   color: #243047;
-  background: #f4f6fa;
+  background: #f6f8fb;
 }
 
 .admin-app-content {
@@ -21,9 +21,11 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 22px 16px 18px;
+  padding: 24px 17px 18px;
   overflow-y: auto;
-  background: #fff;
+  background:
+    linear-gradient(180deg, rgba(239,247,255,.76), transparent 180px),
+    #fff;
   border-right: 1px solid #e4e8ef;
 }
 
@@ -79,7 +81,7 @@
 
 .admin-nav section > button {
   width: 100%;
-  min-height: 43px;
+  min-height: 46px;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -87,7 +89,8 @@
   color: #667187;
   background: transparent;
   border: 0;
-  border-radius: 11px;
+  border: 1px solid transparent;
+  border-radius: 12px;
   cursor: pointer;
   text-align: left;
 }
@@ -113,11 +116,14 @@
 .admin-nav section > button:hover {
   color: #5149b6;
   background: #f6f5ff;
+  border-color: #e8e5fb;
 }
 
 .admin-nav section > button.active {
   color: #4f47b4;
   background: #eeecff;
+  border-color: #dcd7fb;
+  box-shadow: 0 5px 13px rgba(91,82,190,.08);
 }
 
 .admin-nav section > button.active > span {

@@ -135,6 +135,7 @@ export default function AdminApprovePage() {
     await updateDoc(userRef, {
       points: increment(point),
       termPoints: increment(point),
+      totalEarnedPoints: increment(point),
       experience: increment(exp),
     })
   }

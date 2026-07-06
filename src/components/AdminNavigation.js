@@ -20,6 +20,7 @@ const groups = [
     label: "生徒・成績",
     items: [
       { path: "/admin/students", icon: "◎", label: "生徒管理" },
+      { path: "/admin/elementary-students", icon: "＋", label: "小学生登録" },
       { path: "/admin/approve", icon: "↗", label: "成績承認" },
       { path: "/admin/judge", icon: "△", label: "志望校判定" },
       { path: "/admin/score", icon: "+", label: "成績入力" },

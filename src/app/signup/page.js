@@ -48,6 +48,7 @@ export default function SignupPage() {
         experience: 0,
         points: 0,
         termPoints: 0,
+        totalEarnedPoints: 0,
         createdAt: serverTimestamp(),
       });
 
