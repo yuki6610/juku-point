@@ -42,6 +42,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /adminStudents/{studentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /adminLessonCalendars/{yearId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /adminTermSettings/{yearId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /adminLessonAttendance/{studentKey}/records/{recordId} {
+      allow read, write: if isAdmin();
+    }
+
     match /hallOfFame/{seasonId} {
       allow read: if signedIn();
       allow write: if isAdmin();

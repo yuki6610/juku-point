@@ -262,18 +262,33 @@ export default function LessonAttendancePage() {
         : { lessonSchedule: { weekdays }, updatedAt: serverTimestamp() });
       await loadStudents();
       setNotice("通塾曜日を保存しました。");
+    } catch (error) {
+      console.error(error);
+      setNotice("通塾曜日を保存できませんでした。管理者権限または通信状態を確認してください。");
     } finally {
       setBusy(false);
     }
   };
 
   const initializeCalendar = async () => {
-    const dates = createDefaultCalendar(year, termSettings);
-    await setDoc(doc(db, "adminLessonCalendars", String(year)), {
-      year, dates, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null,
-    });
-    setCalendar(dates);
-    setNotice("月〜土を各48回にした原案を作成しました。休校日に合わせて調整してください。");
+    if (busy) return;
+    setBusy(true);
+    try {
+      const dates = createDefaultCalendar(year, termSettings);
+      await setDoc(doc(db, "adminLessonCalendars", String(year)), {
+        year,
+        dates,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.uid || null,
+      });
+      setCalendar(dates);
+      setNotice("月〜土を各48回にした原案を保存しました。休校日に合わせて調整してください。");
+    } catch (error) {
+      console.error(error);
+      setNotice("年間授業日の原案を保存できませんでした。管理者権限またはFirestoreルールを確認してください。");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const saveTermSettings = async () => {
@@ -290,18 +305,36 @@ export default function LessonAttendancePage() {
         updatedBy: auth.currentUser?.uid || null,
       });
       setNotice(`${year}年度の学期期間を保存しました。`);
+    } catch (error) {
+      console.error(error);
+      setNotice("学期期間を保存できませんでした。管理者権限またはFirestoreルールを確認してください。");
     } finally {
       setBusy(false);
     }
   };
 
   const toggleCalendarDate = async (id) => {
+    if (busy) return;
     const next = { ...calendar, [id]: !calendar[id] };
     if (!next[id]) delete next[id];
     setCalendar(next);
-    await setDoc(doc(db, "adminLessonCalendars", String(year)), {
-      year, dates: next, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid || null,
-    }, { merge: true });
+    setBusy(true);
+    try {
+      await setDoc(doc(db, "adminLessonCalendars", String(year)), {
+        year,
+        dates: next,
+        updatedAt: serverTimestamp(),
+        updatedBy: auth.currentUser?.uid || null,
+      }, { merge: true });
+      setNotice(`${id}を${next[id] ? "授業日として保存" : "休校日として保存"}しました。`);
+      if (tab !== "calendar") await loadRecords(visibleStudents);
+    } catch (error) {
+      console.error(error);
+      setCalendar(calendar);
+      setNotice("授業日を保存できませんでした。管理者権限またはFirestoreルールを確認してください。");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const saveAttendance = async () => {
@@ -501,7 +534,7 @@ export default function LessonAttendancePage() {
               ))}
             </div>
           </div>
-          <div className="calendar-toolbar"><div><h2>{year}年度 年間授業カレンダー</h2><p>3月〜翌3月を一画面で表示します。色が付いた日が授業日です。</p></div><button onClick={initializeCalendar}>月〜土 各48回の原案を作成</button></div>
+          <div className="calendar-toolbar"><div><h2>{year}年度 年間授業カレンダー</h2><p>3月〜翌3月を一画面で表示します。色が付いた日が授業日です。</p></div><button disabled={busy} onClick={initializeCalendar}>{busy ? "保存中…" : "月〜土 各48回の原案を作成"}</button></div>
           <div className="weekday-counts">{weekdayCounts.map(({ weekday, count }) => <span key={weekday} className={count === 48 ? "complete" : ""}>{WEEKDAYS[weekday]}曜 <strong>{count}</strong>/48</span>)}</div>
           <div className="annual-calendar-grid">
             {annualMonths.map((item) => (
