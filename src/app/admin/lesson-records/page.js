@@ -33,9 +33,7 @@ const today = () => {
 };
 
 const gradeLabel = (grade) =>
-  ({ 7: "中1", 8: "中2", 9: "中3", 10: "高1", 11: "高2", 12: "高3" }[
-    grade
-  ] || "学年未設定");
+  ({ 7: "中1", 8: "中2", 9: "中3" }[grade] || "学年未設定");
 
 const calculateSummary = (records, year, term) => {
   const summary = {
@@ -139,7 +137,19 @@ export default function LessonRecordsPage() {
 
   useEffect(() => {
     getDocs(collection(db, "users")).then((snapshot) => {
-      setStudents(snapshot.docs.map((item) => ({ uid: item.id, ...item.data() })));
+      setStudents(
+        snapshot.docs
+          .map((item) => ({ uid: item.id, ...item.data() }))
+          .filter((student) => Number(student.grade) >= 7 && Number(student.grade) <= 9)
+          .sort(
+            (a, b) =>
+              Number(a.grade || 0) - Number(b.grade || 0) ||
+              String(a.realName || a.displayName || "").localeCompare(
+                String(b.realName || b.displayName || ""),
+                "ja"
+              )
+          )
+      );
     });
   }, []);
 
@@ -350,7 +360,7 @@ export default function LessonRecordsPage() {
           />
           <select value={grade} onChange={(e) => setGrade(e.target.value)}>
             <option value="all">全学年</option>
-            {[7, 8, 9, 10, 11, 12].map((value) => (
+            {[7, 8, 9].map((value) => (
               <option key={value} value={value}>{gradeLabel(value)}</option>
             ))}
           </select>

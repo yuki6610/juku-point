@@ -86,10 +86,16 @@ export default function AdminScoresPage() {
     getDocs(collection(db,'users')).then(snap=>{
       if (!active) return
       setStudents(
-        snap.docs.map(d=>({
-          uid:d.id,
-          ...d.data()
-        }))
+        snap.docs
+          .map(d=>({
+            uid:d.id,
+            ...d.data()
+          }))
+          .filter(s=>Number(s.grade)>=7&&Number(s.grade)<=9)
+          .sort((a,b)=>
+            Number(a.grade||0)-Number(b.grade||0) ||
+            String(a.realName||a.displayName||'').localeCompare(String(b.realName||b.displayName||''),'ja')
+          )
       )
     })
 
@@ -161,8 +167,8 @@ export default function AdminScoresPage() {
 
   const filteredStudents=
     gradeFilter==='all'
-      ? students.filter(s=>s.grade>=7&&s.grade<=9)
-      : students.filter(s=>s.grade===Number(gradeFilter))
+      ? students
+      : students.filter(s=>Number(s.grade)===Number(gradeFilter))
 
   const saveExam=async()=>{
     if(!selectedStudentId) return alert('生徒を選択してください')

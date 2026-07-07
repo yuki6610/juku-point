@@ -47,6 +47,7 @@ export async function GET(request) {
             grade: Number(data.grade || 0),
           };
         })
+        .filter((student) => student.grade >= 7 && student.grade <= 9)
         .sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "ja"));
       return Response.json({ students });
     }

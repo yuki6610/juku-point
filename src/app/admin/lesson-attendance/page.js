@@ -19,6 +19,20 @@ import "./annual-calendar.css";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const TEACHING_DAYS = [1, 2, 3, 4, 5, 6];
+const GRADE_FILTERS = [
+  ["all", "全学年"],
+  ["elementary", "小学生"],
+  ["middle", "中学生"],
+  ["1", "小1"],
+  ["2", "小2"],
+  ["3", "小3"],
+  ["4", "小4"],
+  ["5", "小5"],
+  ["6", "小6"],
+  ["7", "中1"],
+  ["8", "中2"],
+  ["9", "中3"],
+];
 const pad = (value) => String(value).padStart(2, "0");
 const dateId = (date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -101,6 +115,7 @@ export default function LessonAttendancePage() {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [gradeFilter, setGradeFilter] = useState("all");
 
   const loadStudents = async () => {
     const [usersResult, elementaryResult] = await Promise.allSettled([
@@ -113,12 +128,15 @@ export default function LessonAttendancePage() {
     const middle = usersSnap.docs
       .map((item) => ({ id: item.id, source: "user", ...item.data() }))
       .filter((item) => Number(item.grade) >= 7 && Number(item.grade) <= 9);
-    const elementary = elementarySnap.docs.map((item) => ({
-      id: item.id,
-      source: "elementary",
-      ...item.data(),
-    }));
+    const elementary = elementarySnap.docs
+      .map((item) => ({
+        id: item.id,
+        source: "elementary",
+        ...item.data(),
+      }))
+      .filter((item) => Number(item.grade) >= 1 && Number(item.grade) <= 6);
     setStudents([...elementary, ...middle].sort((a, b) =>
+      Number(a.grade || 0) - Number(b.grade || 0) ||
       String(a.realName || a.name || "").localeCompare(String(b.realName || b.name || ""), "ja")
     ));
   };
@@ -166,7 +184,23 @@ export default function LessonAttendancePage() {
       ? todayId()
       : `${selectedCalendarYear}-${pad(month)}-31`;
 
-  const summaries = useMemo(() => students.map((student) => {
+  const visibleStudents = useMemo(() => {
+    return students.filter((student) => {
+      const studentGrade = Number(student.grade);
+      if (gradeFilter === "all") return true;
+      if (gradeFilter === "elementary") return studentGrade >= 1 && studentGrade <= 6;
+      if (gradeFilter === "middle") return studentGrade >= 7 && studentGrade <= 9;
+      return studentGrade === Number(gradeFilter);
+    });
+  }, [students, gradeFilter]);
+
+  useEffect(() => {
+    if (selectedKey && !visibleStudents.some((student) => studentKey(student) === selectedKey)) {
+      setSelectedKey("");
+    }
+  }, [selectedKey, visibleStudents]);
+
+  const summaries = useMemo(() => visibleStudents.map((student) => {
     const key = studentKey(student);
     const weekdays = student.lessonSchedule?.weekdays || student.weekdays || [];
     const ownRecords = records[key] || {};
@@ -187,9 +221,9 @@ export default function LessonAttendancePage() {
     );
     const pending = absent.filter((record) => !record.makeupDate).length;
     return { student, key, planned, accounted, actual, missing: Math.max(0, planned - accounted), pending };
-  }), [students, records, calendar, monthDates, cutoff, selectedCalendarYear, month]);
+  }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month]);
 
-  const selectedStudent = students.find((student) => studentKey(student) === selectedKey);
+  const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
 
   const saveSchedule = async (student, weekdays) => {
@@ -346,6 +380,21 @@ export default function LessonAttendancePage() {
 
       {notice && <p className="attendance-notice">{notice}</p>}
 
+      {tab !== "calendar" && (
+        <div className="attendance-filter-bar" aria-label="学年フィルタ">
+          {GRADE_FILTERS.map(([value, label]) => (
+            <button
+              type="button"
+              key={value}
+              className={gradeFilter === value ? "active" : ""}
+              onClick={() => setGradeFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {tab === "overview" && (
         <section className="attendance-section">
           <div className="summary-strip">
@@ -373,7 +422,7 @@ export default function LessonAttendancePage() {
         <section className="attendance-section record-layout">
           <aside className="record-students">
             <h2>生徒を選択</h2>
-            {students.map((student) => {
+            {visibleStudents.map((student) => {
               const key = studentKey(student);
               return <button key={key} className={selectedKey === key ? "active" : ""} onClick={() => setSelectedKey(key)}>
                 <strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}</span>
@@ -403,7 +452,7 @@ export default function LessonAttendancePage() {
             <div><h2>通塾曜日を設定</h2><p>小学生と、既存アカウントを持つ中学生が自動で表示されます。</p></div>
             <button onClick={() => router.push("/admin/elementary-students")}>小学生の登録・編集</button>
           </div>
-          <div className="schedule-list">{students.map((student) => {
+          <div className="schedule-list">{visibleStudents.map((student) => {
             const current = student.lessonSchedule?.weekdays || student.weekdays || [];
             return <article key={studentKey(student)}><div><strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "中学生アカウント"}</span></div><div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={current.includes(day) ? "active" : ""} disabled={busy} onClick={() => saveSchedule(student, current.includes(day) ? current.filter((value) => value !== day) : [...current, day].sort())}>{WEEKDAYS[day]}</button>)}</div></article>;
           })}</div>

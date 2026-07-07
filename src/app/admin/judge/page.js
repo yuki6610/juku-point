@@ -64,7 +64,15 @@ export default function AdminJudgePage(){
   useEffect(()=>{
     if(!admin) return
     return onSnapshot(collection(db,'users'),snap=>{
-      setStudents(snap.docs.map(d=>({uid:d.id,...d.data()})))
+      setStudents(
+        snap.docs
+          .map(d=>({uid:d.id,...d.data()}))
+          .filter(s=>Number(s.grade)>=7&&Number(s.grade)<=9)
+          .sort((a,b)=>
+            Number(a.grade||0)-Number(b.grade||0) ||
+            String(a.realName||a.displayName||'').localeCompare(String(b.realName||b.displayName||''),'ja')
+          )
+      )
     })
   },[admin])
 
@@ -145,6 +153,7 @@ export default function AdminJudgePage(){
   if(!admin) return <p>管理者ログインが必要です</p>
 
   const filteredStudents = students.filter(s=>{
+    if(Number(s.grade)<7 || Number(s.grade)>9) return false
     if(gradeFilter==='全学年') return true
     return gradeLabel(s.grade)===gradeFilter
   })
