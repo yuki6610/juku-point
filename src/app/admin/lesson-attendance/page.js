@@ -118,6 +118,7 @@ export default function LessonAttendancePage() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
+  const [calendarDirty, setCalendarDirty] = useState(false);
 
   const loadStudents = async () => {
     const [usersResult, elementaryResult] = await Promise.allSettled([
@@ -149,6 +150,7 @@ export default function LessonAttendancePage() {
       getDoc(doc(db, "adminTermSettings", String(year))),
     ]);
     setCalendar(calendarSnapshot.exists() ? calendarSnapshot.data().dates || {} : {});
+    setCalendarDirty(false);
     setTermSettings(termSnapshot.exists() ? termSnapshot.data().terms || defaultTerms(year) : defaultTerms(year));
   };
 
@@ -270,22 +272,30 @@ export default function LessonAttendancePage() {
     }
   };
 
-  const initializeCalendar = async () => {
+  const initializeCalendar = () => {
+    if (busy) return;
+    const dates = createDefaultCalendar(year, termSettings);
+    setCalendar(dates);
+    setCalendarDirty(true);
+    setNotice("月〜土を各48回にした原案を作成しました。内容を確認してから保存してください。");
+  };
+
+  const saveCalendar = async () => {
     if (busy) return;
     setBusy(true);
     try {
-      const dates = createDefaultCalendar(year, termSettings);
       await setDoc(doc(db, "adminLessonCalendars", String(year)), {
         year,
-        dates,
+        dates: calendar,
         updatedAt: serverTimestamp(),
         updatedBy: auth.currentUser?.uid || null,
       });
-      setCalendar(dates);
-      setNotice("月〜土を各48回にした原案を保存しました。休校日に合わせて調整してください。");
+      setCalendarDirty(false);
+      setNotice("年間授業日を保存しました。");
+      if (tab !== "calendar") await loadRecords(visibleStudents);
     } catch (error) {
       console.error(error);
-      setNotice("年間授業日の原案を保存できませんでした。管理者権限またはFirestoreルールを確認してください。");
+      setNotice("年間授業日を保存できませんでした。管理者権限またはFirestoreルールを確認してください。");
     } finally {
       setBusy(false);
     }
@@ -318,23 +328,8 @@ export default function LessonAttendancePage() {
     const next = { ...calendar, [id]: !calendar[id] };
     if (!next[id]) delete next[id];
     setCalendar(next);
-    setBusy(true);
-    try {
-      await setDoc(doc(db, "adminLessonCalendars", String(year)), {
-        year,
-        dates: next,
-        updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser?.uid || null,
-      }, { merge: true });
-      setNotice(`${id}を${next[id] ? "授業日として保存" : "休校日として保存"}しました。`);
-      if (tab !== "calendar") await loadRecords(visibleStudents);
-    } catch (error) {
-      console.error(error);
-      setCalendar(calendar);
-      setNotice("授業日を保存できませんでした。管理者権限またはFirestoreルールを確認してください。");
-    } finally {
-      setBusy(false);
-    }
+    setCalendarDirty(true);
+    setNotice(`${id}を${next[id] ? "授業日" : "休校日"}に変更しました。確定するには保存してください。`);
   };
 
   const saveAttendance = async () => {
@@ -534,7 +529,16 @@ export default function LessonAttendancePage() {
               ))}
             </div>
           </div>
-          <div className="calendar-toolbar"><div><h2>{year}年度 年間授業カレンダー</h2><p>3月〜翌3月を一画面で表示します。色が付いた日が授業日です。</p></div><button disabled={busy} onClick={initializeCalendar}>{busy ? "保存中…" : "月〜土 各48回の原案を作成"}</button></div>
+          <div className="calendar-toolbar">
+            <div>
+              <h2>{year}年度 年間授業カレンダー</h2>
+              <p>3月〜翌3月を一画面で表示します。色が付いた日が授業日です。{calendarDirty ? " 未保存の変更があります。" : ""}</p>
+            </div>
+            <div className="calendar-actions">
+              <button disabled={busy} onClick={initializeCalendar}>月〜土 各48回の原案を作成</button>
+              <button className="primary-action" disabled={busy || !calendarDirty} onClick={saveCalendar}>{busy ? "保存中…" : "年間授業日を保存"}</button>
+            </div>
+          </div>
           <div className="weekday-counts">{weekdayCounts.map(({ weekday, count }) => <span key={weekday} className={count === 48 ? "complete" : ""}>{WEEKDAYS[weekday]}曜 <strong>{count}</strong>/48</span>)}</div>
           <div className="annual-calendar-grid">
             {annualMonths.map((item) => (
