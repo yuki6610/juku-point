@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { db } from '../../../firebaseConfig'
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore'
+import { collection, doc, getDocs, limit, orderBy, query, updateDoc } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import './rewardHistory.css'
 
@@ -26,28 +26,41 @@ export default function AdminRewardHistory() {
     return () => unsubscribe()
   }, [])
 
-  // 🔹 Firestoreから全ユーザーのrewardHistory配列を取得
+  // 🔹 新形式のサブコレクションを優先し、旧配列形式も互換表示
   const fetchAllHistories = async () => {
     try {
       const usersRef = collection(db, 'users')
       const snapshot = await getDocs(usersRef)
-      const all = []
-
-      snapshot.forEach((userDoc) => {
+      const perUserHistories = await Promise.all(snapshot.docs.map(async (userDoc) => {
         const data = userDoc.data()
-        const rewardHistory = data.rewardHistory || []
-        rewardHistory.forEach((item, index) => {
-          all.push({
-            userId: userDoc.id,
-            userName: data.displayName || '未登録',
-            index,
-            ...item,
-          })
-        })
-      })
+        const userName = data.displayName || data.realName || '未登録'
+        const subSnap = await getDocs(query(
+          collection(db, 'users', userDoc.id, 'rewardHistory'),
+          orderBy('date', 'desc'),
+          limit(100)
+        ))
+        const subItems = subSnap.docs.map((historyDoc) => ({
+          userId: userDoc.id,
+          userName,
+          historyId: historyDoc.id,
+          ...historyDoc.data(),
+        }))
+
+        if (subItems.length > 0) return subItems
+
+        return (data.rewardHistory || []).map((item, index) => ({
+          userId: userDoc.id,
+          userName,
+          index,
+          legacy: true,
+          ...item,
+        }))
+      }))
+
+      const all = perUserHistories.flat()
 
       // 日付順にソート（新しい順）
-      all.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0))
+      all.sort((a, b) => toMillis(b.date) - toMillis(a.date))
       setHistory(all)
       applyFilter(filterMode, all)
     } catch (error) {
@@ -58,19 +71,27 @@ export default function AdminRewardHistory() {
   }
 
   // 🔸 管理者が「確認済み」に変更
-  const handleVerify = async (userId, index) => {
+  const handleVerify = async (item) => {
     try {
+      if (!item.legacy && item.historyId) {
+        await updateDoc(doc(db, 'users', item.userId, 'rewardHistory', item.historyId), {
+          verified: true,
+          verifiedAt: new Date(),
+        })
+        alert('確認済みにしました ✅')
+        fetchAllHistories()
+        return
+      }
+
       const usersRef = collection(db, 'users')
       const userSnap = await getDocs(usersRef)
-      const userDocData = userSnap.docs.find((doc) => doc.id === userId)
-
+      const userDocData = userSnap.docs.find((userDoc) => userDoc.id === item.userId)
       if (!userDocData) return
-
       const userData = userDocData.data()
       const newHistory = userData.rewardHistory || []
-      newHistory[index].verified = true
+      newHistory[item.index].verified = true
 
-      const userRef = doc(db, 'users', userId)
+      const userRef = doc(db, 'users', item.userId)
       await updateDoc(userRef, { rewardHistory: newHistory })
 
       alert('確認済みにしました ✅')
@@ -78,6 +99,14 @@ export default function AdminRewardHistory() {
     } catch (error) {
       console.error('確認処理エラー:', error)
     }
+  }
+
+  const toMillis = (value) => {
+    if (!value) return 0
+    if (typeof value.toDate === 'function') return value.toDate().getTime()
+    if (typeof value.seconds === 'number') return value.seconds * 1000
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime()
   }
 
   // 🔹 フィルタ適用
@@ -139,7 +168,7 @@ export default function AdminRewardHistory() {
                 <td>{item.cost} pt</td>
                 <td>
                   {item.date
-                    ? new Date(item.date.seconds * 1000).toLocaleDateString('ja-JP', {
+                    ? new Date(toMillis(item.date)).toLocaleDateString('ja-JP', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
@@ -153,7 +182,7 @@ export default function AdminRewardHistory() {
                   {!item.verified && (
                     <button
                       className="verify-button"
-                      onClick={() => handleVerify(item.userId, item.index)}
+                      onClick={() => handleVerify(item)}
                     >
                       確認する
                     </button>

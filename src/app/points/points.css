@@ -104,6 +104,18 @@
 .point-amount { flex: 0 0 auto; font-size: 17px; font-weight: 850; }
 .plus { color: #059669; }
 .minus { color: #dc2626; }
+.points-load-more {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+  color: #554bc9;
+  background: #f4f2ff;
+  border: 1px solid #ddd8ff;
+  border-radius: 16px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.points-load-more:disabled { opacity: .6; cursor: not-allowed; }
 
 @media (max-width: 560px) {
   .points-shell { padding: 28px 12px 70px; }

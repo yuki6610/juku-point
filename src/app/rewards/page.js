@@ -130,6 +130,7 @@ export default function RewardsPage() {
     const [selectedReward, setSelectedReward] = useState(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [rewardHistory, setRewardHistory] = useState([])
+    const [rewardCounts, setRewardCounts] = useState({})
     const [userId, setUserId] = useState(null)
     const [redeemingId, setRedeemingId] = useState(null)
     
@@ -164,6 +165,7 @@ export default function RewardsPage() {
                 const userTags = Array.isArray(userData.courseTags) ? userData.courseTags : []
                 setPoints(userData.points || 0)
                 setRewardHistory(Array.isArray(userData.rewardHistory) ? userData.rewardHistory : [])
+                setRewardCounts(userData.rewardCounts && typeof userData.rewardCounts === 'object' ? userData.rewardCounts : {})
                 
                 // 🎁 景品読み込み
                 const snap = await getDocs(collection(db, 'rewards'))
@@ -219,9 +221,10 @@ export default function RewardsPage() {
     
     // 🔢 その生徒がその景品を何回交換したか
     const getUsedCount = (reward) =>
-    rewardHistory.filter((h) =>
-                         h.rewardId ? h.rewardId === reward.id : h.name === reward.name
-                         ).length
+      Number(rewardCounts[reward.id] || 0) ||
+      rewardHistory.filter((h) =>
+                           h.rewardId ? h.rewardId === reward.id : h.name === reward.name
+                           ).length
     
     
     // モーダル開閉（説明用）
@@ -258,6 +261,10 @@ export default function RewardsPage() {
 
         setPoints(result.points)
         setRewardHistory((prev) => [...prev, result.historyItem])
+        setRewardCounts((prev) => ({
+          ...prev,
+          [reward.id]: Number(result.rewardCount || prev[reward.id] || 0),
+        }))
         setRewards((prev) =>
           prev.map((item) =>
             item.id === reward.id && item.stock !== undefined

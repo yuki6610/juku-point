@@ -3,22 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { VRMLoaderPlugin } from "@pixiv/three-vrm";
-
-function applyRelaxedPose(vrm) {
-  const humanoid = vrm.humanoid;
-  if (!humanoid) return;
-
-  const leftUpperArm = humanoid.getNormalizedBoneNode("leftUpperArm");
-  const rightUpperArm = humanoid.getNormalizedBoneNode("rightUpperArm");
-  const leftLowerArm = humanoid.getNormalizedBoneNode("leftLowerArm");
-  const rightLowerArm = humanoid.getNormalizedBoneNode("rightLowerArm");
-
-  if (leftUpperArm) leftUpperArm.rotation.z = -1.15;
-  if (rightUpperArm) rightUpperArm.rotation.z = 1.15;
-  if (leftLowerArm) leftLowerArm.rotation.z = -0.12;
-  if (rightLowerArm) rightLowerArm.rotation.z = 0.12;
-}
+import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 
 export default function VRMAvatar({ url, scale = 1.2, onLoad, onError }) {
   const { scene, invalidate } = useThree();
@@ -47,9 +32,9 @@ export default function VRMAvatar({ url, scale = 1.2, onLoad, onError }) {
             return;
           }
 
+          VRMUtils.rotateVRM0(vrm);
           vrm.scene.position.set(0, -1.2, 0);
           vrm.scene.scale.setScalar(scale);
-          applyRelaxedPose(vrm);
           vrm.update(0);
 
           scene.add(vrm.scene);

@@ -33,6 +33,9 @@
 .history-meta .verified { color: #08765b; background: #e5f8f1; }
 .history-meta .pending { color: #a85c1c; background: #fff3df; }
 .store-link { width: 100%; min-height: 48px; margin-top: 14px; color: #fff; background: #6158d6; border: 0; border-radius: 13px; font-weight: 850; }
+.history-load-more { width: 100%; min-height: 46px; margin-top: 14px; color: #5d52d3; background: #f3f1ff; border: 1px solid #ddd8ff; border-radius: 13px; font-weight: 850; cursor: pointer; }
+.history-load-more:disabled { opacity: .6; cursor: not-allowed; }
+.history-note { margin: 12px 0 0; padding: 12px 14px; color: #7c5b18; background: #fff7df; border-radius: 13px; font-size: 12px; line-height: 1.6; }
 .no-history,.history-error,.loading-text { padding: 40px 15px; text-align: center; }
 .history-error { color: #991b1b; background: #fef2f2; border-radius: 13px; }
 @media (max-width: 560px) {

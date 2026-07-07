@@ -44,6 +44,10 @@ export async function POST(request) {
       const history = Array.isArray(userData.rewardHistory)
         ? userData.rewardHistory
         : [];
+      const rewardCounts =
+        userData.rewardCounts && typeof userData.rewardCounts === "object"
+          ? userData.rewardCounts
+          : {};
 
       if (!Number.isFinite(cost) || cost < 0) {
         throw new RedeemError("景品データが正しくありません。", 500);
@@ -60,9 +64,11 @@ export async function POST(request) {
       }
 
       const limit = Number(rewardData.limit || 0);
-      const usedCount = history.filter((item) =>
-        item.rewardId ? item.rewardId === rewardId : item.name === rewardData.name
-      ).length;
+      const usedCount =
+        Number(rewardCounts[rewardId] || 0) ||
+        history.filter((item) =>
+          item.rewardId ? item.rewardId === rewardId : item.name === rewardData.name
+        ).length;
       if (limit > 0 && usedCount >= limit) {
         throw new RedeemError(`この景品は一人${limit}個までです。`);
       }
@@ -78,7 +84,7 @@ export async function POST(request) {
       const userUpdate = {
         points: currentPoints - cost,
         termRewardsCount: FieldValue.increment(1),
-        rewardHistory: FieldValue.arrayUnion(historyItem),
+        [`rewardCounts.${rewardId}`]: FieldValue.increment(1),
         updatedAt: redeemedAt,
       };
 
@@ -104,12 +110,20 @@ export async function POST(request) {
         seasonId: getSeasonId(redeemedAt.toDate()),
         createdAt: redeemedAt,
       });
+      transaction.set(userRef.collection("rewardHistory").doc(), {
+        ...historyItem,
+        cost: -cost,
+        verified: false,
+        createdAt: redeemedAt,
+      });
 
       return {
         points: currentPoints - cost,
+        rewardCount: usedCount + 1,
         historyItem: {
           ...historyItem,
           date: redeemedAt.toDate().toISOString(),
+          verified: false,
         },
       };
     });

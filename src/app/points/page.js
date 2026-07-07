@@ -3,8 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { db } from "../../firebaseConfig";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  limit as limitQuery,
+  orderBy,
+  query,
+  startAfter,
+} from "firebase/firestore";
 import "./points.css";
+
+const PAGE_SIZE = 50;
 
 /* =====================
    ポイント値取得（互換）
@@ -28,11 +37,35 @@ const toDate = (value) => {
 };
 
 export default function PointHistoryPage() {
-  const [grouped, setGrouped] = useState({});
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [openDates, setOpenDates] = useState({});
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
+  const [currentUid, setCurrentUid] = useState("");
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+
+  const fetchPage = async (uid, afterDoc = null) => {
+    const ref = collection(db, `users/${uid}/pointHistory`);
+    const constraints = [orderBy("createdAt", "desc"), limitQuery(PAGE_SIZE)];
+    if (afterDoc) constraints.push(startAfter(afterDoc));
+    const snap = await getDocs(query(ref, ...constraints));
+    const list = snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        ...data,
+        createdAt: toDate(data.createdAt),
+      };
+    });
+    return {
+      list,
+      last: snap.docs.at(-1) || null,
+      hasNext: snap.docs.length === PAGE_SIZE,
+    };
+  };
 
   useEffect(() => {
     const auth = getAuth();
@@ -44,28 +77,12 @@ export default function PointHistoryPage() {
       }
 
       try {
-        const ref = collection(db, `users/${user.uid}/pointHistory`);
-        const qd = query(ref, orderBy("createdAt", "desc"));
-        const snap = await getDocs(qd);
-
-        const list = snap.docs
-          .map((d) => {
-            const data = d.data();
-            const createdAt = toDate(data.createdAt);
-
-            return {
-              id: d.id,
-              ...data,
-              createdAt,
-            };
-          })
-          .sort((a, b) => {
-            if (!a.createdAt || !b.createdAt) return 0;
-            return b.createdAt - a.createdAt;
-          });
-
+        setCurrentUid(user.uid);
+        const { list, last, hasNext } = await fetchPage(user.uid);
+        setItems(list);
+        setLastDoc(last);
+        setHasMore(hasNext);
         const groups = groupByDate(list);
-        setGrouped(groups);
         const newestDate = Object.keys(groups)[0];
         if (newestDate) setOpenDates({ [newestDate]: true });
       } catch (e) {
@@ -78,6 +95,22 @@ export default function PointHistoryPage() {
 
     return () => unsub();
   }, []);
+
+  const loadMore = async () => {
+    if (!currentUid || !lastDoc || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const { list, last, hasNext } = await fetchPage(currentUid, lastDoc);
+      setItems((current) => [...current, ...list]);
+      setLastDoc(last);
+      setHasMore(hasNext);
+    } catch (e) {
+      console.error("ポイント履歴の追加取得に失敗しました:", e);
+      setError("追加のポイント履歴を取得できませんでした。");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   /* =====================
      日付ごとにグループ化
@@ -169,7 +202,8 @@ export default function PointHistoryPage() {
     }));
   };
 
-  const allItems = useMemo(() => Object.values(grouped).flat(), [grouped]);
+  const grouped = useMemo(() => groupByDate(items), [items]);
+  const allItems = items;
   const earnedTotal = useMemo(
     () => allItems.reduce((sum, item) => sum + Math.max(getPointValue(item), 0), 0),
     [allItems]
@@ -198,7 +232,7 @@ export default function PointHistoryPage() {
           <strong>-{spentTotal.toLocaleString()}<small>pt</small></strong>
         </article>
         <article>
-          <span>記録数</span>
+          <span>表示中</span>
           <strong>{allItems.length}<small>件</small></strong>
         </article>
       </section>
@@ -275,6 +309,11 @@ export default function PointHistoryPage() {
             </div>
           );
         })
+      )}
+      {!loading && hasMore && (
+        <button type="button" className="points-load-more" onClick={loadMore} disabled={loadingMore}>
+          {loadingMore ? "読み込み中..." : "もっと見る"}
+        </button>
       )}
     </div>
     </main>

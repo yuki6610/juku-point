@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/firebaseConfig";
 import "./student-navigation.css";
 
 const primaryItems = [
@@ -13,9 +16,9 @@ const primaryItems = [
 
 const moreItems = [
   { path: "/ranking", label: "ランキング", note: "みんなの学習成果" },
-  { path: "/student/scores", label: "成績・志望校", note: "成績入力と高校比較" },
-  { path: "/behavior", label: "生活態度", note: "学期の記録" },
-  { path: "/summer", label: "夏期イベント", note: "期間限定イベント" },
+  { path: "/student/scores", label: "成績・志望校", note: "成績入力と高校比較", middleOnly: true },
+  { path: "/behavior", label: "生活態度", note: "学期の記録", middleOnly: true },
+  { path: "/summer", label: "夏期イベント", note: "期間限定イベント", requiredTag: "summer_course" },
   { path: "/settings", label: "設定", note: "プロフィールとアバター" },
   { path: "/guide", label: "使い方", note: "操作ガイド" },
 ];
@@ -24,7 +27,14 @@ export default function StudentNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const moreActive = moreItems.some(
+  const [profile, setProfile] = useState(null);
+  const isHighSchool = Number(profile?.grade) >= 10 && Number(profile?.grade) <= 12;
+  const visibleMoreItems = moreItems.filter((item) => {
+    if (item.middleOnly && (!profile || isHighSchool)) return false;
+    if (item.requiredTag && !profile?.courseTags?.includes(item.requiredTag)) return false;
+    return true;
+  });
+  const moreActive = visibleMoreItems.some(
     (item) => pathname === item.path || pathname.startsWith(`${item.path}/`),
   );
 
@@ -36,6 +46,23 @@ export default function StudentNavigation() {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [open]);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (!currentUser) {
+        setProfile(null);
+        return;
+      }
+      try {
+        const snapshot = await getDoc(doc(db, "users", currentUser.uid));
+        setProfile(snapshot.exists() ? snapshot.data() : null);
+      } catch (error) {
+        console.error("生徒メニューのプロフィール取得に失敗しました:", error);
+        setProfile(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const hidden =
     pathname === "/" ||
@@ -68,7 +95,7 @@ export default function StudentNavigation() {
               <button type="button" onClick={() => setOpen(false)} aria-label="閉じる">×</button>
             </div>
             <div className="student-menu-grid">
-              {moreItems.map((item) => (
+              {visibleMoreItems.map((item) => (
                 <button type="button" key={item.path} onClick={() => navigate(item.path)}>
                   <strong>{item.label}</strong>
                   <small>{item.note}</small>

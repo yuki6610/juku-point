@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { auth, db, storage } from "@/firebaseConfig";
-import { doc, getDoc, getDocFromServer, updateDoc } from "firebase/firestore";
+import { doc, getDoc, getDocFromServer, setDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import "./settings.css";
 
@@ -22,6 +22,7 @@ export default function SettingsPage() {
 
   const [user, setUser] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarStoragePath, setAvatarStoragePath] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingName, setSavingName] = useState(false);
@@ -65,6 +66,7 @@ export default function SettingsPage() {
         if (snap.exists()) {
           const data = snap.data();
           setAvatarUrl(data.avatarUrl || "");
+          setAvatarStoragePath(data.avatarStoragePath || "");
           setName(data.displayName || data.realName || "");
         }
       } catch (error) {
@@ -135,16 +137,17 @@ export default function SettingsPage() {
 
         const downloadURL = await getDownloadURL(storageRef);
         const previousAvatarUrl = avatarUrl;
+        const previousAvatarStoragePath = avatarStoragePath;
         const avatarVersion = Date.now();
 
         const userRef = doc(db, "users", user.uid);
-        await updateDoc(userRef, {
+        await setDoc(userRef, {
           avatarUrl: downloadURL,
           avatarStoragePath: storageRef.fullPath,
           avatarVersion,
           avatarUpdatedAt: new Date(),
           updatedAt: new Date(),
-        });
+        }, { merge: true });
 
         const savedSnapshot = await getDocFromServer(userRef);
         const savedData = savedSnapshot.data();
@@ -157,19 +160,23 @@ export default function SettingsPage() {
 
         localStorage.setItem(
           `avatar:${user.uid}`,
-          JSON.stringify({ avatarUrl: downloadURL, avatarVersion })
+          JSON.stringify({
+            avatarUrl: downloadURL,
+            avatarStoragePath: storageRef.fullPath,
+            avatarVersion,
+          })
         );
         setAvatarUrl(downloadURL);
+        setAvatarStoragePath(storageRef.fullPath);
         setAvatarFile(null);
         setAvatarPreviewUrl("");
         setAvatarStatus("新しいアバターを反映しました。");
 
         if (previousAvatarUrl && previousAvatarUrl !== downloadURL) {
-          try {
-            deleteObject(ref(storage, previousAvatarUrl)).catch(() => {});
-          } catch {
-            // 過去URLがFirebase Storage以外でも、新しい保存結果は維持する
-          }
+          const deleteTarget = previousAvatarStoragePath || previousAvatarUrl;
+          deleteObject(ref(storage, deleteTarget)).catch(() => {
+            // 古いファイルの削除に失敗しても、新しい保存結果は維持する
+          });
         }
 
         alert("アバターを更新しました！");

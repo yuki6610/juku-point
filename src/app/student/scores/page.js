@@ -6,6 +6,8 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -77,19 +79,16 @@ export default function StudentScoresPage() {
       (snapshot) => setSaved(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
       () => setNotice({ tone: "error", text: "成績データを読み込めませんでした。" }),
     );
-    const stopSchools = onSnapshot(
-      collection(db, "schools"),
-      (snapshot) => setSchools(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
-      () => setNotice({ tone: "error", text: "志望校データを読み込めませんでした。" }),
-    );
-    const stopProfile = onSnapshot(doc(db, "users", user.uid), (snapshot) =>
-      setProfile(snapshot.data()),
-    );
+    getDocs(collection(db, "schools"))
+      .then((snapshot) => setSchools(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))))
+      .catch(() => setNotice({ tone: "error", text: "志望校データを読み込めませんでした。" }));
+
+    getDoc(doc(db, "users", user.uid))
+      .then((snapshot) => setProfile(snapshot.data()))
+      .catch(() => setNotice({ tone: "error", text: "生徒情報を読み込めませんでした。" }));
 
     return () => {
       stopScores();
-      stopSchools();
-      stopProfile();
     };
   }, [user]);
 
