@@ -103,6 +103,30 @@
   border-radius: 21px;
   box-shadow: 0 8px 24px rgba(50, 62, 85, .055);
 }
+.summer-loading-card,
+.summer-error-card {
+  margin-top: 40px;
+  text-align: center;
+}
+.summer-error-card strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #b4232e;
+  font-size: 20px;
+}
+.summer-error-card p {
+  color: #64748b;
+}
+.summer-error-card button {
+  min-height: 42px;
+  padding: 0 16px;
+  color: #fff;
+  background: #ef7540;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
 .summer-stats .summer-card { margin: 0; }
 .summer-card > span { color: #7a8292; font-size: 12px; font-weight: 800; }
 .point-stat { background: #eaf8ff; border-color: #ccebf8; }

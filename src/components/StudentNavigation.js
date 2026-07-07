@@ -16,7 +16,6 @@ const moreItems = [
   { path: "/student/scores", label: "成績・志望校", note: "成績入力と高校比較" },
   { path: "/behavior", label: "生活態度", note: "学期の記録" },
   { path: "/summer", label: "夏期イベント", note: "期間限定イベント" },
-  { path: "/universities", label: "大学情報", note: "大学・入試を調べる" },
   { path: "/settings", label: "設定", note: "プロフィールとアバター" },
   { path: "/guide", label: "使い方", note: "操作ガイド" },
 ];
