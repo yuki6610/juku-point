@@ -6,6 +6,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
     setDoc,
   onSnapshot
 } from 'firebase/firestore'
@@ -63,7 +64,7 @@ export default function AdminJudgePage(){
   /* === 生徒一覧 === */
   useEffect(()=>{
     if(!admin) return
-    return onSnapshot(collection(db,'users'),snap=>{
+    getDocs(collection(db,'users')).then(snap=>{
       setStudents(
         snap.docs
           .map(d=>({uid:d.id,...d.data()}))
@@ -93,7 +94,7 @@ export default function AdminJudgePage(){
 
   /* === 高校 === */
   useEffect(()=>{
-    return onSnapshot(collection(db,'schools'),
+    getDocs(collection(db,'schools')).then(
       snap=>setSchools(snap.docs.map(d=>({id:d.id,...d.data()})))
     )
   },[])

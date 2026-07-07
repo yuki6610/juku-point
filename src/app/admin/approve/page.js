@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/../firebaseConfig'
 import {
-  collection, collectionGroup, doc, getDoc, onSnapshot,
-  updateDoc, deleteDoc, serverTimestamp, addDoc, increment
+  collection, collectionGroup, doc, getDoc, getDocs, onSnapshot,
+  updateDoc, deleteDoc, serverTimestamp, addDoc, increment, query, where
 } from 'firebase/firestore'
 import { getCurrentSeason } from '../../utils/season'
 
@@ -55,7 +55,7 @@ export default function AdminApprovePage() {
   /* ---------- 生徒一覧 ---------- */
   useEffect(() => {
     if (!admin) return
-    return onSnapshot(collection(db, 'users'), snap =>
+    getDocs(collection(db, 'users')).then(snap =>
       setStudents(
         snap.docs
           .map(d => ({ uid: d.id, ...d.data() }))
@@ -66,7 +66,7 @@ export default function AdminApprovePage() {
               String(b.realName || b.displayName || ''),
               'ja'
             )
-          )
+        )
       )
     )
   }, [admin])
@@ -86,11 +86,11 @@ export default function AdminApprovePage() {
   useEffect(() => {
     if (!admin) return
 
-    return onSnapshot(collectionGroup(db, 'scores'), scoreSnap => {
+    return onSnapshot(query(collectionGroup(db, 'scores'), where('approved', '==', false)), scoreSnap => {
       const studentMap = new Map(students.map(student => [student.uid, student]))
 
       setAllPendingScores(
-        scoreSnap.docs.filter(scoreDoc => !scoreDoc.data().approved).map(scoreDoc => {
+        scoreSnap.docs.map(scoreDoc => {
           const uid = scoreDoc.ref.parent.parent?.id
           const student = studentMap.get(uid)
 

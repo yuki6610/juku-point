@@ -7,9 +7,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
@@ -150,16 +152,33 @@ export default function LessonAttendancePage() {
     setTermSettings(termSnapshot.exists() ? termSnapshot.data().terms || defaultTerms(year) : defaultTerms(year));
   };
 
-  const loadRecords = async () => {
+  const loadRecords = async (targetStudents = students) => {
+    const monthStart = `${selectedCalendarYear}-${pad(month)}-01`;
+    const monthEnd = cutoff;
     const entries = await Promise.all(
-      students.map(async (student) => {
+      targetStudents.map(async (student) => {
         const snapshot = await getDocs(
-          collection(db, "adminLessonAttendance", studentKey(student), "records")
+          query(
+            collection(db, "adminLessonAttendance", studentKey(student), "records"),
+            where("date", ">=", monthStart),
+            where("date", "<=", monthEnd)
+          )
         );
         return [studentKey(student), Object.fromEntries(snapshot.docs.map((item) => [item.id, item.data()]))];
       })
     );
-    setRecords(Object.fromEntries(entries));
+    setRecords((current) => ({ ...current, ...Object.fromEntries(entries) }));
+  };
+
+  const loadStudentRecords = async (key) => {
+    if (!key) return;
+    const snapshot = await getDocs(
+      collection(db, "adminLessonAttendance", key, "records")
+    );
+    setRecords((current) => ({
+      ...current,
+      [key]: Object.fromEntries(snapshot.docs.map((item) => [item.id, item.data()])),
+    }));
   };
 
   useEffect(() => {
@@ -169,10 +188,6 @@ export default function LessonAttendancePage() {
   useEffect(() => {
     loadCalendar().catch(() => setNotice("授業カレンダーを読み込めませんでした。"));
   }, [year]);
-
-  useEffect(() => {
-    if (students.length) loadRecords().catch(() => setNotice("出欠記録を読み込めませんでした。"));
-  }, [students]);
 
   const selectedCalendarYear = month >= 4 ? year : year + 1;
   const monthDates = useMemo(
@@ -199,6 +214,16 @@ export default function LessonAttendancePage() {
       setSelectedKey("");
     }
   }, [selectedKey, visibleStudents]);
+
+  useEffect(() => {
+    if (!visibleStudents.length || tab === "calendar" || tab === "students") return;
+    loadRecords(visibleStudents).catch(() => setNotice("出欠記録を読み込めませんでした。"));
+  }, [visibleStudents, selectedCalendarYear, month, cutoff, tab]);
+
+  useEffect(() => {
+    if (tab !== "record" || !selectedKey) return;
+    loadStudentRecords(selectedKey).catch(() => setNotice("選択した生徒の記録を読み込めませんでした。"));
+  }, [tab, selectedKey]);
 
   const summaries = useMemo(() => visibleStudents.map((student) => {
     const key = studentKey(student);
