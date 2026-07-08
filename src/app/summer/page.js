@@ -65,12 +65,16 @@ export default function SummerPage() {
           setEndDate(eventData.endDate ?? DEFAULT_END_DATE)
         }
 
-        const usersSnap = await getDocs(
-          query(collection(db, 'users'), where('courseTags', 'array-contains', 'summer_course'))
-        )
+        const [usersSnap, adminsSnap] = await Promise.all([
+          getDocs(
+            query(collection(db, 'users'), where('courseTags', 'array-contains', 'summer_course'))
+          ),
+          getDocs(collection(db, 'admins')),
+        ])
 
         if (!active) return
 
+        const adminIds = new Set(adminsSnap.docs.map((item) => item.id))
         const participants = usersSnap.docs
           .map((item) => {
             const data = item.data()
@@ -78,7 +82,7 @@ export default function SummerPage() {
               uid: item.id,
               name: data.realName || data.displayName || '名前なし',
               point: Number(data.summerExchangePoint || 0),
-              isAdmin: Boolean(data.isAdmin || data.role === 'admin'),
+              isAdmin: adminIds.has(item.id) || Boolean(data.isAdmin || data.role === 'admin'),
             }
           })
           .filter((student) => !student.isAdmin)
