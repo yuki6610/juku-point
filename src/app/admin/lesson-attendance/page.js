@@ -25,6 +25,7 @@ const GRADE_FILTERS = [
   ["all", "全学年"],
   ["elementary", "小学生"],
   ["middle", "中学生"],
+  ["high", "高校生"],
   ["1", "小1"],
   ["2", "小2"],
   ["3", "小3"],
@@ -34,6 +35,9 @@ const GRADE_FILTERS = [
   ["7", "中1"],
   ["8", "中2"],
   ["9", "中3"],
+  ["10", "高1"],
+  ["11", "高2"],
+  ["12", "高3"],
 ];
 const pad = (value) => String(value).padStart(2, "0");
 const dateId = (date) =>
@@ -42,7 +46,7 @@ const todayId = () => dateId(new Date());
 const studentKey = (student) =>
   student.source === "elementary" ? `elementary_${student.id}` : `user_${student.id}`;
 const gradeLabel = (grade) =>
-  grade <= 6 ? `小${grade}` : ({ 7: "中1", 8: "中2", 9: "中3" }[grade] || "対象外");
+  grade <= 6 ? `小${grade}` : ({ 7: "中1", 8: "中2", 9: "中3", 10: "高1", 11: "高2", 12: "高3" }[grade] || "対象外");
 
 const defaultTerms = (year) =>
   year === 2026
@@ -99,6 +103,17 @@ function datesInMonth(year, month) {
   return result;
 }
 
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function weekEndId(date) {
+  const weekday = date.getDay();
+  return dateId(addDays(date, 6 - weekday));
+}
+
 export default function LessonAttendancePage() {
   const router = useRouter();
   const now = new Date();
@@ -128,9 +143,9 @@ export default function LessonAttendancePage() {
     const usersSnap = usersResult.status === "fulfilled" ? usersResult.value : { docs: [] };
     const elementarySnap =
       elementaryResult.status === "fulfilled" ? elementaryResult.value : { docs: [] };
-    const middle = usersSnap.docs
+    const secondary = usersSnap.docs
       .map((item) => ({ id: item.id, source: "user", ...item.data() }))
-      .filter((item) => Number(item.grade) >= 7 && Number(item.grade) <= 9);
+      .filter((item) => Number(item.grade) >= 7 && Number(item.grade) <= 12);
     const elementary = elementarySnap.docs
       .map((item) => ({
         id: item.id,
@@ -138,7 +153,7 @@ export default function LessonAttendancePage() {
         ...item.data(),
       }))
       .filter((item) => Number(item.grade) >= 1 && Number(item.grade) <= 6);
-    setStudents([...elementary, ...middle].sort((a, b) =>
+    setStudents([...elementary, ...secondary].sort((a, b) =>
       Number(a.grade || 0) - Number(b.grade || 0) ||
       String(a.realName || a.name || "").localeCompare(String(b.realName || b.name || ""), "ja")
     ));
@@ -155,8 +170,8 @@ export default function LessonAttendancePage() {
   };
 
   const loadRecords = async (targetStudents = students) => {
-    const monthStart = `${selectedCalendarYear}-${pad(month)}-01`;
-    const monthEnd = cutoff;
+    const monthStart = academicRecordStart;
+    const monthEnd = academicRecordEnd;
     const entries = await Promise.all(
       targetStudents.map(async (student) => {
         const snapshot = await getDocs(
@@ -200,6 +215,15 @@ export default function LessonAttendancePage() {
     selectedCalendarYear === now.getFullYear() && month === now.getMonth() + 1
       ? todayId()
       : `${selectedCalendarYear}-${pad(month)}-31`;
+  const currentWeekEnd = weekEndId(now);
+  const academicRecordStart = termSettings?.[1]?.start || `${year}-04-01`;
+  const academicRecordEnd = [1, 2, 3].reduce((latest, term) => {
+    const setting = termSettings?.[term];
+    if (!setting?.start || !setting?.end) return latest;
+    if (currentWeekEnd < setting.start) return latest;
+    const termEnd = currentWeekEnd <= setting.end ? currentWeekEnd : setting.end;
+    return !latest || termEnd > latest ? termEnd : latest;
+  }, termSettings?.[3]?.end || `${year + 1}-03-31`);
 
   const visibleStudents = useMemo(() => {
     return students.filter((student) => {
@@ -207,6 +231,7 @@ export default function LessonAttendancePage() {
       if (gradeFilter === "all") return true;
       if (gradeFilter === "elementary") return studentGrade >= 1 && studentGrade <= 6;
       if (gradeFilter === "middle") return studentGrade >= 7 && studentGrade <= 9;
+      if (gradeFilter === "high") return studentGrade >= 10 && studentGrade <= 12;
       return studentGrade === Number(gradeFilter);
     });
   }, [students, gradeFilter]);
@@ -220,12 +245,18 @@ export default function LessonAttendancePage() {
   useEffect(() => {
     if (!visibleStudents.length || tab === "calendar" || tab === "students") return;
     loadRecords(visibleStudents).catch(() => setNotice("出欠記録を読み込めませんでした。"));
-  }, [visibleStudents, selectedCalendarYear, month, cutoff, tab]);
+  }, [visibleStudents, selectedCalendarYear, month, cutoff, tab, academicRecordStart, academicRecordEnd]);
 
   useEffect(() => {
     if (tab !== "record" || !selectedKey) return;
     loadStudentRecords(selectedKey).catch(() => setNotice("選択した生徒の記録を読み込めませんでした。"));
   }, [tab, selectedKey]);
+
+  const termCutoff = (term) => {
+    const setting = termSettings?.[term];
+    if (!setting?.start || !setting?.end || currentWeekEnd < setting.start) return "";
+    return currentWeekEnd <= setting.end ? currentWeekEnd : setting.end;
+  };
 
   const summaries = useMemo(() => visibleStudents.map((student) => {
     const key = studentKey(student);
@@ -247,8 +278,33 @@ export default function LessonAttendancePage() {
       (record) => record.status === "absent" && record.date?.startsWith(`${selectedCalendarYear}-${pad(month)}`)
     );
     const pending = absent.filter((record) => !record.makeupDate).length;
-    return { student, key, planned, accounted, actual, missing: Math.max(0, planned - accounted), pending };
-  }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month]);
+    const terms = [1, 2, 3].map((term) => {
+      const setting = termSettings?.[term];
+      const end = termCutoff(term);
+      if (!setting?.start || !setting?.end || !end) {
+        return { term, planned: 0, actual: 0, absent: 0, balance: 0 };
+      }
+      const termPlanned = Object.keys(calendar).filter((id) => {
+        const weekday = new Date(`${id}T00:00:00`).getDay();
+        return calendar[id] && weekdays.includes(weekday) && id >= setting.start && id <= end;
+      }).length;
+      const termRecords = Object.values(ownRecords).filter((record) =>
+        record.date >= setting.start && record.date <= end
+      );
+      const termActual = termRecords.filter((record) =>
+        ["present", "makeup"].includes(record.status)
+      ).length;
+      const termAbsent = termRecords.filter((record) => record.status === "absent").length;
+      return {
+        term,
+        planned: termPlanned,
+        actual: termActual,
+        absent: termAbsent,
+        balance: termPlanned - termActual,
+      };
+    });
+    return { student, key, planned, accounted, actual, missing: Math.max(0, planned - accounted), pending, terms };
+  }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, currentWeekEnd]);
 
   const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
@@ -454,16 +510,27 @@ export default function LessonAttendancePage() {
             <article><span>対象生徒</span><strong>{summaries.length}</strong></article>
             <article><span>記録漏れ候補</span><strong>{summaries.reduce((sum, item) => sum + item.missing, 0)}</strong></article>
             <article><span>振替待ち</span><strong>{summaries.reduce((sum, item) => sum + item.pending, 0)}</strong></article>
+            <article><span>学期別 差分</span><strong>{summaries.reduce((sum, item) => sum + item.terms.reduce((termSum, term) => termSum + Math.max(term.balance, 0), 0), 0)}</strong></article>
           </div>
           <div className="attendance-table-wrap">
             <table>
-              <thead><tr><th>生徒</th><th>通塾曜日</th><th>予定</th><th>記録済み</th><th>実施</th><th>振替待ち</th><th>状態</th></tr></thead>
+              <thead><tr><th>生徒</th><th>通塾曜日</th><th>今月予定</th><th>今月記録済み</th><th>今月実施</th><th>学期別 予定/実施</th><th>状態</th></tr></thead>
               <tbody>{summaries.map((item) => (
                 <tr key={item.key} onClick={() => { setSelectedKey(item.key); setTab("record"); }}>
                   <td><strong>{item.student.name || item.student.realName || item.student.displayName}</strong><small>{gradeLabel(item.student.grade)}</small></td>
                   <td>{(item.student.lessonSchedule?.weekdays || item.student.weekdays || []).map((day) => WEEKDAYS[day]).join("・") || "未設定"}</td>
-                  <td>{item.planned}回</td><td>{item.accounted}回</td><td>{item.actual}回</td><td>{item.pending}回</td>
-                  <td><span className={item.missing ? "status-warning" : item.pending ? "status-pending" : "status-ok"}>{item.missing ? `${item.missing}件 要確認` : item.pending ? "振替待ち" : "正常"}</span></td>
+                  <td>{item.planned}回</td><td>{item.accounted}回</td><td>{item.actual}回</td>
+                  <td>
+                    <div className="term-counts">
+                      {item.terms.map((term) => (
+                        <span key={term.term} className={term.balance > 0 ? "needs-check" : ""}>
+                          {term.term}学期 <strong>{term.planned}/{term.actual}</strong>
+                          {term.balance > 0 && <small>差{term.balance}</small>}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td><span className={item.terms.some((term) => term.balance > 0) || item.missing ? "status-warning" : item.pending ? "status-pending" : "status-ok"}>{item.terms.some((term) => term.balance > 0) ? "学期差分あり" : item.missing ? `${item.missing}件 要確認` : item.pending ? "振替待ち" : "正常"}</span></td>
                 </tr>
               ))}</tbody>
             </table>
@@ -502,12 +569,12 @@ export default function LessonAttendancePage() {
       {tab === "students" && (
         <section className="attendance-section">
           <div className="schedule-heading">
-            <div><h2>通塾曜日を設定</h2><p>小学生と、既存アカウントを持つ中学生が自動で表示されます。</p></div>
+            <div><h2>通塾曜日を設定</h2><p>小学生と、既存アカウントを持つ中学生・高校生が自動で表示されます。</p></div>
             <button onClick={() => router.push("/admin/elementary-students")}>小学生の登録・編集</button>
           </div>
           <div className="schedule-list">{visibleStudents.map((student) => {
             const current = student.lessonSchedule?.weekdays || student.weekdays || [];
-            return <article key={studentKey(student)}><div><strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "中学生アカウント"}</span></div><div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={current.includes(day) ? "active" : ""} disabled={busy} onClick={() => saveSchedule(student, current.includes(day) ? current.filter((value) => value !== day) : [...current, day].sort())}>{WEEKDAYS[day]}</button>)}</div></article>;
+            return <article key={studentKey(student)}><div><strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "生徒アカウント"}</span></div><div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={current.includes(day) ? "active" : ""} disabled={busy} onClick={() => saveSchedule(student, current.includes(day) ? current.filter((value) => value !== day) : [...current, day].sort())}>{WEEKDAYS[day]}</button>)}</div></article>;
           })}</div>
         </section>
       )}
