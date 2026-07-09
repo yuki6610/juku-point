@@ -45,6 +45,10 @@ const dateId = (date) =>
 const todayId = () => dateId(new Date());
 const studentKey = (student) =>
   student.source === "elementary" ? `elementary_${student.id}` : `user_${student.id}`;
+const isMiddleSchool = (student) => {
+  const grade = Number(student.grade);
+  return grade >= 7 && grade <= 9;
+};
 const gradeLabel = (grade) =>
   grade <= 6 ? `小${grade}` : ({ 7: "中1", 8: "中2", 9: "中3", 10: "高1", 11: "高2", 12: "高3" }[grade] || "対象外");
 
@@ -114,6 +118,31 @@ function weekEndId(date) {
   return dateId(addDays(date, 6 - weekday));
 }
 
+function normalizeLessonRecord(record, uid) {
+  return {
+    date: record.date,
+    status: record.attendance || record.status || "present",
+    originalDate: record.originalLessonDate || record.originalDate || null,
+    note: record.behaviorNote || record.note || "",
+    studentId: uid,
+    studentSource: "user",
+    source: "lesson-records",
+  };
+}
+
+function linkMakeupRecords(records) {
+  const linked = { ...records };
+  Object.values(linked).forEach((record) => {
+    if (record.status !== "makeup" || !record.originalDate || !linked[record.originalDate]) return;
+    linked[record.originalDate] = {
+      ...linked[record.originalDate],
+      makeupDate: record.date,
+      makeupCompleted: true,
+    };
+  });
+  return linked;
+}
+
 export default function LessonAttendancePage() {
   const router = useRouter();
   const now = new Date();
@@ -174,6 +203,23 @@ export default function LessonAttendancePage() {
     const monthEnd = academicRecordEnd;
     const entries = await Promise.all(
       targetStudents.map(async (student) => {
+        if (isMiddleSchool(student)) {
+          const termSnapshots = await Promise.all(
+            [1, 2, 3].map((term) =>
+              getDocs(collection(db, "users", student.id, "lessonTerms", `${year}_${term}`, "records"))
+            )
+          );
+          const mapped = {};
+          termSnapshots.forEach((snapshot) => {
+            snapshot.docs.forEach((item) => {
+              const record = normalizeLessonRecord(item.data(), student.id);
+              if (!record.date || record.date < monthStart || record.date > monthEnd) return;
+              mapped[record.date] = record;
+            });
+          });
+          return [studentKey(student), linkMakeupRecords(mapped)];
+        }
+
         const snapshot = await getDocs(
           query(
             collection(db, "adminLessonAttendance", studentKey(student), "records"),
@@ -189,6 +235,23 @@ export default function LessonAttendancePage() {
 
   const loadStudentRecords = async (key) => {
     if (!key) return;
+    const student = students.find((item) => studentKey(item) === key);
+    if (student && isMiddleSchool(student)) {
+      const termSnapshots = await Promise.all(
+        [1, 2, 3].map((term) =>
+          getDocs(collection(db, "users", student.id, "lessonTerms", `${year}_${term}`, "records"))
+        )
+      );
+      const mapped = {};
+      termSnapshots.forEach((snapshot) => {
+        snapshot.docs.forEach((item) => {
+          const record = normalizeLessonRecord(item.data(), student.id);
+          if (record.date) mapped[record.date] = record;
+        });
+      });
+      setRecords((current) => ({ ...current, [key]: linkMakeupRecords(mapped) }));
+      return;
+    }
     const snapshot = await getDocs(
       collection(db, "adminLessonAttendance", key, "records")
     );
@@ -235,12 +298,23 @@ export default function LessonAttendancePage() {
       return studentGrade === Number(gradeFilter);
     });
   }, [students, gradeFilter]);
+  const recordableStudents = useMemo(
+    () => visibleStudents.filter((student) => !isMiddleSchool(student)),
+    [visibleStudents]
+  );
 
   useEffect(() => {
     if (selectedKey && !visibleStudents.some((student) => studentKey(student) === selectedKey)) {
       setSelectedKey("");
     }
   }, [selectedKey, visibleStudents]);
+
+  useEffect(() => {
+    if (tab !== "record") return;
+    if (selectedKey && !recordableStudents.some((student) => studentKey(student) === selectedKey)) {
+      setSelectedKey("");
+    }
+  }, [tab, selectedKey, recordableStudents]);
 
   useEffect(() => {
     if (!visibleStudents.length || tab === "calendar" || tab === "students") return;
@@ -306,7 +380,7 @@ export default function LessonAttendancePage() {
     return { student, key, planned, accounted, actual, missing: Math.max(0, planned - accounted), pending, terms };
   }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, currentWeekEnd]);
 
-  const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
+  const selectedStudent = recordableStudents.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
 
   const saveSchedule = async (student, weekdays) => {
@@ -516,7 +590,14 @@ export default function LessonAttendancePage() {
             <table>
               <thead><tr><th>生徒</th><th>通塾曜日</th><th>今月予定</th><th>今月記録済み</th><th>今月実施</th><th>学期別 予定/実施</th><th>状態</th></tr></thead>
               <tbody>{summaries.map((item) => (
-                <tr key={item.key} onClick={() => { setSelectedKey(item.key); setTab("record"); }}>
+                <tr key={item.key} onClick={() => {
+                  if (isMiddleSchool(item.student)) {
+                    router.push("/admin/lesson-records");
+                    return;
+                  }
+                  setSelectedKey(item.key);
+                  setTab("record");
+                }}>
                   <td><strong>{item.student.name || item.student.realName || item.student.displayName}</strong><small>{gradeLabel(item.student.grade)}</small></td>
                   <td>{(item.student.lessonSchedule?.weekdays || item.student.weekdays || []).map((day) => WEEKDAYS[day]).join("・") || "未設定"}</td>
                   <td>{item.planned}回</td><td>{item.accounted}回</td><td>{item.actual}回</td>
@@ -542,12 +623,15 @@ export default function LessonAttendancePage() {
         <section className="attendance-section record-layout">
           <aside className="record-students">
             <h2>生徒を選択</h2>
-            {visibleStudents.map((student) => {
+            {recordableStudents.map((student) => {
               const key = studentKey(student);
               return <button key={key} className={selectedKey === key ? "active" : ""} onClick={() => setSelectedKey(key)}>
                 <strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}</span>
               </button>;
             })}
+            {recordableStudents.length === 0 && (
+              <p className="record-students-note">中学生の出欠は「学習記録」ページで入力してください。</p>
+            )}
           </aside>
           <div className="attendance-form">
             {!selectedStudent ? <div className="attendance-empty">左から生徒を選択してください。</div> : <>
