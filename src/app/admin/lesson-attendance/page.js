@@ -400,6 +400,12 @@ export default function LessonAttendancePage() {
       const termRecords = Object.values(ownRecords).filter((record) =>
         record.date && record.date >= start && record.date <= end
       );
+      const dueRecords = dueEnd
+        ? termRecords.filter((record) => record.date <= dueEnd)
+        : [];
+      const dueActual = dueRecords.filter((record) =>
+        ["present", "makeup"].includes(record.status)
+      ).length;
       const termActual = termRecords.filter((record) =>
         ["present", "makeup"].includes(record.status)
       ).length;
@@ -409,9 +415,10 @@ export default function LessonAttendancePage() {
         planned: duePlanned,
         totalPlanned: termPlanned,
         duePlanned,
-        actual: termActual,
+        actual: dueActual,
+        totalActual: termActual,
         absent: termAbsent,
-        balance: duePlanned - termActual,
+        balance: duePlanned - dueActual,
       };
     });
     return { student, key, planned, accounted, actual, absent: absent.length, makeup, missing: Math.max(0, planned - accounted), pending, terms, lessonStartDate };
@@ -419,6 +426,9 @@ export default function LessonAttendancePage() {
 
   const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
+  const selectedRecordList = Object.values(selectedRecords)
+    .filter((record) => record.date)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const saveSchedule = async (student, weekdays) => {
     setBusy(true);
@@ -762,7 +772,7 @@ export default function LessonAttendancePage() {
                     <div className="term-counts total">
                       {item.terms.map((term) => (
                         <span key={term.term}>
-                          {term.term}学期 <strong>{term.totalPlanned}/{term.actual}</strong>
+                          {term.term}学期 <strong>{term.totalPlanned}/{term.totalActual}</strong>
                         </span>
                       ))}
                     </div>
@@ -797,7 +807,20 @@ export default function LessonAttendancePage() {
               {status === "makeup" && <label>振替元の欠席日<select value={originalDate} onChange={(event) => setOriginalDate(event.target.value)}><option value="">選択してください</option>{Object.values(selectedRecords).filter((record) => record.status === "absent" && !record.makeupDate).map((record) => <option key={record.date} value={record.date}>{record.date}</option>)}</select></label>}
               <label>メモ（任意）<textarea value={note} onChange={(event) => setNote(event.target.value)} rows="3" /></label>
               <button className="primary-action" disabled={busy} onClick={saveAttendance}>{busy ? "保存中…" : "記録を保存"}</button>
-              <div className="recent-records"><h3>最近の記録</h3>{Object.values(selectedRecords).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map((record) => <div key={record.date}><time>{record.date}</time><strong>{record.status === "present" ? "実施" : record.status === "absent" ? "欠席" : "振替実施"}</strong><span>{record.makeupDate ? `振替済 ${record.makeupDate}` : record.status === "absent" ? "振替待ち" : record.note}</span><button type="button" className="record-delete" disabled={busy} onClick={() => deleteAttendance(record)}>削除</button></div>)}</div>
+              <div className="recent-records">
+                <h3>記録履歴 <small>{selectedRecordList.length}件</small></h3>
+                <div className="record-history-list">
+                  {selectedRecordList.map((record) => (
+                    <div key={record.date}>
+                      <time>{record.date}</time>
+                      <strong>{record.status === "present" ? "実施" : record.status === "absent" ? "欠席" : "振替実施"}</strong>
+                      <span>{record.makeupDate ? `振替済 ${record.makeupDate}` : record.status === "makeup" && record.originalDate ? `振替元 ${record.originalDate}` : record.status === "absent" ? "振替待ち" : record.note}</span>
+                      <button type="button" className="record-delete" disabled={busy} onClick={() => deleteAttendance(record)}>削除</button>
+                    </div>
+                  ))}
+                  {selectedRecordList.length === 0 && <p className="record-history-empty">まだ記録がありません。</p>}
+                </div>
+              </div>
             </>}
           </div>
         </section>
