@@ -373,6 +373,12 @@ export default function LessonAttendancePage() {
         record.date?.startsWith(`${selectedCalendarYear}-${pad(month)}`) &&
         (!lessonStartDate || record.date >= lessonStartDate)
     );
+    const makeup = Object.values(ownRecords).filter(
+      (record) =>
+        record.status === "makeup" &&
+        record.date?.startsWith(`${selectedCalendarYear}-${pad(month)}`) &&
+        (!lessonStartDate || record.date >= lessonStartDate)
+    ).length;
     const pending = absent.filter((record) => !record.makeupDate).length;
     const terms = [1, 2, 3].map((term) => {
       const setting = termSettings?.[term];
@@ -408,7 +414,7 @@ export default function LessonAttendancePage() {
         balance: duePlanned - termActual,
       };
     });
-    return { student, key, planned, accounted, actual, missing: Math.max(0, planned - accounted), pending, terms, lessonStartDate };
+    return { student, key, planned, accounted, actual, absent: absent.length, makeup, missing: Math.max(0, planned - accounted), pending, terms, lessonStartDate };
   }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, currentWeekEnd]);
 
   const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
@@ -729,12 +735,19 @@ export default function LessonAttendancePage() {
           </div>
           <div className="attendance-table-wrap">
             <table>
-              <thead><tr><th>生徒</th><th>通塾曜日</th><th>今月予定</th><th>今月記録済み</th><th>今月実施</th><th>学期別 予定/実施</th><th>状態</th></tr></thead>
+              <thead><tr><th>生徒</th><th>通塾曜日</th><th>実施予定</th><th>実施</th><th>欠席 / 振替</th><th>学期別 予定/実施</th><th>状態</th></tr></thead>
               <tbody>{summaries.map((item) => (
                 <tr key={item.key} onClick={() => { setSelectedKey(item.key); setTab("record"); }}>
                   <td><strong>{item.student.name || item.student.realName || item.student.displayName}</strong><small>{gradeLabel(item.student.grade)}</small></td>
                   <td>{(item.student.lessonSchedule?.weekdays || item.student.weekdays || []).map((day) => WEEKDAYS[day]).join("・") || "未設定"}</td>
-                  <td>{item.planned}回</td><td>{item.accounted}回</td><td>{item.actual}回</td>
+                  <td>{item.planned}回</td><td>{item.actual}回</td>
+                  <td>
+                    <div className="makeup-status">
+                      <span>欠席 <strong>{item.absent}</strong></span>
+                      <span>振替 <strong>{item.makeup}</strong></span>
+                      {item.pending > 0 && <small>未振替{item.pending}</small>}
+                    </div>
+                  </td>
                   <td>
                     <div className="term-counts">
                       {item.terms.map((term) => (
@@ -745,7 +758,7 @@ export default function LessonAttendancePage() {
                       ))}
                     </div>
                   </td>
-                  <td><span className={item.terms.some((term) => term.balance > 0) || item.missing ? "status-warning" : item.pending ? "status-pending" : "status-ok"}>{item.terms.some((term) => term.balance > 0) ? "学期差分あり" : item.missing ? `${item.missing}件 要確認` : item.pending ? "振替待ち" : "正常"}</span></td>
+                  <td><span className={item.pending ? "status-pending" : item.terms.some((term) => term.balance > 0) || item.missing ? "status-warning" : "status-ok"}>{item.pending ? `振替待ち ${item.pending}件` : item.terms.some((term) => term.balance > 0) ? "学期差分あり" : item.missing ? `${item.missing}件 要確認` : "正常"}</span></td>
                 </tr>
               ))}</tbody>
             </table>
