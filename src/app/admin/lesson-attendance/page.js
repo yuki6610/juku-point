@@ -8,11 +8,9 @@ import {
   doc,
   getDoc,
   getDocs,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
   writeBatch,
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
@@ -125,15 +123,18 @@ function weekEndId(date) {
   return dateId(addDays(date, 6 - weekday));
 }
 
-function normalizeLessonRecord(record, uid) {
+function normalizeAttendanceRecord(record, docId = "", fallback = {}) {
   return {
-    date: record.date,
-    status: record.attendance || record.status || "present",
+    ...record,
+    date: record.date || docId,
+    status: record.status || record.attendance || "present",
     originalDate: record.originalLessonDate || record.originalDate || null,
+    makeupDate: record.makeupDate || null,
+    makeupCompleted: Boolean(record.makeupCompleted),
     note: record.behaviorNote || record.note || "",
-    studentId: uid,
-    studentSource: "user",
-    source: "lesson-records",
+    studentId: record.studentId || fallback.studentId || null,
+    studentSource: record.studentSource || fallback.studentSource || null,
+    source: fallback.source || record.source || "adminLessonAttendance",
   };
 }
 
@@ -227,37 +228,44 @@ export default function LessonAttendancePage() {
                 getDocs(collection(db, "users", student.id, "lessonTerms", `${year}_${term}`, "records"))
               )
             ),
-            getDocs(
-              query(
-                collection(db, "adminLessonAttendance", studentKey(student), "records"),
-                where("date", ">=", monthStart),
-                where("date", "<=", monthEnd)
-              )
-            ),
+            getDocs(collection(db, "adminLessonAttendance", studentKey(student), "records")),
           ]);
           const mapped = {};
           termSnapshots.forEach((snapshot) => {
             snapshot.docs.forEach((item) => {
-              const record = normalizeLessonRecord(item.data(), student.id);
+              const record = normalizeAttendanceRecord(item.data(), item.id, {
+                studentId: student.id,
+                studentSource: "user",
+                source: "lesson-records",
+              });
               if (!record.date || record.date < monthStart || record.date > monthEnd) return;
               mapped[record.date] = record;
             });
           });
           directSnapshot.docs.forEach((item) => {
-            const data = item.data();
-            if (data.date) mapped[data.date] = data;
+            const record = normalizeAttendanceRecord(item.data(), item.id, {
+              studentId: student.id,
+              studentSource: student.source,
+              source: "adminLessonAttendance",
+            });
+            if (!record.date || record.date < monthStart || record.date > monthEnd) return;
+            mapped[record.date] = record;
           });
           return [studentKey(student), linkMakeupRecords(mapped)];
         }
 
-        const snapshot = await getDocs(
-          query(
-            collection(db, "adminLessonAttendance", studentKey(student), "records"),
-            where("date", ">=", monthStart),
-            where("date", "<=", monthEnd)
-          )
-        );
-        return [studentKey(student), Object.fromEntries(snapshot.docs.map((item) => [item.id, item.data()]))];
+        const snapshot = await getDocs(collection(db, "adminLessonAttendance", studentKey(student), "records"));
+        const mapped = {};
+        snapshot.docs.forEach((item) => {
+          const record = normalizeAttendanceRecord(item.data(), item.id, {
+            studentId: student.id,
+            studentSource: student.source,
+            source: "adminLessonAttendance",
+          });
+          if (!record.date || record.date < monthStart || record.date > monthEnd) return;
+          mapped[record.date] = record;
+        });
+        return [studentKey(student), linkMakeupRecords(mapped)];
       })
     );
     setRecords((current) => ({ ...current, ...Object.fromEntries(entries) }));
@@ -278,13 +286,21 @@ export default function LessonAttendancePage() {
       const mapped = {};
       termSnapshots.forEach((snapshot) => {
         snapshot.docs.forEach((item) => {
-          const record = normalizeLessonRecord(item.data(), student.id);
+          const record = normalizeAttendanceRecord(item.data(), item.id, {
+            studentId: student.id,
+            studentSource: "user",
+            source: "lesson-records",
+          });
           if (record.date) mapped[record.date] = record;
         });
       });
       directSnapshot.docs.forEach((item) => {
-        const data = item.data();
-        if (data.date) mapped[data.date] = data;
+        const record = normalizeAttendanceRecord(item.data(), item.id, {
+          studentId: student.id,
+          studentSource: student.source,
+          source: "adminLessonAttendance",
+        });
+        if (record.date) mapped[record.date] = record;
       });
       setRecords((current) => ({ ...current, [key]: linkMakeupRecords(mapped) }));
       return;
@@ -292,9 +308,18 @@ export default function LessonAttendancePage() {
     const snapshot = await getDocs(
       collection(db, "adminLessonAttendance", key, "records")
     );
+    const mapped = {};
+    snapshot.docs.forEach((item) => {
+      const record = normalizeAttendanceRecord(item.data(), item.id, {
+        studentId: student?.id || null,
+        studentSource: student?.source || null,
+        source: "adminLessonAttendance",
+      });
+      if (record.date) mapped[record.date] = record;
+    });
     setRecords((current) => ({
       ...current,
-      [key]: Object.fromEntries(snapshot.docs.map((item) => [item.id, item.data()])),
+      [key]: linkMakeupRecords(mapped),
     }));
   };
 
