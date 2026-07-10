@@ -28,6 +28,12 @@ const getSeasonImage = () => {
   return "/season/winter.jpg";
 };
 
+const getAvatarDisplayUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("/")) return url;
+  return `/api/avatar?url=${encodeURIComponent(url)}`;
+};
+
 /* ---------------- コンポーネント ---------------- */
 
 export default function MyPage() {
@@ -37,6 +43,7 @@ export default function MyPage() {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
   const [showAvatar, setShowAvatar] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
 
   const [levelUpVisible, setLevelUpVisible] = useState(false);
 
@@ -117,6 +124,7 @@ export default function MyPage() {
 
   useEffect(() => {
     setShowAvatar(false);
+    setAvatarFailed(false);
     if (!data.avatarUrl) return;
     const timeoutId = window.setTimeout(() => setShowAvatar(true), 100);
     return () => window.clearTimeout(timeoutId);
@@ -132,9 +140,7 @@ export default function MyPage() {
   const exp = data.experience ?? 0;
   const expNeeded = 100 + (level - 1) * 10;
   const expPercent = Math.min((exp / expNeeded) * 100, 100);
-  const avatarRenderUrl = data.avatarUrl
-    ? `${data.avatarUrl}${data.avatarUrl.includes("?") ? "&" : "?"}v=${data.avatarVersion || "legacy"}`
-    : "";
+  const avatarRenderUrl = getAvatarDisplayUrl(data.avatarUrl);
   const menuItems = [
     { icon: "◷", label: "自習を記録", note: "入退室・学習時間", path: "/checkin", tone: "blue" },
     { icon: "◇", label: "景品交換", note: "ポイントを使う", path: "/rewards", tone: "green" },
@@ -254,12 +260,20 @@ export default function MyPage() {
             className="avatar-frame"
             style={{ backgroundImage: `url(${getSeasonImage()})` }}
           >
-            {showAvatar && (
+            {showAvatar && !avatarFailed && (
               <AvatarCanvas
-                key={avatarRenderUrl}
+                key={`${avatarRenderUrl}:${data.avatarVersion || "legacy"}`}
                 url={avatarRenderUrl}
                 height={250}
+                onError={() => setAvatarFailed(true)}
+                onLoad={() => setAvatarFailed(false)}
               />
+            )}
+            {avatarFailed && (
+              <div className="avatar-empty">
+                <span>アバターを表示できませんでした</span>
+                <button onClick={() => router.push("/settings")}>再設定する</button>
+              </div>
             )}
             {!data.avatarUrl && (
               <div className="avatar-empty">

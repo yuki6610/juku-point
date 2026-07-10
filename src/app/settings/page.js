@@ -17,6 +17,12 @@ const Avatar3DWrapper = dynamic(
   }
 );
 
+const getAvatarDisplayUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("/")) return url;
+  return `/api/avatar?url=${encodeURIComponent(url)}`;
+};
+
 export default function SettingsPage() {
   const router = useRouter();
 
@@ -284,7 +290,7 @@ export default function SettingsPage() {
             {(avatarPreviewUrl || avatarUrl) && (
               <Avatar3DWrapper
                 key={avatarPreviewUrl || avatarUrl}
-                url={avatarPreviewUrl || avatarUrl}
+                url={avatarPreviewUrl || getAvatarDisplayUrl(avatarUrl)}
                 onLoad={handleAvatarLoaded}
                 onError={handleAvatarError}
               />
