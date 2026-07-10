@@ -239,6 +239,18 @@ export default function SettingsPage() {
           VRMファイルを選ぶと、保存前にプレビューできます。
           </p>
 
+          <div className="avatar-guide">
+            <h3>アバター導入手順</h3>
+            <ol>
+              <li>下の「Vket Avatar Makerで作成」を開きます。</li>
+              <li>アカウント登録またはログインをします。VRMファイルのダウンロードには登録が必要です。</li>
+              <li>好きな見た目に編集して、VRM形式で端末にダウンロードします。</li>
+              <li>この画面でVRMファイルを選択し、プレビューを確認します。</li>
+              <li>問題なければ「このアバターを保存」を押します。</li>
+            </ol>
+            <p>※ ファイル形式は <strong>.vrm</strong>、サイズは50MB以下にしてください。</p>
+          </div>
+
           <input
             type="file"
             accept=".vrm,model/gltf-binary,application/octet-stream"

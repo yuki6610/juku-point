@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/../firebaseConfig'
 import {
-  collection, collectionGroup, doc, getDoc, getDocs, onSnapshot,
-  updateDoc, deleteDoc, serverTimestamp, addDoc, increment, query, where
+  collection, doc, getDoc, getDocs, onSnapshot,
+  updateDoc, deleteDoc, serverTimestamp, addDoc, increment
 } from 'firebase/firestore'
 import { getCurrentSeason } from '../../utils/season'
 
@@ -35,6 +35,8 @@ export default function AdminApprovePage() {
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [scores, setScores] = useState([])
   const [allPendingScores, setAllPendingScores] = useState([])
+  const [scoreLoadError, setScoreLoadError] = useState('')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   /* ---------- 認証 ---------- */
   useEffect(() => {
@@ -84,31 +86,49 @@ export default function AdminApprovePage() {
 
   /* ---------- 全体未承認 ---------- */
   useEffect(() => {
-    if (!admin) return
+    if (!admin || students.length === 0) return
 
-    return onSnapshot(query(collectionGroup(db, 'scores'), where('approved', '==', false)), scoreSnap => {
-      const studentMap = new Map(students.map(student => [student.uid, student]))
+    let cancelled = false
+    const loadPendingScores = async () => {
+      setScoreLoadError('')
+      try {
+        const results = await Promise.all(
+          students.map(async student => {
+            const snap = await getDocs(collection(db, `users/${student.uid}/scores`))
+            return snap.docs
+              .map(scoreDoc => ({
+                id: scoreDoc.id,
+                uid: student.uid,
+                userName: student.realName || student.displayName || '名前なし',
+                grade: student.grade,
+                ...scoreDoc.data()
+              }))
+              .filter(score => score.approved !== true)
+          })
+        )
 
-      setAllPendingScores(
-        scoreSnap.docs.map(scoreDoc => {
-          const uid = scoreDoc.ref.parent.parent?.id
-          const student = studentMap.get(uid)
+        if (!cancelled) {
+          setAllPendingScores(
+            results.flat().sort((a, b) => {
+              const aTime = a.createdAt?.toMillis?.() || 0
+              const bTime = b.createdAt?.toMillis?.() || 0
+              return bTime - aTime
+            })
+          )
+        }
+      } catch (error) {
+        console.error('未承認成績の読み込みに失敗しました:', error)
+        if (!cancelled) {
+          setScoreLoadError('未承認成績を読み込めませんでした。権限または通信状態を確認してください。')
+        }
+      }
+    }
 
-          if (!student || Number(student.grade) < 7 || Number(student.grade) > 9) {
-            return null
-          }
-
-          return {
-            id: scoreDoc.id,
-            uid,
-            userName: student?.realName || student?.displayName || '名前なし',
-            grade: student?.grade,
-            ...scoreDoc.data()
-          }
-        }).filter(Boolean)
-      )
-    })
-  }, [admin, students])
+    loadPendingScores()
+    return () => {
+      cancelled = true
+    }
+  }, [admin, students, refreshKey])
 
   if (loading) return <p>読み込み中...</p>
   if (!admin) return <p>管理者ログインが必要です</p>
@@ -156,12 +176,16 @@ export default function AdminApprovePage() {
       totalEarnedPoints: increment(point),
       experience: increment(exp),
     })
+    setAllPendingScores(prev => prev.filter(item => !(item.uid === score.uid && item.id === score.id)))
+    setRefreshKey(prev => prev + 1)
   }
 
   /* ---------- 削除 ---------- */
   const deleteScore = async score => {
     if (!confirm('この成績を削除しますか？')) return
     await deleteDoc(doc(db, `users/${score.uid}/scores/${score.id}`))
+    setAllPendingScores(prev => prev.filter(item => !(item.uid === score.uid && item.id === score.id)))
+    setRefreshKey(prev => prev + 1)
   }
 
   return (
@@ -176,6 +200,7 @@ export default function AdminApprovePage() {
       {/* ---------- 全体 ---------- */}
       <h2>🔥 未承認成績（全体）</h2>
 
+      {scoreLoadError && <p className="approve-error">{scoreLoadError}</p>}
       {filteredAllPending.length === 0 && <p>未承認はありません</p>}
 
       {filteredAllPending.map(score => {

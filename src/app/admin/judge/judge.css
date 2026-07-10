@@ -1,452 +1,688 @@
-/* =========================
-   共通レイアウト
-========================= */
-
-.page {
-  max-width: 1100px;
+.judge-page {
+  width: min(100%, 1280px);
   margin: 0 auto;
-  padding: 24px 24px 80px;
+  padding: 32px 36px 80px;
+  color: #1f2937;
+  background: #f6f8fb;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.page h1 {
-  font-size: 24px;
-  margin-bottom: 16px;
-}
-
-.page h2,
-.page h3 {
-  margin: 24px 0 12px;
-}
-
-.no-print {
-  /* 印刷時に非表示 */
-}
-
-@media print {
-  .no-print {
-    display: none !important;
-  }
-}
-
-/* =========================
-   上部操作エリア
-========================= */
-
-.row {
+.judge-control-panel {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 30px 34px;
+  background: linear-gradient(135deg, #eff8ff, #fff7ed);
+  border: 1px solid #dbe5f0;
+  border-radius: 28px;
+  box-shadow: 0 20px 50px rgba(31, 41, 55, 0.08);
 }
 
-select {
-  padding: 6px 10px;
-  font-size: 14px;
+.judge-control-panel span,
+.report-header span,
+.report-summary-grid span,
+.selected-score-box span,
+.judge-card span {
+  color: #4f46e5;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
 }
 
-.page-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
+.judge-control-panel h1 {
+  margin: 8px 0;
+  font-size: clamp(30px, 4vw, 44px);
+  letter-spacing: -0.055em;
+}
+
+.judge-control-panel p {
+  margin: 0;
+  color: #64748b;
 }
 
 .print-btn {
-  background: #4f46e5;
+  min-height: 46px;
+  padding: 0 22px;
   color: #fff;
-  border: none;
-  padding: 8px 18px;
+  background: #4f46e5;
+  border: 0;
   border-radius: 999px;
+  font-weight: 900;
   cursor: pointer;
-  font-size: 14px;
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.22);
 }
 
-.print-btn:hover {
-  opacity: 0.9;
-}
-
-/* =========================
-   生活態度（円グラフ）
-========================= */
-
-.behavior-summary{background:#fff;border-radius:12px;padding:20px 24px;margin:24px 0;box-shadow:0 4px 12px rgba(0,0,0,.05);}
-.behavior-summary h3{margin-bottom:16px;}
-
-.pie-row{display:flex;gap:32px;align-items:center;flex-wrap:wrap;}
-.pie-row>*{flex:0 0 auto;}
-
-.pie{display:flex;align-items:center;gap:16px;}
-
-.legend{font-size:14px;}
-.legend strong{display:block;margin-bottom:6px;}
-.legend div{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
-.legend span{width:10px;height:10px;border-radius:2px;display:inline-block;}
-
-.empty{color:#888;font-size:14px;}
-
-.info-card{min-width:140px;padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;text-align:center;display:flex;flex-direction:column;justify-content:center;}
-.info-card h4{font-size:13px;margin-bottom:6px;}
-.info-value{font-size:26px;font-weight:bold;}
-
-.forgot-card .info-value{color:#d32f2f;}
-.lesson-card .info-value{color:#1976d2;}
-.word-card .info-value{color:#2e7d32;}
-
-.comment-box{
-  margin:20px 0;
-  padding:16px;
-  border:1px solid #ddd;
-  border-radius:12px;
-  background:#fff;
-}
-
-.comment-box textarea{
-  width:100%;
-  min-height:180px;
-  padding:12px;
-  font-size:15px;
-  resize:vertical;
-  box-sizing:border-box;
-}
-
-.save-comment-btn{
-  margin-top:12px;
-}
-
-@media print{
-  .comment-box textarea{
-    border:none;
-  }
-}
-
-/* =========================
-   成績表示（ScoreBreakdown）
-========================= */
-
-.score-breakdown {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  margin: 32px 0;
-}
-
-.score-block {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.05);
-}
-
-.score-block h3 {
-  margin-bottom: 12px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 6px;
-}
-
-.score-block p {
-  margin: 2px 0;
-  font-size: 14px;
-}
-
-/* =========================
-   成績選択
-========================= */
-
+.judge-filters,
 .score-select {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin: 16px 0;
-}
-
-/* =========================
-   高校比較テーブル
-========================= */
-
-.compare-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 32px;
+  padding: 14px;
   background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,.05);
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
 }
 
-.compare-table th,
-.compare-table td {
-  padding: 10px 12px;
+.score-select {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.judge-filters label,
+.score-select label {
+  display: grid;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.judge-filters select,
+.score-select select,
+.comment-box textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: #1f2937;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+}
+
+.report-sheet {
+  padding: 30px;
+  background: #fff;
+  border: 1px solid #dbe5f0;
+  border-radius: 26px;
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 3px solid #1f2937;
+}
+
+.report-header h1 {
+  margin: 6px 0;
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: -0.055em;
+}
+
+.report-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.report-grade {
+  min-width: 78px;
+  padding: 12px 16px;
   text-align: center;
-  border-bottom: 1px solid #eee;
+  color: #fff;
+  background: #1f2937;
+  border-radius: 18px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.report-summary-grid article {
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+.report-summary-grid strong {
+  display: block;
+  margin: 6px 0 2px;
+  font-size: 32px;
+  letter-spacing: -0.05em;
+}
+
+.report-summary-grid small {
+  color: #64748b;
+}
+
+.selected-score-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.selected-score-box div {
+  padding: 13px 15px;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+}
+
+.selected-score-box strong {
+  display: block;
+  margin-top: 4px;
   font-size: 14px;
 }
 
-.compare-table thead {
-  background: #f6f7fb;
+.judge-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
 }
 
-.compare-table tr:last-child td {
-  border-bottom: none;
+.judge-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-left-width: 7px;
+  border-radius: 18px;
+  background: #fff;
+  page-break-inside: avoid;
+}
+
+.judge-card h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+}
+
+.judge-card > strong {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.judge-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin: 0;
+}
+
+.judge-card dl div {
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.judge-card dt {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.judge-card dd {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .safe {
-  color: #2e7d32;
-  font-weight: bold;
+  color: #15803d;
+  font-weight: 900;
 }
 
 .ok {
-  color: #0277bd;
-  font-weight: bold;
+  color: #0369a1;
+  font-weight: 900;
 }
 
 .warn {
-  color: #f57c00;
-  font-weight: bold;
+  color: #b45309;
+  font-weight: 900;
 }
 
 .ng {
-  color: #d32f2f;
-  font-weight: bold;
+  color: #b91c1c;
+  font-weight: 900;
 }
-/* =========================
-   成績 表示レイアウト修正
-========================= */
+
+.judge-card.safe {
+  border-left-color: #16a34a;
+}
+
+.judge-card.ok {
+  border-left-color: #0284c7;
+}
+
+.judge-card.warn {
+  border-left-color: #f59e0b;
+}
+
+.judge-card.ng {
+  border-left-color: #ef4444;
+}
+
+.judge-card.safe > strong {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.judge-card.ok > strong {
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.judge-card.warn > strong {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.judge-card.ng > strong {
+  color: #991b1b;
+  background: #fee2e2;
+}
 
 .score-breakdown {
-  margin-top: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.score-block,
+.behavior-summary,
+.detail-table-section,
+.print-comment,
+.comment-box {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  page-break-inside: avoid;
 }
 
 .score-block {
-  background: #ffffff;
-  padding: 24px;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  margin-bottom: 30px;
+  padding: 16px;
 }
 
-.score-block h3 {
-  margin-bottom: 18px;
+.score-block h3,
+.behavior-summary h3,
+.detail-table-section h2,
+.print-comment h3,
+.comment-box h3 {
+  margin: 0 0 12px;
   font-size: 18px;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 6px;
 }
 
-.score-block h4 {
-  margin: 18px 0 10px;
-  font-size: 15px;
-  color: #666;
-}
-
-.sub-title {
-  margin-top: 26px;
-}
-
-/* ===== 横1列固定 ===== */
 .score-row {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 16px;
+  gap: 7px;
 }
 
-/* ===== カード ===== */
 .score-card {
-  background: #f7f8fb;
-  border-radius: 10px;
-  padding: 12px;
+  padding: 10px 6px;
   text-align: center;
-  min-width: 80px;
+  background: #f8fafc;
+  border-radius: 12px;
 }
 
 .score-card .label {
-  font-size: 13px;
-  color: #555;
-  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 12px;
 }
 
 .score-card .value {
-  font-size: 20px;
-  font-weight: bold;
+  margin-top: 4px;
+  font-size: 22px;
+  font-weight: 900;
 }
 
-
-.school-name{
-  font-weight:700;
+.internal-row {
+  display: grid;
+  grid-template-columns: 1.15fr auto 0.9fr;
+  align-items: center;
+  gap: 8px;
 }
 
-.school-deviation{
-  font-size:12px;
-  color:#666;
-  margin-top:2px;
+.internal-divider {
+  color: #94a3b8;
+  font-weight: 900;
 }
 
-.internal-row{
-  display:flex;
-  align-items:flex-start;
-  justify-content:center;
-  gap:18px;
+.behavior-summary {
+  padding: 16px;
+  margin: 18px 0;
 }
 
-.internal-divider{
-  align-self:center;
-  font-size:22px;
-  font-weight:bold;
-  color:#999;
+.pie-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
 }
 
-.internal-row .score-row{
-  display:flex;
-  gap:6px;
+.pie {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.internal-row .score-card{
-  min-width:42px;
+.legend {
+  font-size: 12px;
 }
 
-
-.print-comment{
-
-  display:none;
-
+.legend strong {
+  display: block;
+  margin-bottom: 5px;
 }
 
-.print-only{display:none;}
+.legend div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0;
+}
 
-@media print{
-  @page{size:A4;margin:8mm;}
+.legend span {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: 3px;
+}
 
-  body{zoom:.75;}
-  .page{padding:0!important;margin:0!important;}
+.info-card {
+  min-width: 130px;
+  padding: 13px;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
 
-  h1,h2,h3{margin:6px 0!important;}
+.info-label,
+.empty {
+  color: #64748b;
+  font-size: 12px;
+}
 
+.info-value {
+  margin-top: 5px;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.detail-table-section {
+  margin-top: 18px;
+  padding: 16px;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 8px 9px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+}
+
+.compare-table th {
+  color: #475569;
+  background: #f1f5f9;
+  font-weight: 900;
+}
+
+.compare-table td:first-child,
+.compare-table th:first-child {
+  text-align: left;
+}
+
+.school-name {
+  font-weight: 900;
+}
+
+.school-deviation {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.print-comment {
+  margin-top: 18px;
+  padding: 16px;
+  background: #fffdf5;
+  border-color: #fde68a;
+}
+
+.print-comment p {
+  min-height: 70px;
+  margin: 0;
+  line-height: 1.7;
+}
+
+.comment-box {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 18px;
+}
+
+.comment-box p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.comment-box textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.save-comment-btn {
+  width: fit-content;
+  min-height: 42px;
+  padding: 0 18px;
+  color: #fff;
+  background: #1f2937;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  .judge-page {
+    padding: 24px 18px 56px;
+  }
+
+  .judge-control-panel,
+  .report-header {
+    display: grid;
+  }
+
+  .judge-filters,
+  .score-select,
+  .report-summary-grid,
+  .selected-score-box,
+  .judge-card-grid,
+  .score-breakdown {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .judge-page {
+    width: 100%;
+    padding: 0;
+    background: #fff;
+  }
+
+  .report-sheet {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .report-header {
+    padding-bottom: 8px;
+  }
+
+  .report-header h1 {
+    font-size: 26px;
+  }
+
+  .report-summary-grid {
+    gap: 6px;
+    margin: 10px 0;
+  }
+
+  .report-summary-grid article {
+    padding: 9px 10px;
+    border-radius: 8px;
+  }
+
+  .report-summary-grid strong {
+    font-size: 24px;
+  }
+
+  .selected-score-box {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .selected-score-box div {
+    padding: 8px 10px;
+    border-radius: 8px;
+  }
+
+  .judge-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 10px 0;
+  }
+
+  .judge-card {
+    gap: 6px;
+    padding: 9px;
+    border-radius: 9px;
+  }
+
+  .judge-card h2 {
+    font-size: 15px;
+  }
+
+  .judge-card dl {
+    gap: 4px;
+  }
+
+  .judge-card dl div {
+    padding: 5px;
+  }
+
+  .judge-card dd {
+    font-size: 14px;
+  }
+
+  .score-breakdown {
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 7px;
+    margin: 10px 0;
+  }
+
+  .score-block,
   .behavior-summary,
-  .score-breakdown,
-  .compare-table,
-  .comment-box{
-    margin:10px 0!important;
+  .detail-table-section,
+  .print-comment {
+    padding: 9px;
+    border-radius: 8px;
+    box-shadow: none;
   }
 
-  .score-breakdown{
-    display:flex!important;
-    flex-wrap:nowrap!important;
-    gap:10px!important;
+  .score-block h3,
+  .behavior-summary h3,
+  .detail-table-section h2,
+  .print-comment h3 {
+    margin-bottom: 6px;
+    font-size: 14px;
   }
 
-  .score-block{
-    flex:1!important;
-    padding:8px 10px!important;
-    margin:0!important;
-    border:1px solid #ccc;
-    border-radius:6px;
-    background:#fff;
+  .score-row {
+    gap: 4px;
   }
 
-  .score-block h3{
-    font-size:18px!important;
-    margin:0 0 4px!important;
+  .score-card {
+    padding: 5px 3px;
+    border-radius: 6px;
   }
 
-  .score-block h4{
-    font-size:15px!important;
-    margin:4px 0!important;
+  .score-card .value {
+    font-size: 15px;
   }
 
-  .score-card{
-    padding:4px!important;
+  .behavior-summary {
+    margin: 10px 0;
   }
 
-  .behavior-summary{
-    display:flex!important;
-    flex-direction:column!important;
-    padding:8px 12px!important;
+  .pie-row {
+    gap: 10px;
   }
 
-  .pie-row{
-    display:flex!important;
-    flex-direction:row!important;
-    flex-wrap:nowrap!important;
-    align-items:center!important;
-    gap:28px!important;
+  .behavior-summary svg {
+    width: 76px;
+    height: 76px;
   }
 
-  .behavior-summary svg{
-    width:110px!important;
-    height:110px!important;
+  .info-card {
+    min-width: 90px;
+    padding: 7px;
   }
 
-  .forgot-card,
-  .forgot-inline{
-    white-space:nowrap!important;
-    flex:0 0 auto!important;
+  .info-value {
+    font-size: 16px;
   }
 
-  .compare-table{
-    margin-top:10px!important;
-    page-break-inside:avoid;
+  .detail-table-section {
+    margin-top: 10px;
   }
 
   .compare-table th,
-  .compare-table td{
-    padding:4px 6px!important;
-    font-size:15px!important;
+  .compare-table td {
+    padding: 4px 5px;
+    font-size: 9.5px;
   }
 
-  .print-only{
-    display:flex!important;
-    gap:10px;
-    margin:6px 0 8px;
-    page-break-inside:avoid;
+  .print-comment {
+    margin-top: 10px;
   }
 
-  .print-only .print-card{
-    flex:1;
-    min-height:48px;
-    padding:8px 12px;
-    border:1px solid #bbb;
-    border-radius:6px;
-    background:#f8f9fc;
-
-    display:flex;
-    align-items:center;
-  }
-
-  .print-only .print-card p{
-    margin:0;
-    font-size:18px;
-    line-height:1.4;
-    font-weight:500;
-  }
-  
-  .internal-row{
-    gap:12px!important;
-  }
-
-  .internal-divider{
-    font-size:20px!important;
-  }
-
-  .internal-row .score-card{
-    min-width:36px!important;
-  }
-  
-  .print-comment{
-
-      display:block;
-
-      margin-top:12px;
-
-      padding:10px;
-
-      border:1px solid #bbb;
-
-      border-radius:4px;
-
-      background:#f8f9fc;
-
-      page-break-inside:avoid;
-
-    }
-  .comment-box{
-    display:none!important;
+  .print-comment p {
+    min-height: 45px;
+    font-size: 12px;
   }
 }

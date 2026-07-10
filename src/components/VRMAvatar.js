@@ -33,7 +33,7 @@ export default function VRMAvatar({ url, scale = 1.2, onLoad, onError }) {
           }
 
           VRMUtils.rotateVRM0(vrm);
-          vrm.scene.position.set(0, -1.2, 0);
+          vrm.scene.position.set(0, -1.05, 0);
           vrm.scene.scale.setScalar(scale);
           vrm.update(0);
 

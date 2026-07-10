@@ -24,6 +24,14 @@ const YEARS = ['2026','2027','2028']
 
 const gradeLabel = g => g>=7 && g<=9 ? `中${g-6}` : '不明'
 
+const studentName = student => student?.realName || student?.displayName || '名前未設定'
+
+const todayLabel = () => new Date().toLocaleDateString('ja-JP', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+})
+
 const judgeResult = (my,min)=>{
   const d=my-min
   if(d>=20) return{diff:d,label:'◎ 安全圏',className:'safe'}
@@ -184,165 +192,214 @@ export default function AdminJudgePage(){
       }
 
   const sortedSchools=[...schools].sort((a,b)=>b.minScore-a.minScore)
+  const schoolResults = sortedSchools.map(s => {
+    const result = judgeResult(myTotal, Number(s.minScore || 0))
+    const internalDiff = (internalScore?.internalTotal ?? 0) - (s.internalTarget ?? 0)
+    const averageDiff = myTotal - (s.averageScore ?? 0)
+    const examDiff = (examScore?.examTotal ?? 0) - (s.scoreTarget ?? 0)
+    return { ...s, result, internalDiff, averageDiff, examDiff }
+  })
+  const recommendedSchools = schoolResults.slice(0, 6)
+  const bestResult = schoolResults.find(s => s.result.diff >= 0) || schoolResults[0]
+  const examLabel = examScore
+    ? `${gradeLabel(examScore.grade)} ${examScore.term} ${examScore.testType}｜5計${examScore.examTotal}点 / 換算${examScore.examConverted}点`
+    : '未選択'
+  const internalLabel = internalScore
+    ? `${gradeLabel(internalScore.grade)} ${internalScore.term}｜内申${internalScore.internalTotal}点`
+    : '未選択'
 
     return (
       <div className="page judge-page">
-        <h1>{selectedStudent ? `${selectedStudent.realName}：志望校判定` : '志望校判定'}</h1>
+        <section className="judge-control-panel no-print">
+          <div>
+            <span>JUDGEMENT REPORT</span>
+            <h1>志望校判定レポート作成</h1>
+            <p>生徒・学期・使用する成績を選ぶと、印刷用の判定帳票を作成できます。</p>
+          </div>
+          <button className="print-btn" onClick={() => window.print()}>印刷する</button>
+        </section>
 
-        <div className="row no-print">
-          <select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
+        <div className="judge-filters no-print">
+          <label>学年<select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
             {GRADE_OPTIONS.map(g=><option key={g}>{g}</option>)}
-          </select>
+          </select></label>
 
-          <select value={year} onChange={e=>setYear(e.target.value)}>
+          <label>年度<select value={year} onChange={e=>setYear(e.target.value)}>
             {YEARS.map(y=><option key={y} value={y}>{y}年</option>)}
-          </select>
+          </select></label>
 
-          <select value={term} onChange={e=>setTerm(e.target.value)}>
+          <label>学期<select value={term} onChange={e=>setTerm(e.target.value)}>
             {TERMS.map(t=><option key={t}>{t}</option>)}
-          </select>
+          </select></label>
 
-          <select value={selectedStudentId} onChange={e=>setSelectedStudentId(e.target.value)}>
+          <label>生徒<select value={selectedStudentId} onChange={e=>setSelectedStudentId(e.target.value)}>
             <option value="">生徒を選択</option>
             {filteredStudents.map(s=>
-              <option key={s.uid} value={s.uid}>{s.realName}</option>
+              <option key={s.uid} value={s.uid}>{studentName(s)}</option>
             )}
-          </select>
+          </select></label>
         </div>
 
         {selectedStudent && (
           <>
-            <BehaviorSummary uid={selectedStudent.uid} year={year} term={term} />
-
-            <div className="lesson-box">授業回数：{lessonCount} 回</div>
-
             <div className="score-select no-print">
-              <select value={examScore?.id||''} onChange={e=>setExamScore(scores.find(s=>s.id===e.target.value))}>
+              <label>使用するテスト<select value={examScore?.id||''} onChange={e=>setExamScore(scores.find(s=>s.id===e.target.value))}>
                 <option value="">テスト</option>
                 {scores.filter(s=>s.type==='exam').map(s=>
                   <option key={s.id} value={s.id}>
                     {gradeLabel(s.grade)} {s.term}{s.testType} 5計{s.examTotal}点 入試換算{s.examConverted}点
                   </option>
                 )}
-              </select>
+              </select></label>
 
-              <select value={internalScore?.id||''} onChange={e=>setInternalScore(scores.find(s=>s.id===e.target.value))}>
+              <label>使用する内申<select value={internalScore?.id||''} onChange={e=>setInternalScore(scores.find(s=>s.id===e.target.value))}>
                 <option value="">内申</option>
                 {scores.filter(s=>s.type==='internal').map(s=>
                   <option key={s.id} value={s.id}>
                     {gradeLabel(s.grade)} {s.term} 内申{s.internalTotal}点
                   </option>
                 )}
-              </select>
+              </select></label>
             </div>
 
-            <div className="print-only">
-              <div className="print-card">
-                <p>
-                  テスト：
-                  {examScore
-                    ? `${gradeLabel(examScore.grade)} ${examScore.term} ${examScore.testType}（5計${examScore.examTotal}点 / 入試換算${examScore.examConverted}点）`
-                    : '未選択'}
+            <section className="report-sheet">
+              <header className="report-header">
+                <div>
+                  <span>WAM PERSONAL REPORT</span>
+                  <h1>{studentName(selectedStudent)} さん 志望校判定</h1>
+                  <p>{year}年度 {term}　作成日：{todayLabel()}</p>
+                </div>
+                <div className="report-grade">{gradeLabel(selectedStudent.grade)}</div>
+              </header>
+
+              <section className="report-summary-grid">
+                <article>
+                  <span>総合点</span>
+                  <strong>{myTotal}</strong>
+                  <small>入試換算 + 内申</small>
+                </article>
+                <article>
+                  <span>五教科</span>
+                  <strong>{examScore?.examTotal ?? '-'}</strong>
+                  <small>入試換算 {examScore?.examConverted ?? '-'}</small>
+                </article>
+                <article>
+                  <span>内申</span>
+                  <strong>{internalScore?.internalTotal ?? '-'}</strong>
+                  <small>9教科合計</small>
+                </article>
+                <article>
+                  <span>授業回数</span>
+                  <strong>{lessonCount}</strong>
+                  <small>{year} {term}</small>
+                </article>
+              </section>
+
+              <section className="selected-score-box">
+                <div><span>使用テスト</span><strong>{examLabel}</strong></div>
+                <div><span>使用内申</span><strong>{internalLabel}</strong></div>
+                <div><span>目安</span><strong>{bestResult ? `${bestResult.name}：${bestResult.result.label}` : '高校データなし'}</strong></div>
+              </section>
+
+              <section className="judge-card-grid">
+                {recommendedSchools.map((school) => (
+                  <article key={school.id} className={`judge-card ${school.result.className}`}>
+                    <div>
+                      <span>偏差値 {school.deviation ?? '-'}</span>
+                      <h2>{school.name}</h2>
+                    </div>
+                    <strong>{school.result.label}</strong>
+                    <dl>
+                      <div><dt>最低点差</dt><dd>{school.result.diff >= 0 ? `+${school.result.diff}` : school.result.diff}</dd></div>
+                      <div><dt>平均点差</dt><dd>{school.averageDiff >= 0 ? `+${school.averageDiff}` : school.averageDiff}</dd></div>
+                      <div><dt>内申差</dt><dd>{school.internalDiff >= 0 ? `+${school.internalDiff}` : school.internalDiff}</dd></div>
+                      <div><dt>5教科差</dt><dd>{school.examDiff >= 0 ? `+${school.examDiff}` : school.examDiff}</dd></div>
+                    </dl>
+                  </article>
+                ))}
+              </section>
+
+              <ScoreBreakdown exam={examScore} internal={internalScore} />
+
+              <BehaviorSummary uid={selectedStudent.uid} year={year} term={term} />
+
+              <section className="detail-table-section">
+                <h2>高校別 詳細比較</h2>
+                <table className="compare-table">
+                  <thead>
+                                 <tr>
+                                   <th>高校</th>
+                                   <th>最低点</th>
+                                 <th>総合点</th>
+                                 <th>最低点差</th>
+                                 <th>平均点</th>
+                                 <th>平均点差</th>
+                                   <th>内申目安</th>
+                                 <th>内申差</th>
+                                   <th>5教科目安</th>
+                                 <th>5教科差</th>
+                                   <th>判定</th>
+                                 </tr>
+                  </thead>
+
+                                 <tbody>
+                                   {schoolResults.map((s) => (
+                                       <tr key={s.id}>
+                                         <td>
+                                           <div className="school-name">{s.name}</div>
+                                           <div className="school-deviation">
+                                             偏差値 {s.deviation ?? "-"}
+                                           </div>
+                                         </td>
+
+                                         <td>{s.minScore}</td>
+                                             
+                                             <td>{myTotal}</td>
+                                             
+                                             <td className={s.result.className}>
+                                               {s.result.diff >= 0 ? `+${s.result.diff}` : s.result.diff}
+                                             </td>
+
+                                         <td>{s.averageScore ?? "-"}</td>
+                                             
+                                             <td className={s.averageDiff >= 0 ? "safe" : "ng"}>
+                                               {s.averageDiff >= 0
+                                                 ? `+${s.averageDiff}`
+                                                 : s.averageDiff}
+                                             </td>
+
+                                         <td>{s.internalTarget ?? "-"}</td>
+                                             
+                                             <td className={s.internalDiff >= 0 ? "safe" : "ng"}>
+                                               {s.internalDiff >= 0 ? `+${s.internalDiff}` : s.internalDiff}
+                                             </td>
+
+                                         <td>{s.scoreTarget ?? "-"}</td>
+
+                                             <td className={s.examDiff >= 0 ? "safe" : "ng"}>
+                                               {s.examDiff >= 0 ? `+${s.examDiff}` : s.examDiff}
+                                             </td>
+
+                                         <td className={s.result.className}>{s.result.label}</td>
+                                       </tr>
+                                   ))}
+                                 </tbody>
+                </table>
+              </section>
+
+              <section className="print-comment">
+                <h3>コメント</h3>
+                <p style={{whiteSpace:'pre-wrap'}}>
+                  {comment || 'コメントなし'}
                 </p>
+              </section>
+            </section>
+
+            <div className="comment-box no-print">
+              <div>
+                <h3>印刷用コメント</h3>
+                <p>面談で伝える内容や次回までの課題を書いてください。</p>
               </div>
-
-              <div className="print-card">
-                <p>
-                  内申：
-                  {internalScore
-                    ? `${gradeLabel(internalScore.grade)} ${internalScore.term}（内申${internalScore.internalTotal}点）`
-                    : '未選択'}
-                </p>
-              </div>
-            </div>
-
-            <ScoreBreakdown exam={examScore} internal={internalScore} />
-
-            <table className="compare-table">
-              <thead>
-                             <tr>
-                               <th>高校</th>
-                               <th>合格最低点</th>
-                             <th>あなたの総合点</th>
-                             <th>最低点差</th>
-                             <th>平均点</th>
-                             <th>平均点差</th>
-                               <th>内申目安</th>
-                             <th>内申差</th>
-                               <th>5教科目安</th>
-                             <th>5教科差</th>
-                               <th>判定</th>
-                             </tr>
-              </thead>
-
-                             <tbody>
-                               {sortedSchools.map((s) => {
-                                 const r = judgeResult(myTotal, s.minScore);
-
-                                 const internalDiff =
-                                   (internalScore?.internalTotal ?? 0) - (s.internalTarget ?? 0);
-                                   
-                                   const averageDiff =
-
-                                     myTotal - (s.averageScore ?? 0);
-
-                                 const examDiff =
-                                   (examScore?.examTotal ?? 0) - (s.scoreTarget ?? 0);
-
-                                 return (
-                                   <tr key={s.id}>
-                                     <td>
-                                       <div className="school-name">{s.name}</div>
-                                       <div className="school-deviation">
-                                         偏差値 {s.deviation ?? "-"}
-                                       </div>
-                                     </td>
-
-                                     <td>{s.minScore}</td>
-                                         
-                                         <td>{myTotal}</td>
-                                         
-                                         <td className={r.className}>
-                                           {r.diff >= 0 ? `+${r.diff}` : r.diff}
-                                         </td>
-
-                                     <td>{s.averageScore ?? "-"}</td>
-                                         
-                                         <td className={averageDiff >= 0 ? "safe" : "ng"}>
-                                           {averageDiff >= 0
-                                             ? `+${averageDiff}`
-                                             : averageDiff}
-                                         </td>
-
-                                     <td>{s.internalTarget ?? "-"}</td>
-                                         
-                                         <td className={internalDiff >= 0 ? "safe" : "ng"}>
-                                           {internalDiff >= 0 ? `+${internalDiff}` : internalDiff}
-                                         </td>
-
-                                     <td>{s.scoreTarget ?? "-"}</td>
-
-                                         <td className={examDiff >= 0 ? "safe" : "ng"}>
-                                           {examDiff >= 0 ? `+${examDiff}` : examDiff}
-                                         </td>
-
-                                     <td className={r.className}>{r.label}</td>
-                                   </tr>
-                                 );
-                               })}
-                             </tbody>
-            </table>
-
-            <div className="print-comment">
-              <h3>コメント</h3>
-              <p style={{whiteSpace:'pre-wrap'}}>
-                {comment || 'コメントなし'}
-              </p>
-            </div>
-
-            <div className="comment-box">
-              <h3>コメント</h3>
-
               <textarea
                 value={comment}
                 onChange={e=>setComment(e.target.value)}
@@ -359,13 +416,6 @@ export default function AdminJudgePage(){
             </div>
           </>
         )}
-
-        <button
-          className="print-btn no-print"
-          onClick={() => window.print()}
-        >
-          印刷
-        </button>
       </div>
     
           

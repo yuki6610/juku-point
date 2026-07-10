@@ -28,8 +28,8 @@ export default function VRMAvatarCanvas({
         }}
         performance={{ min: 0.5 }}
         camera={{
-          position: [0, 1.4, 2.2],
-          fov: 35,
+          position: [0, 1.35, 3.0],
+          fov: 32,
         }}
       >
         <ambientLight intensity={2} />
@@ -46,6 +46,7 @@ export default function VRMAvatarCanvas({
           enableZoom={false}
           enablePan={false}
           autoRotate={false}
+          target={[0, 0.55, 0]}
         />
       </Canvas>
     </div>
