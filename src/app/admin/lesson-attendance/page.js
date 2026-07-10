@@ -129,13 +129,23 @@ function normalizeStatus(value) {
   return "present";
 }
 
+function normalizeDateValue(value) {
+  if (!value) return "";
+  if (typeof value?.toDate === "function") return dateId(value.toDate());
+  const text = String(value).trim().replace(/\//g, "-");
+  const match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!match) return text;
+  return `${match[1]}-${pad(match[2])}-${pad(match[3])}`;
+}
+
 function normalizeAttendanceRecord(record, docId = "", fallback = {}) {
+  const date = normalizeDateValue(record.date) || normalizeDateValue(docId);
   return {
     ...record,
-    date: record.date || docId,
+    date,
     status: normalizeStatus(record.status || record.attendance),
-    originalDate: record.originalLessonDate || record.originalDate || null,
-    makeupDate: record.makeupDate || null,
+    originalDate: normalizeDateValue(record.originalLessonDate || record.originalDate) || null,
+    makeupDate: normalizeDateValue(record.makeupDate) || null,
     makeupCompleted: Boolean(record.makeupCompleted),
     note: record.behaviorNote || record.note || "",
     studentId: record.studentId || fallback.studentId || null,
@@ -166,6 +176,13 @@ function mergeAttendanceRecord(records, record) {
     note: record.note || current.note || "",
   };
   return records;
+}
+
+function isMakeupResolved(absence, records) {
+  if (absence.makeupDate || absence.makeupCompleted) return true;
+  return Object.values(records).some(
+    (record) => record.status === "makeup" && record.originalDate === absence.date
+  );
 }
 
 function linkMakeupRecords(records) {
@@ -442,7 +459,7 @@ export default function LessonAttendancePage() {
         (!academicDueEnd || record.date <= academicDueEnd) &&
         (!lessonStartDate || record.date >= lessonStartDate)
     ).length;
-    const pending = absent.filter((record) => !record.makeupDate).length;
+    const pending = absent.filter((record) => !isMakeupResolved(record, ownRecords)).length;
     const terms = [1, 2, 3].map((term) => {
       const setting = termSettings?.[term];
       if (!setting?.start || !setting?.end) {
