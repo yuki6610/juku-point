@@ -351,7 +351,7 @@ export default function LessonAttendancePage() {
     const lessonStartDate = getLessonStartDate(student);
     const scheduledDates = monthDates.filter(
       (date) =>
-        calendar[date.id] &&
+        calendar[date.id] === true &&
         weekdays.includes(date.weekday) &&
         date.id <= cutoff &&
         (!lessonStartDate || date.id >= lessonStartDate)
@@ -385,7 +385,7 @@ export default function LessonAttendancePage() {
       }
       const countScheduledLessons = (rangeEnd) => Object.keys(calendar).filter((id) => {
         const weekday = new Date(`${id}T00:00:00`).getDay();
-        return calendar[id] && weekdays.includes(weekday) && id >= start && id <= rangeEnd;
+        return calendar[id] === true && weekdays.includes(weekday) && id >= start && id <= rangeEnd;
       }).length;
       const termPlanned = countScheduledLessons(end);
       const dueEnd = currentWeekEnd < start ? "" : currentWeekEnd <= end ? currentWeekEnd : end;
@@ -399,7 +399,8 @@ export default function LessonAttendancePage() {
       const termAbsent = termRecords.filter((record) => record.status === "absent").length;
       return {
         term,
-        planned: termPlanned,
+        planned: duePlanned,
+        totalPlanned: termPlanned,
         duePlanned,
         actual: termActual,
         absent: termAbsent,
