@@ -123,11 +123,17 @@ function weekEndId(date) {
   return dateId(addDays(date, 6 - weekday));
 }
 
+function normalizeStatus(value) {
+  if (value === "欠席" || value === "absent") return "absent";
+  if (value === "振替" || value === "振替実施" || value === "makeup") return "makeup";
+  return "present";
+}
+
 function normalizeAttendanceRecord(record, docId = "", fallback = {}) {
   return {
     ...record,
     date: record.date || docId,
-    status: record.status || record.attendance || "present",
+    status: normalizeStatus(record.status || record.attendance),
     originalDate: record.originalLessonDate || record.originalDate || null,
     makeupDate: record.makeupDate || null,
     makeupCompleted: Boolean(record.makeupCompleted),
@@ -136,6 +142,30 @@ function normalizeAttendanceRecord(record, docId = "", fallback = {}) {
     studentSource: record.studentSource || fallback.studentSource || null,
     source: fallback.source || record.source || "adminLessonAttendance",
   };
+}
+
+function mergeAttendanceRecord(records, record) {
+  if (!record?.date) return records;
+  const current = records[record.date];
+  if (!current) {
+    records[record.date] = record;
+    return records;
+  }
+  const statusPriority = { present: 1, makeup: 2, absent: 3 };
+  const keepStatus =
+    (statusPriority[current.status] || 0) > (statusPriority[record.status] || 0)
+      ? current.status
+      : record.status;
+  records[record.date] = {
+    ...current,
+    ...record,
+    status: keepStatus,
+    originalDate: record.originalDate || current.originalDate || null,
+    makeupDate: record.makeupDate || current.makeupDate || null,
+    makeupCompleted: Boolean(record.makeupCompleted || current.makeupCompleted),
+    note: record.note || current.note || "",
+  };
+  return records;
 }
 
 function linkMakeupRecords(records) {
@@ -239,7 +269,7 @@ export default function LessonAttendancePage() {
                 source: "lesson-records",
               });
               if (!record.date || record.date < monthStart || record.date > monthEnd) return;
-              mapped[record.date] = record;
+              mergeAttendanceRecord(mapped, record);
             });
           });
           directSnapshot.docs.forEach((item) => {
@@ -249,7 +279,7 @@ export default function LessonAttendancePage() {
               source: "adminLessonAttendance",
             });
             if (!record.date || record.date < monthStart || record.date > monthEnd) return;
-            mapped[record.date] = record;
+            mergeAttendanceRecord(mapped, record);
           });
           return [studentKey(student), linkMakeupRecords(mapped)];
         }
@@ -263,7 +293,7 @@ export default function LessonAttendancePage() {
             source: "adminLessonAttendance",
           });
           if (!record.date || record.date < monthStart || record.date > monthEnd) return;
-          mapped[record.date] = record;
+          mergeAttendanceRecord(mapped, record);
         });
         return [studentKey(student), linkMakeupRecords(mapped)];
       })
@@ -291,7 +321,7 @@ export default function LessonAttendancePage() {
             studentSource: "user",
             source: "lesson-records",
           });
-          if (record.date) mapped[record.date] = record;
+          if (record.date) mergeAttendanceRecord(mapped, record);
         });
       });
       directSnapshot.docs.forEach((item) => {
@@ -300,7 +330,7 @@ export default function LessonAttendancePage() {
           studentSource: student.source,
           source: "adminLessonAttendance",
         });
-        if (record.date) mapped[record.date] = record;
+        if (record.date) mergeAttendanceRecord(mapped, record);
       });
       setRecords((current) => ({ ...current, [key]: linkMakeupRecords(mapped) }));
       return;
@@ -315,7 +345,7 @@ export default function LessonAttendancePage() {
         studentSource: student?.source || null,
         source: "adminLessonAttendance",
       });
-      if (record.date) mapped[record.date] = record;
+      if (record.date) mergeAttendanceRecord(mapped, record);
     });
     setRecords((current) => ({
       ...current,
@@ -343,6 +373,12 @@ export default function LessonAttendancePage() {
   const currentWeekEnd = weekEndId(now);
   const academicRecordStart = termSettings?.[1]?.start || `${year}-04-01`;
   const academicRecordEnd = termSettings?.[3]?.end || `${year + 1}-03-31`;
+  const academicDueEnd =
+    currentWeekEnd < academicRecordStart
+      ? ""
+      : currentWeekEnd <= academicRecordEnd
+        ? currentWeekEnd
+        : academicRecordEnd;
 
   const visibleStudents = useMemo(() => {
     return students.filter((student) => {
@@ -395,13 +431,15 @@ export default function LessonAttendancePage() {
     const absent = Object.values(ownRecords).filter(
       (record) =>
         record.status === "absent" &&
-        record.date?.startsWith(`${selectedCalendarYear}-${pad(month)}`) &&
+        record.date >= academicRecordStart &&
+        (!academicDueEnd || record.date <= academicDueEnd) &&
         (!lessonStartDate || record.date >= lessonStartDate)
     );
     const makeup = Object.values(ownRecords).filter(
       (record) =>
         record.status === "makeup" &&
-        record.date?.startsWith(`${selectedCalendarYear}-${pad(month)}`) &&
+        record.date >= academicRecordStart &&
+        (!academicDueEnd || record.date <= academicDueEnd) &&
         (!lessonStartDate || record.date >= lessonStartDate)
     ).length;
     const pending = absent.filter((record) => !record.makeupDate).length;
@@ -447,7 +485,7 @@ export default function LessonAttendancePage() {
       };
     });
     return { student, key, planned, accounted, actual, absent: absent.length, makeup, missing: Math.max(0, planned - accounted), pending, terms, lessonStartDate };
-  }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, currentWeekEnd]);
+  }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, currentWeekEnd, academicRecordStart, academicDueEnd]);
 
   const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
