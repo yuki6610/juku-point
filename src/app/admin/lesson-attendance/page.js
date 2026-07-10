@@ -316,13 +316,7 @@ export default function LessonAttendancePage() {
       : `${selectedCalendarYear}-${pad(month)}-31`;
   const currentWeekEnd = weekEndId(now);
   const academicRecordStart = termSettings?.[1]?.start || `${year}-04-01`;
-  const academicRecordEnd = [1, 2, 3].reduce((latest, term) => {
-    const setting = termSettings?.[term];
-    if (!setting?.start || !setting?.end) return latest;
-    if (currentWeekEnd < setting.start) return latest;
-    const termEnd = currentWeekEnd <= setting.end ? currentWeekEnd : setting.end;
-    return !latest || termEnd > latest ? termEnd : latest;
-  }, termSettings?.[3]?.end || `${year + 1}-03-31`);
+  const academicRecordEnd = termSettings?.[3]?.end || `${year + 1}-03-31`;
 
   const visibleStudents = useMemo(() => {
     return students.filter((student) => {
@@ -349,12 +343,6 @@ export default function LessonAttendancePage() {
     if (tab !== "record" || !selectedKey) return;
     loadStudentRecords(selectedKey).catch(() => setNotice("選択した生徒の記録を読み込めませんでした。"));
   }, [tab, selectedKey]);
-
-  const termCutoff = (term) => {
-    const setting = termSettings?.[term];
-    if (!setting?.start || !setting?.end || currentWeekEnd < setting.start) return "";
-    return currentWeekEnd <= setting.end ? currentWeekEnd : setting.end;
-  };
 
   const summaries = useMemo(() => visibleStudents.map((student) => {
     const key = studentKey(student);
@@ -387,20 +375,23 @@ export default function LessonAttendancePage() {
     const pending = absent.filter((record) => !record.makeupDate).length;
     const terms = [1, 2, 3].map((term) => {
       const setting = termSettings?.[term];
-      const end = termCutoff(term);
-      if (!setting?.start || !setting?.end || !end) {
+      if (!setting?.start || !setting?.end) {
         return { term, planned: 0, actual: 0, absent: 0, balance: 0 };
       }
       const start = lessonStartDate && lessonStartDate > setting.start ? lessonStartDate : setting.start;
+      const end = setting.end;
       if (start > end) {
         return { term, planned: 0, actual: 0, absent: 0, balance: 0 };
       }
-      const termPlanned = Object.keys(calendar).filter((id) => {
+      const countScheduledLessons = (rangeEnd) => Object.keys(calendar).filter((id) => {
         const weekday = new Date(`${id}T00:00:00`).getDay();
-        return calendar[id] && weekdays.includes(weekday) && id >= start && id <= end;
+        return calendar[id] && weekdays.includes(weekday) && id >= start && id <= rangeEnd;
       }).length;
+      const termPlanned = countScheduledLessons(end);
+      const dueEnd = currentWeekEnd < start ? "" : currentWeekEnd <= end ? currentWeekEnd : end;
+      const duePlanned = dueEnd ? countScheduledLessons(dueEnd) : 0;
       const termRecords = Object.values(ownRecords).filter((record) =>
-        record.date >= start && record.date <= end
+        record.date && record.date >= start && record.date <= end
       );
       const termActual = termRecords.filter((record) =>
         ["present", "makeup"].includes(record.status)
@@ -409,9 +400,10 @@ export default function LessonAttendancePage() {
       return {
         term,
         planned: termPlanned,
+        duePlanned,
         actual: termActual,
         absent: termAbsent,
-        balance: termPlanned - termActual,
+        balance: duePlanned - termActual,
       };
     });
     return { student, key, planned, accounted, actual, missing: Math.max(0, planned - accounted), pending, terms, lessonStartDate };
