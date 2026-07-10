@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -566,6 +567,78 @@ export default function LessonAttendancePage() {
     }
   };
 
+  const deleteAttendance = async (record) => {
+    if (!selectedStudent || !record?.date) return setNotice("削除する記録を選択してください。");
+    const relatedDate = record.status === "makeup" ? record.originalDate : record.makeupDate;
+    const confirmMessage = relatedDate
+      ? `${record.date}の記録を削除します。関連する${relatedDate}の振替情報も整理します。よろしいですか？`
+      : `${record.date}の記録を削除します。よろしいですか？`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setBusy(true);
+    try {
+      const batch = writeBatch(db);
+      const attendanceRecordRef = (date) =>
+        doc(db, "adminLessonAttendance", selectedKey, "records", date);
+      const termRecordRef = (date) => {
+        const termId = termIdForDate(date, termSettings, year);
+        return termId ? doc(db, "users", selectedStudent.id, "lessonTerms", termId, "records", date) : null;
+      };
+      const deleteRecordAt = (date) => {
+        batch.delete(attendanceRecordRef(date));
+        if (isMiddleSchool(selectedStudent)) {
+          const ref = termRecordRef(date);
+          if (ref) batch.delete(ref);
+        }
+      };
+      const clearMakeupLinkAt = (date) => {
+        batch.set(
+          attendanceRecordRef(date),
+          {
+            makeupDate: deleteField(),
+            makeupCompleted: deleteField(),
+            updatedAt: serverTimestamp(),
+            updatedBy: auth.currentUser?.uid || null,
+          },
+          { merge: true }
+        );
+        if (isMiddleSchool(selectedStudent)) {
+          const ref = termRecordRef(date);
+          if (ref) {
+            batch.set(
+              ref,
+              {
+                makeupDate: deleteField(),
+                makeupCompleted: deleteField(),
+                updatedAt: serverTimestamp(),
+                updatedBy: auth.currentUser?.uid || null,
+              },
+              { merge: true }
+            );
+          }
+        }
+      };
+
+      deleteRecordAt(record.date);
+      if (record.status === "makeup" && record.originalDate) {
+        clearMakeupLinkAt(record.originalDate);
+      }
+      if (record.status === "absent" && record.makeupDate) {
+        deleteRecordAt(record.makeupDate);
+      }
+
+      await batch.commit();
+      await loadStudentRecords(selectedKey);
+      await loadRecords(visibleStudents);
+      setNotice("出欠記録を削除しました。");
+    } catch (error) {
+      console.error(error);
+      setNotice("出欠記録を削除できませんでした。管理者権限または通信状態を確認してください。");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const weekdayCounts = TEACHING_DAYS.map((weekday) => ({
     weekday,
     count: Object.keys(calendar).filter((id) => new Date(`${id}T00:00:00`).getDay() === weekday).length,
@@ -703,7 +776,7 @@ export default function LessonAttendancePage() {
               {status === "makeup" && <label>振替元の欠席日<select value={originalDate} onChange={(event) => setOriginalDate(event.target.value)}><option value="">選択してください</option>{Object.values(selectedRecords).filter((record) => record.status === "absent" && !record.makeupDate).map((record) => <option key={record.date} value={record.date}>{record.date}</option>)}</select></label>}
               <label>メモ（任意）<textarea value={note} onChange={(event) => setNote(event.target.value)} rows="3" /></label>
               <button className="primary-action" disabled={busy} onClick={saveAttendance}>{busy ? "保存中…" : "記録を保存"}</button>
-              <div className="recent-records"><h3>最近の記録</h3>{Object.values(selectedRecords).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map((record) => <div key={record.date}><time>{record.date}</time><strong>{record.status === "present" ? "実施" : record.status === "absent" ? "欠席" : "振替実施"}</strong><span>{record.makeupDate ? `振替済 ${record.makeupDate}` : record.status === "absent" ? "振替待ち" : record.note}</span></div>)}</div>
+              <div className="recent-records"><h3>最近の記録</h3>{Object.values(selectedRecords).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10).map((record) => <div key={record.date}><time>{record.date}</time><strong>{record.status === "present" ? "実施" : record.status === "absent" ? "欠席" : "振替実施"}</strong><span>{record.makeupDate ? `振替済 ${record.makeupDate}` : record.status === "absent" ? "振替待ち" : record.note}</span><button type="button" className="record-delete" disabled={busy} onClick={() => deleteAttendance(record)}>削除</button></div>)}</div>
             </>}
           </div>
         </section>
