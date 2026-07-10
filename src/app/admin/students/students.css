@@ -349,6 +349,45 @@
   margin-top: 16px;
 }
 
+.confiscation-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fff1f2, #fff7ed);
+  border: 1px solid #fecdd3;
+  border-radius: 18px;
+}
+
+.confiscation-panel h3 {
+  margin: 0 0 5px;
+  color: #9f1239;
+  font-size: 16px;
+}
+
+.confiscation-panel p {
+  margin: 0;
+  color: #7f1d1d;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.confiscate-button {
+  min-height: 46px;
+  color: #fff;
+  background: #dc2626;
+  border: 0;
+  border-radius: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(220, 38, 38, 0.22);
+}
+
+.confiscate-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .point-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

@@ -310,6 +310,77 @@ export default function StudentsPage() {
     setNotice('出禁を解除しました。');
   };
 
+  const confiscateAllPoints = async (student) => {
+    if (!student) return;
+    const name = displayName(student);
+    const currentPoints = Number(student.points || 0);
+    const termPoints = Number(student.termPoints || 0);
+    const totalEarnedPoints = Number(student.totalEarnedPoints || 0);
+    const targetAmount = Math.max(currentPoints, termPoints, totalEarnedPoints);
+
+    if (targetAmount <= 0) {
+      return setNotice(`${name} は没収対象のポイントがありません。`);
+    }
+
+    const firstConfirm = window.confirm(
+      `${name} の全ポイントを没収します。\n\n現在Pt: ${currentPoints.toLocaleString()}pt\n学期Pt: ${termPoints.toLocaleString()}pt\n累計Pt: ${totalEarnedPoints.toLocaleString()}pt\n\nこの操作はランキングにも反映されます。続行しますか？`
+    );
+    if (!firstConfirm) return;
+
+    const secondConfirm = window.confirm(
+      `最終確認です。\n${name} の現在Pt・学期Pt・累計Ptをすべて0にします。よろしいですか？`
+    );
+    if (!secondConfirm) return;
+
+    setSavingField(`${student.uid}:confiscate`);
+    try {
+      const batch = writeBatch(db);
+      const userRef = doc(db, 'users', student.uid);
+      const adminUid = auth.currentUser?.uid || null;
+      batch.update(userRef, {
+        points: 0,
+        termPoints: 0,
+        totalEarnedPoints: 0,
+        lastPointConfiscationAt: serverTimestamp(),
+        lastPointConfiscationBy: adminUid,
+        updatedAt: serverTimestamp(),
+      });
+      batch.set(doc(collection(db, 'users', student.uid, 'pointHistory')), {
+        type: 'penalty',
+        amount: -targetAmount,
+        note: `不正による全ポイント没収（現在${currentPoints} / 学期${termPoints} / 累計${totalEarnedPoints}）`,
+        affectsEarnedPoints: true,
+        seasonId: getCurrentSeason().id,
+        createdAt: serverTimestamp(),
+        createdBy: adminUid,
+      });
+      batch.set(doc(collection(db, 'illegal_checkins')), {
+        uid: student.uid,
+        type: 'point_confiscation',
+        studentName: name,
+        pointsBefore: currentPoints,
+        termPointsBefore: termPoints,
+        totalEarnedPointsBefore: totalEarnedPoints,
+        handledBy: adminUid,
+        time: serverTimestamp(),
+      });
+      await batch.commit();
+      updateLocalStudent(student.uid, {
+        points: 0,
+        termPoints: 0,
+        totalEarnedPoints: 0,
+        lastPointConfiscationAt: new Date(),
+        lastPointConfiscationBy: adminUid,
+      });
+      setNotice(`${name} の全ポイントを没収しました。`);
+    } catch (error) {
+      console.error(error);
+      setNotice('ポイント没収に失敗しました。通信状態または権限を確認してください。');
+    } finally {
+      setSavingField('');
+    }
+  };
+
   const toggleCourseTag = async (tag) => {
     if (!selectedStudent) return;
     const current = selectedStudent.courseTags || [];
@@ -535,6 +606,21 @@ export default function StudentsPage() {
                     <span key={tag}>{courseTagLabel[tag] || tag}</span>
                   ))}
                 </div>
+              </section>
+
+              <section className="confiscation-panel">
+                <div>
+                  <h3>不正対応</h3>
+                  <p>不正が確定した場合、現在Pt・学期Pt・累計Ptをすべて0にします。ポイント履歴と不正ログに記録されます。</p>
+                </div>
+                <button
+                  type="button"
+                  className="confiscate-button"
+                  disabled={Boolean(savingField)}
+                  onClick={() => confiscateAllPoints(selectedStudent)}
+                >
+                  全ポイント没収
+                </button>
               </section>
             </>
           )}
