@@ -5,3 +5,5 @@
 .record-students-note{margin:10px 5px 0;padding:12px;color:#7a5c1b;background:#fff7df;border-radius:12px;font-size:12px;line-height:1.6}
 
 .makeup-status{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-width:150px}.makeup-status span{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;color:#506077;background:#f6f8fc;border:1px solid #e2e8f0;border-radius:999px;font-size:11px;font-weight:800}.makeup-status strong{font-size:12px}.makeup-status small{padding:5px 8px;color:#a55a20;background:#fff0df;border:1px solid #f2d7b7;border-radius:999px;font-size:10px;font-weight:900}
+
+.attendance-number{display:inline-grid;min-width:34px;height:34px;place-items:center;color:#38445a;background:#f6f8fc;border:1px solid #e2e8f0;border-radius:999px;font-size:14px}.term-counts.now{min-width:270px}.term-counts.total{min-width:250px}.term-counts.total span{background:#fbfcff}.makeup-status.compact{min-width:auto}.makeup-status.compact>strong{display:inline-grid;min-width:34px;height:34px;place-items:center;color:#38445a;background:#f6f8fc;border:1px solid #e2e8f0;border-radius:999px;font-size:14px}.makeup-status.compact small{white-space:nowrap}
