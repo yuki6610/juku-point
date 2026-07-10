@@ -28,7 +28,7 @@ const getTodayId = () => {
 // ---- 座標 ----
 const JUKU_LAT = 34.645149;
 const JUKU_LNG = 135.057465;
-const ALLOW_DISTANCE_M = 300;
+const ALLOW_DISTANCE_M = 100;
 
 // ---- 距離計算 ----
 const getDistanceM = (lat1, lng1, lat2, lng2) => {
@@ -46,6 +46,19 @@ const getDistanceM = (lat1, lng1, lat2, lng2) => {
 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
+
+const getCurrentPosition = () =>
+  new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("geolocation_unavailable"));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
+  });
 
 export default function CheckinPage() {
   const [pin, setPin] = useState("");
@@ -210,18 +223,37 @@ export default function CheckinPage() {
         return;
       }
 
+      let exitLocation = null;
+      let exitWarning = "";
+      try {
+        const pos = await getCurrentPosition();
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const dist = getDistanceM(lat, lng, JUKU_LAT, JUKU_LNG);
+        exitLocation = { lat, lng, distanceM: Math.round(dist) };
+        if (dist > ALLOW_DISTANCE_M) {
+          exitWarning = `現在地が教室から約${Math.round(dist)}m離れています。不正ログに記録しました。`;
+          await logIllegal(user.uid, lat, lng, "exit");
+        }
+      } catch (error) {
+        console.error("Exit GPS error:", error);
+        exitWarning = "退出時の位置情報を取得できませんでした。不正ログに記録しました。";
+        await logIllegal(user.uid, null, null, "gps_error_exit");
+      }
+
       const data = snap.data();
       const enterAt = data.lastEnterAt;
       const exitAt = now.getTime();
       const minutes = Math.floor((exitAt - enterAt) / 60000);
 
-      const newSession = { enterAt, exitAt, minutes };
+      const newSession = { enterAt, exitAt, minutes, exitLocation };
       const updatedSessions = [...(data.sessions || []), newSession];
 
       await updateDoc(checkRef, {
         sessions: updatedSessions,
         currentSessionActive: false,
         exitAt: exitAt,
+        lastExitLocation: exitLocation,
       });
 
       // ランキング更新
@@ -248,7 +280,7 @@ export default function CheckinPage() {
         createdAt: serverTimestamp(),
       });
 
-      alert(`自習終了（${minutes}分）`);
+      alert(`${exitWarning ? `${exitWarning}\n` : ""}自習終了（${minutes}分）`);
       setProcessing(false);
       router.push("/mypage");
       return;
