@@ -7,7 +7,6 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
-  setDoc,
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./lesson-records.css";
@@ -264,19 +263,20 @@ export default function LessonRecordsPage() {
         return;
       }
 
-      const recordRef = doc(
-        db,
-        "users",
-        studentId,
-        "lessonTerms",
-        termId,
-        "records",
-        date
-      );
-      const existing = await getDoc(recordRef);
-      await setDoc(
-        recordRef,
-        {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("管理者のログイン情報がありません。");
+      const response = await fetch("/api/admin/lesson-records", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          uid: studentId,
+          date,
+          termId,
+          weekId,
+          record: {
           date,
           termId,
           weekId,
@@ -297,15 +297,11 @@ export default function LessonRecordsPage() {
           late: attendance === "absent" ? false : late,
           forgot: attendance === "absent" ? false : forgot,
           behaviorNote: behaviorNote.trim(),
-          createdBy: existing.exists()
-            ? existing.data().createdBy || auth.currentUser?.uid || null
-            : auth.currentUser?.uid || null,
-          updatedBy: auth.currentUser?.uid || null,
-          createdAt: existing.exists() ? existing.data().createdAt : serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+          },
+        }),
+      });
+      const saveResult = await response.json();
+      if (!response.ok) throw new Error(saveResult.error || "保存に失敗しました。");
 
       const recordsSnapshot = await getDocs(recordsRef);
       const summary = calculateSummary(
@@ -318,10 +314,17 @@ export default function LessonRecordsPage() {
         { ...summary, updatedAt: serverTimestamp() },
         { merge: true }
       );
-      setNotice("保存し、学期集計を更新しました。");
+      const rewardLabels = [];
+      if (saveResult.rewards?.homework !== null) {
+        rewardLabels.push(`宿題 ${saveResult.rewards.homework >= 0 ? "+" : ""}${saveResult.rewards.homework}pt/EXP`);
+      }
+      if (saveResult.rewards?.wordTest !== null) {
+        rewardLabels.push(`単語 ${saveResult.rewards.wordTest >= 0 ? "+" : ""}${saveResult.rewards.wordTest}pt/EXP`);
+      }
+      setNotice(`保存し、学期集計を更新しました。${rewardLabels.length ? `（${rewardLabels.join("、")}）` : "（今週の報酬は付与済み）"}`);
     } catch (error) {
       console.error(error);
-      setNotice("保存に失敗しました。通信状態を確認してください。");
+      setNotice(error.message || "保存に失敗しました。通信状態を確認してください。");
     } finally {
       setSaving(false);
     }
