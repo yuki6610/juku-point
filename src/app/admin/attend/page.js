@@ -23,6 +23,13 @@ import { getCurrentSeason } from "../../utils/season";
 
 // 🎯 授業出席1回あたりのポイント（ここを変えれば調整しやすい）
 const ATTENDANCE_POINT = 100;
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const weekdayOf = (date) => new Date(`${date}T00:00:00`).getDay();
+const attendsOn = (student, date) => {
+  const weekdays = student.lessonSchedule?.weekdays || student.weekdays || [];
+  const selectedWeekday = weekdayOf(date);
+  return weekdays.map(Number).includes(selectedWeekday);
+};
 
 export default function HighSchoolAttendancePage() {
   const router = useRouter();
@@ -79,7 +86,7 @@ export default function HighSchoolAttendancePage() {
 
     setStudents(list);
     // 日付に応じた出席状況も読み込む
-    await loadAttendanceForDate(list, selectedDate);
+    await loadAttendanceForDate(list.filter((student) => attendsOn(student, selectedDate)), selectedDate);
   };
 
   // 📅 ある日付について出席記録を読み込む
@@ -114,7 +121,7 @@ export default function HighSchoolAttendancePage() {
     setSelectedDate(newDate);
 
     if (students.length > 0) {
-      await loadAttendanceForDate(students, newDate);
+      await loadAttendanceForDate(students.filter((student) => attendsOn(student, newDate)), newDate);
     }
   };
 
@@ -128,13 +135,8 @@ export default function HighSchoolAttendancePage() {
     const uid = student.uid;
     const current = attendanceMap[uid];
 
-    // すでに出席済みなら二重付与防止（確認付きで再付与可能）
-    if (current?.attended) {
-      const ok = confirm(
-        `${student.realName || student.displayName || "この生徒"}は既に「出席済み」です。\nポイントを再付与しますか？`
-      );
-      if (!ok) return;
-    }
+    // 出席済みは操作不可にして二重付与を防止
+    if (current?.attended) return;
 
     const attendanceRef = doc(
       db,
@@ -202,6 +204,9 @@ export default function HighSchoolAttendancePage() {
     );
   }
 
+  const selectedWeekday = weekdayOf(selectedDate);
+  const visibleStudents = students.filter((student) => attendsOn(student, selectedDate));
+
   return (
     <div className="hsatt-container">
       <h1 className="hsatt-title">🎓 高校生・授業出席ポイント</h1>
@@ -215,6 +220,9 @@ export default function HighSchoolAttendancePage() {
           onChange={handleDateChange}
           className="hsatt-date-input"
         />
+        <strong className="hsatt-day-summary">
+          {WEEKDAYS[selectedWeekday]}曜日の通塾生 {visibleStudents.length}人
+        </strong>
       </div>
 
       {/* 生徒一覧 */}
@@ -226,7 +234,13 @@ export default function HighSchoolAttendancePage() {
           <div>操作</div>
         </div>
 
-        {students.map((s) => {
+        {visibleStudents.length === 0 && (
+          <div className="hsatt-empty">
+            {WEEKDAYS[selectedWeekday]}曜日に通塾する高校生はいません。通塾曜日は「授業・振替管理」で設定できます。
+          </div>
+        )}
+
+        {visibleStudents.map((s) => {
           const att = attendanceMap[s.uid];
 
           return (
@@ -246,8 +260,9 @@ export default function HighSchoolAttendancePage() {
                 <button
                   onClick={() => handleMarkAttendance(s)}
                   className="hsatt-btn"
+                  disabled={att?.attended}
                 >
-                  {att?.attended ? "再付与" : "出席＋pt"}
+                  {att?.attended ? "登録済み" : "出席＋pt"}
                 </button>
               </div>
             </div>

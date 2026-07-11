@@ -40,6 +40,9 @@
   font-size: 0.95rem;
 }
 
+.hsatt-day-summary { margin-left: auto; color: #1d4ed8; font-size: .9rem; }
+.hsatt-empty { padding: 28px 16px; color: #64748b; text-align: center; }
+
 /* 📋 生徒一覧テーブル風レイアウト */
 
 .hsatt-table {
@@ -112,6 +115,8 @@
 .hsatt-btn:active {
   transform: translateY(1px);
 }
+
+.hsatt-btn:disabled { color: #64748b; background: #e2e8f0; cursor: default; opacity: 1; transform: none; }
 
 .hsatt-back-btn {
   margin-top: 20px;
