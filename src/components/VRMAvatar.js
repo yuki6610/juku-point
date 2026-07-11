@@ -35,11 +35,28 @@ export default function VRMAvatar({ url, scale = 1.2, onLoad, onError }) {
           VRMUtils.rotateVRM0(vrm);
           vrm.scene.position.set(0, -1.05, 0);
           vrm.scene.scale.setScalar(scale);
+
+          // VRMは初期状態がTポーズのモデルも多いため、自然な待機姿勢に整える。
+          const humanoid = vrm.humanoid;
+          const setRotation = (boneName, x, y, z) => {
+            const bone = humanoid?.getNormalizedBoneNode(boneName);
+            if (bone) bone.rotation.set(x, y, z);
+            return bone;
+          };
+
+          const idleBones = {
+            hips: humanoid?.getNormalizedBoneNode("hips"),
+            chest: humanoid?.getNormalizedBoneNode("chest"),
+            leftUpperArm: setRotation("leftUpperArm", 0.08, 0, 1.15),
+            rightUpperArm: setRotation("rightUpperArm", 0.08, 0, -1.15),
+            leftLowerArm: setRotation("leftLowerArm", 0, 0.08, 0.08),
+            rightLowerArm: setRotation("rightLowerArm", 0, -0.08, -0.08),
+          };
+
+          vrmRef.current = { vrm, idleBones };
           vrm.update(0);
 
           scene.add(vrm.scene);
-
-          vrmRef.current = vrm;
           invalidate();
           onLoad?.();
         },
@@ -53,16 +70,30 @@ export default function VRMAvatar({ url, scale = 1.2, onLoad, onError }) {
     return () => {
       cancelled = true;
       if (vrmRef.current) {
-        scene.remove(vrmRef.current.scene);
-        vrmRef.current.dispose?.();
+        scene.remove(vrmRef.current.vrm.scene);
+        vrmRef.current.vrm.dispose?.();
         vrmRef.current = null;
       }
     };
   }, [url, scene, scale, invalidate, onLoad, onError]);
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     if (vrmRef.current) {
-      vrmRef.current.update(delta);
+      const { vrm, idleBones } = vrmRef.current;
+      const time = clock.getElapsedTime();
+      const breath = Math.sin(time * 1.7);
+      const sway = Math.sin(time * 0.75);
+
+      if (idleBones.chest) idleBones.chest.rotation.x = breath * 0.018;
+      if (idleBones.hips) idleBones.hips.rotation.z = sway * 0.012;
+      if (idleBones.leftUpperArm) {
+        idleBones.leftUpperArm.rotation.z = 1.15 + breath * 0.012;
+      }
+      if (idleBones.rightUpperArm) {
+        idleBones.rightUpperArm.rotation.z = -1.15 - breath * 0.012;
+      }
+
+      vrm.update(delta);
     }
   });
 

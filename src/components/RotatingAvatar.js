@@ -27,9 +27,11 @@ export default function RotatingAvatar({ url, ...props }) {
     };
   }, [invalidate]);
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }) => {
     if (ref.current) {
-      ref.current.rotation.y += Math.min(delta, 0.1) * 0.35;
+      const time = clock.getElapsedTime();
+      ref.current.rotation.y = Math.sin(time * 0.45) * 0.12;
+      ref.current.position.y = Math.sin(time * 1.7) * 0.008;
     }
   });
 
