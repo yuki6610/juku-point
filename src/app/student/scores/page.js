@@ -171,12 +171,12 @@ export default function StudentScoresPage() {
         exam,
         examTotal,
         examConverted,
-        approved: false,
+        submittedBy: "student",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
       setExam(emptyExam());
-      showNotice("success", "テスト成績を保存しました。管理者の確認後に確定します。");
+      showNotice("success", "テスト成績を保存しました。");
     } catch (error) {
       console.error("テスト成績の保存に失敗しました:", error);
       showNotice("error", "保存できませんでした。通信環境を確認してください。");
@@ -210,11 +210,11 @@ export default function StudentScoresPage() {
         internalMain,
         internalSub,
         internalTotal,
-        approved: false,
+        submittedBy: "student",
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-      showNotice("success", "内申点を保存しました。管理者の確認後に確定します。");
+      showNotice("success", "内申点を保存しました。");
     } catch (error) {
       console.error("内申点の保存に失敗しました:", error);
       showNotice("error", "保存できませんでした。通信環境を確認してください。");
@@ -467,9 +467,6 @@ export default function StudentScoresPage() {
                     <b>
                       {score.type === "exam" ? `${score.examTotal}点` : `${score.internalTotal}点`}
                     </b>
-                    <em className={score.approved ? "approved" : ""}>
-                      {score.approved ? "確認済" : "確認待ち"}
-                    </em>
                   </article>
                 ))}
               </div>

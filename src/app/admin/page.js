@@ -81,13 +81,6 @@ const menuGroups = [
         tone: "sky",
       },
       {
-        title: "成績承認",
-        desc: "生徒が入力した成績を確認",
-        icon: "↗",
-        path: "/admin/approve",
-        tone: "pink",
-      },
-      {
         title: "志望校判定",
         desc: "成績と高校の基準点を比較",
         icon: "△",
@@ -95,8 +88,8 @@ const menuGroups = [
         tone: "green",
       },
       {
-        title: "成績入力",
-        desc: "管理者側から成績を記録",
+        title: "成績確認・入力",
+        desc: "生徒が入力した成績の確認と管理者側からの記録",
         icon: "+",
         path: "/admin/score",
         tone: "sky",

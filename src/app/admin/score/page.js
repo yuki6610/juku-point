@@ -184,7 +184,7 @@ export default function AdminScoresPage() {
       examTotal,
       examConverted,
       grade:Number(grade.replace('中',''))+6,
-      approved:true,
+      submittedBy:'admin',
       updatedAt:new Date(),
     }
 
@@ -218,7 +218,7 @@ export default function AdminScoresPage() {
       internalSub,
       internalTotal,
       grade:Number(internalGrade.replace('中',''))+6,
-      approved:true,
+      submittedBy:'admin',
       updatedAt:new Date(),
     }
 
@@ -252,7 +252,7 @@ export default function AdminScoresPage() {
 
   return (
     <div className="admin-score-page">
-      <h1>管理者 成績入力</h1>
+      <h1>成績確認・入力</h1>
 
       <div className="student-select-box">
         <select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
@@ -392,10 +392,13 @@ export default function AdminScoresPage() {
       </div>
 
       <div className="saved-list">
-        <h2>保存済みデータ</h2>
+        <h2>生徒・管理者が入力した成績</h2>
 
         {saved.map(s=>(
           <div key={s.id} className="saved-card">
+            <span className={`score-source ${s.submittedBy === 'admin' || s.approved === true ? 'admin' : 'student'}`}>
+              {s.submittedBy === 'admin' || s.approved === true ? '管理者入力' : '生徒入力'}
+            </span>
             {s.type==='exam' ? (
               <>
                 <p>{gradeLabel(s.grade)} / {s.term} / {s.testType}</p>

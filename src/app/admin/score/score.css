@@ -145,6 +145,22 @@
   border-left: 6px solid #3b82f6;
 }
 
+.score-source {
+  display: inline-flex;
+  margin-bottom: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #1e40af;
+  background: #dbeafe;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.score-source.student {
+  color: #6d28d9;
+  background: #ede9fe;
+}
+
 .saved-card p {
   margin: 6px 0;
   font-size: 15px;
