@@ -198,6 +198,7 @@ export async function POST(request) {
         homeworkCount: Math.max(0, Number(user.homeworkCount || 0) + homeworkCountDelta),
         wordTestCount: Math.max(0, Number(user.wordTestCount || 0) + wordTestCountDelta),
         totalWordTestScore: Math.max(0, Number(user.totalWordTestScore || 0) + wordScoreDelta),
+        ...(wordCompleted ? { wordTestQuestionCount: total } : {}),
         lastUpdated: now,
       });
       return { rewards, pointDelta, expDelta, levelUps: nextExp.levelUps };

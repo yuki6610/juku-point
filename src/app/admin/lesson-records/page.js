@@ -183,7 +183,7 @@ export default function LessonRecordsPage() {
     setHomework("none");
     setWordStatus("notScheduled");
     setWordCorrect("");
-    setWordTotal("20");
+    setWordTotal(String(selectedStudent?.wordTestQuestionCount || 20));
     setLate(false);
     setForgot(false);
     setBehaviorNote("");
@@ -211,7 +211,7 @@ export default function LessonRecordsPage() {
     setHomework(record.homework || "none");
     setWordStatus(record.wordTest?.status || "notScheduled");
     setWordCorrect(String(record.wordTest?.correct ?? ""));
-    setWordTotal(String(record.wordTest?.total ?? "20"));
+    setWordTotal(String(record.wordTest?.total ?? selectedStudent?.wordTestQuestionCount ?? 20));
     setLate(Boolean(record.late));
     setForgot(Boolean(record.forgot));
     setBehaviorNote(record.behaviorNote || "");
@@ -303,6 +303,13 @@ export default function LessonRecordsPage() {
       });
       const saveResult = await response.json();
       if (!response.ok) throw new Error(saveResult.error || "保存に失敗しました。");
+      if (wordStatus === "completed" || wordStatus === "makeup") {
+        setStudents((current) => current.map((student) =>
+          student.uid === studentId
+            ? { ...student, wordTestQuestionCount: Number(wordTotal) }
+            : student
+        ));
+      }
 
       const recordsSnapshot = await getDocs(recordsRef);
       const summary = calculateSummary(
@@ -461,6 +468,9 @@ export default function LessonRecordsPage() {
                     <span>/</span>
                     <label>問題数<input type="number" min="1" value={wordTotal} onChange={(e) => setWordTotal(e.target.value)} /></label>
                   </div>
+                )}
+                {(wordStatus === "completed" || wordStatus === "makeup") && (
+                  <p className="word-total-hint">問題数はこの生徒の次回入力にも引き継がれます。</p>
                 )}
               </fieldset>
 

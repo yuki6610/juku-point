@@ -47,6 +47,7 @@
 .disabled-section { color: #94a3b8; background: #f8fafc; }
 .record-notice { padding: 11px 13px; color: #3730a3; background: #eef2ff; border-radius: 11px; }
 .record-save { width: 100%; min-height: 52px; color: #fff; background: #4f46e5; border: 0; border-radius: 13px; font-weight: 850; cursor: pointer; }
+.word-total-hint { margin: 9px 0 0; color: #64748b; font-size: 12px; }
 .record-save:disabled { cursor: wait; opacity: .6; }
 
 @media (max-width: 820px) {
