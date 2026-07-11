@@ -57,7 +57,6 @@ export default function AdminJudgePage(){
   const [internalScore,setInternalScore]=useState(null)
 
   const [schools,setSchools]=useState([])
-    const [lessonCount, setLessonCount] = useState(0)
     const [comment,setComment] = useState('')
    
 
@@ -106,33 +105,6 @@ export default function AdminJudgePage(){
       snap=>setSchools(snap.docs.map(d=>({id:d.id,...d.data()})))
     )
   },[])
-    
-    useEffect(()=>{
-      if(!selectedStudentId || !year || !term){
-        setLessonCount(0)
-        return
-      }
-
-      const loadLesson = async ()=>{
-        const ref = doc(
-          db,
-          'users',
-          selectedStudentId,
-          'behaviorSummary',
-          `${year}_${term}`
-        )
-
-        const snap = await getDoc(ref)
-
-        if(snap.exists()){
-          setLessonCount(snap.data().lessonCount || 0)
-        }else{
-          setLessonCount(0)
-        }
-      }
-
-      loadLesson()
-    },[selectedStudentId, year, term])
     
     useEffect(()=>{
       if(!selectedStudentId) return
@@ -199,7 +171,6 @@ export default function AdminJudgePage(){
     const examDiff = (examScore?.examTotal ?? 0) - (s.scoreTarget ?? 0)
     return { ...s, result, internalDiff, averageDiff, examDiff }
   })
-  const recommendedSchools = schoolResults.slice(0, 6)
   const bestResult = schoolResults.find(s => s.result.diff >= 0) || schoolResults[0]
   const examLabel = examScore
     ? `${gradeLabel(examScore.grade)} ${examScore.term} ${examScore.testType}｜5計${examScore.examTotal}点 / 換算${examScore.examConverted}点`
@@ -288,11 +259,6 @@ export default function AdminJudgePage(){
                   <strong>{internalScore?.internalTotal ?? '-'}</strong>
                   <small>9教科合計</small>
                 </article>
-                <article>
-                  <span>授業回数</span>
-                  <strong>{lessonCount}</strong>
-                  <small>{year} {term}</small>
-                </article>
               </section>
 
               <section className="selected-score-box">
@@ -301,43 +267,26 @@ export default function AdminJudgePage(){
                 <div><span>目安</span><strong>{bestResult ? `${bestResult.name}：${bestResult.result.label}` : '高校データなし'}</strong></div>
               </section>
 
-              <section className="judge-card-grid">
-                {recommendedSchools.map((school) => (
-                  <article key={school.id} className={`judge-card ${school.result.className}`}>
-                    <div>
-                      <span>偏差値 {school.deviation ?? '-'}</span>
-                      <h2>{school.name}</h2>
-                    </div>
-                    <strong>{school.result.label}</strong>
-                    <dl>
-                      <div><dt>最低点差</dt><dd>{school.result.diff >= 0 ? `+${school.result.diff}` : school.result.diff}</dd></div>
-                      <div><dt>平均点差</dt><dd>{school.averageDiff >= 0 ? `+${school.averageDiff}` : school.averageDiff}</dd></div>
-                      <div><dt>内申差</dt><dd>{school.internalDiff >= 0 ? `+${school.internalDiff}` : school.internalDiff}</dd></div>
-                      <div><dt>5教科差</dt><dd>{school.examDiff >= 0 ? `+${school.examDiff}` : school.examDiff}</dd></div>
-                    </dl>
-                  </article>
-                ))}
-              </section>
-
               <ScoreBreakdown exam={examScore} internal={internalScore} />
 
               <BehaviorSummary uid={selectedStudent.uid} year={year} term={term} />
 
               <section className="detail-table-section">
-                <h2>高校別 詳細比較</h2>
+                <div className="detail-heading">
+                  <div>
+                    <h2>全校 詳細比較</h2>
+                    <p>各欄は「本人 / 高校基準」と、その差を表示</p>
+                  </div>
+                  <strong>{schoolResults.length}校</strong>
+                </div>
                 <table className="compare-table">
                   <thead>
                                  <tr>
                                    <th>高校</th>
-                                   <th>最低点</th>
-                                 <th>総合点</th>
-                                 <th>最低点差</th>
-                                 <th>平均点</th>
-                                 <th>平均点差</th>
-                                   <th>内申目安</th>
-                                 <th>内申差</th>
-                                   <th>5教科目安</th>
-                                 <th>5教科差</th>
+                                   <th>最低点<br/><small>本人 / 基準｜差</small></th>
+                                   <th>平均点<br/><small>本人 / 基準｜差</small></th>
+                                   <th>内申<br/><small>本人 / 目安｜差</small></th>
+                                   <th>5教科<br/><small>本人 / 目安｜差</small></th>
                                    <th>判定</th>
                                  </tr>
                   </thead>
@@ -352,33 +301,10 @@ export default function AdminJudgePage(){
                                            </div>
                                          </td>
 
-                                         <td>{s.minScore}</td>
-                                             
-                                             <td>{myTotal}</td>
-                                             
-                                             <td className={s.result.className}>
-                                               {s.result.diff >= 0 ? `+${s.result.diff}` : s.result.diff}
-                                             </td>
-
-                                         <td>{s.averageScore ?? "-"}</td>
-                                             
-                                             <td className={s.averageDiff >= 0 ? "safe" : "ng"}>
-                                               {s.averageDiff >= 0
-                                                 ? `+${s.averageDiff}`
-                                                 : s.averageDiff}
-                                             </td>
-
-                                         <td>{s.internalTarget ?? "-"}</td>
-                                             
-                                             <td className={s.internalDiff >= 0 ? "safe" : "ng"}>
-                                               {s.internalDiff >= 0 ? `+${s.internalDiff}` : s.internalDiff}
-                                             </td>
-
-                                         <td>{s.scoreTarget ?? "-"}</td>
-
-                                             <td className={s.examDiff >= 0 ? "safe" : "ng"}>
-                                               {s.examDiff >= 0 ? `+${s.examDiff}` : s.examDiff}
-                                             </td>
+                                         <td><span>{myTotal} / {s.minScore ?? "-"}</span><strong className={s.result.className}>{s.result.diff >= 0 ? `+${s.result.diff}` : s.result.diff}</strong></td>
+                                         <td><span>{myTotal} / {s.averageScore ?? "-"}</span><strong className={s.averageDiff >= 0 ? "safe" : "ng"}>{s.averageDiff >= 0 ? `+${s.averageDiff}` : s.averageDiff}</strong></td>
+                                         <td><span>{internalScore?.internalTotal ?? "-"} / {s.internalTarget ?? "-"}</span><strong className={s.internalDiff >= 0 ? "safe" : "ng"}>{s.internalDiff >= 0 ? `+${s.internalDiff}` : s.internalDiff}</strong></td>
+                                         <td><span>{examScore?.examTotal ?? "-"} / {s.scoreTarget ?? "-"}</span><strong className={s.examDiff >= 0 ? "safe" : "ng"}>{s.examDiff >= 0 ? `+${s.examDiff}` : s.examDiff}</strong></td>
 
                                          <td className={s.result.className}>{s.result.label}</td>
                                        </tr>
