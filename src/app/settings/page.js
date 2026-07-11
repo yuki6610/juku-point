@@ -242,8 +242,9 @@ export default function SettingsPage() {
           <div className="avatar-guide">
             <h3>アバター導入手順</h3>
             <ol>
-              <li>下の「Vket Avatar Makerで作成」を開きます。</li>
+              <li>下の「Vket Avatar Makerで編集」を開きます。</li>
               <li>アカウント登録またはログインをします。VRMファイルのダウンロードには登録が必要です。</li>
+              <li>編集画面を開くと、アバターデータのダウンロードが始まります。完了まで少し時間がかかるため、そのままお待ちください。</li>
               <li>好きな見た目に編集して、VRM形式で端末にダウンロードします。</li>
               <li>この画面でVRMファイルを選択し、プレビューを確認します。</li>
               <li>問題なければ「このアバターを保存」を押します。</li>
@@ -285,12 +286,12 @@ export default function SettingsPage() {
             <p className="settings-avatar-status" role="status">{avatarStatus}</p>
           )}
           <a
-            href="https://avatarmaker.vket.com/"
+            href="https://avatarmaker.vket.com/edit"
             target="_blank"
             rel="noopener noreferrer"
             className="settings-link"
           >
-            🎭 Vket Avatar Makerで作成
+            🎭 Vket Avatar Makerで編集
           </a>
 
           <h3 className="settings-preview-title">
