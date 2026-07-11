@@ -23,8 +23,8 @@ const typeLabel = (item) => ({
   adjustment:"管理者調整", penalty:"不正による没収", score:"成績",
 }[item.type] || "その他");
 const itemDescription = (item) => {
-  if (item.description || item.note || item.reason || item.message) return item.description || item.note || item.reason || item.message;
   if (["wordtest","wordtest_undo"].includes(item.type) && Number.isFinite(item.correct) && Number.isFinite(item.total)) return `${item.correct}/${item.total}問正解`;
+  if (item.description || item.note || item.reason || item.message) return item.description || item.note || item.reason || item.message;
   return typeLabel(item);
 };
 
@@ -92,7 +92,7 @@ export default function AdminPointHistoryPage() {
       <section className="aph-summary"><article><span>対象</span><strong>{selected?.realName||selected?.displayName}</strong><small>{gradeLabel(selected?.grade)}</small></article><article><span>表示中の獲得</span><strong className="plus">+{earned.toLocaleString()}pt</strong></article><article><span>表示中の利用・減点</span><strong className="minus">-{used.toLocaleString()}pt</strong></article><article><span>読込済み</span><strong>{items.length}件</strong></article></section>
       <div className="aph-filters">{[["all","すべて"],["earned","獲得"],["used","利用・減点"]].map(([v,l])=><button key={v} className={filter===v?"active":""} onClick={()=>setFilter(v)}>{l}</button>)}</div>
       <section className="aph-list">
-        {loadingHistory&&items.length===0?<p className="aph-empty">履歴を読み込んでいます…</p>:visibleItems.length===0?<p className="aph-empty">該当する履歴はありません。</p>:visibleItems.map(item=>{const value=pointValue(item);const date=item.sourceDate?toDate(`${item.sourceDate}T12:00:00+09:00`):toDate(item.createdAt);return <article key={item.id}><div className={`aph-sign ${value>=0?"plus":"minus"}`}>{value>=0?"＋":"−"}</div><div className="aph-detail"><strong>{typeLabel(item)}</strong><p>{itemDescription(item)}</p><small>{date?new Intl.DateTimeFormat("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",...(item.sourceDate?{}:{hour:"2-digit",minute:"2-digit"})}).format(date):"日時不明"}{item.sourceDate?" ・ 対象日":item.week?` ・ ${item.week}`:""}</small></div><b className={value>=0?"plus":"minus"}>{value>0?"+":""}{value.toLocaleString()}pt</b></article>})}
+        {loadingHistory&&items.length===0?<p className="aph-empty">履歴を読み込んでいます…</p>:visibleItems.length===0?<p className="aph-empty">該当する履歴はありません。</p>:visibleItems.map(item=>{const value=pointValue(item);const date=item.sourceDate?toDate(`${item.sourceDate}T12:00:00+09:00`):toDate(item.createdAt);return <article key={item.id}><div className={`aph-sign ${value>=0?"plus":"minus"}`}>{value>=0?"＋":"−"}</div><div className="aph-detail"><strong>{typeLabel(item)}</strong><p>{itemDescription(item)}</p><small>{date?new Intl.DateTimeFormat("ja-JP",{year:"numeric",month:"2-digit",day:"2-digit",...(item.sourceDate?{}:{hour:"2-digit",minute:"2-digit"})}).format(date):"日時不明"}{item.sourceDate?" ・ 対象日":""}{item.week?` ・ ${item.week}`:""}</small></div><b className={value>=0?"plus":"minus"}>{value>0?"+":""}{value.toLocaleString()}pt</b></article>})}
       </section>
       {hasMore&&<button className="aph-more" onClick={loadMore} disabled={loadingHistory}>{loadingHistory?"読み込み中…":"さらに50件読み込む"}</button>}
     </>}
