@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./lesson-records.css";
