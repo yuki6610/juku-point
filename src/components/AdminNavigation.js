@@ -28,6 +28,7 @@ const groups = [
   {
     label: "ポイント・景品",
     items: [
+      { path: "/admin/point-history", icon: "P", label: "ポイント履歴" },
       { path: "/admin/rewards", icon: "◇", label: "景品管理" },
       { path: "/admin/rewardHistory", icon: "↺", label: "交換履歴" },
       { path: "/admin/illegal", icon: "!", label: "不正検知" },

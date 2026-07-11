@@ -103,6 +103,13 @@ const menuGroups = [
     description: "景品とアプリ運用に関する管理です。",
     items: [
       {
+        title: "生徒ポイント履歴",
+        desc: "生徒ごとの獲得・利用・減点理由を確認",
+        icon: "P",
+        path: "/admin/point-history",
+        tone: "sky",
+      },
+      {
         title: "景品管理",
         desc: "景品・必要ポイント・在庫を設定",
         icon: "◇",
