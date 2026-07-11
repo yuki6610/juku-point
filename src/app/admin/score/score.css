@@ -133,17 +133,29 @@
 }
 
 .saved-list h2 {
-  margin-bottom: 18px;
+  margin: 2px 0 18px;
   font-size: 24px;
 }
 
+.saved-heading { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
+.saved-heading > div > span { color: #93c5fd; font-size: 11px; font-weight: 800; letter-spacing: .14em; }
+.saved-heading > strong { margin-bottom: 18px; padding: 6px 12px; color: #1e3a8a; background: #dbeafe; border-radius: 999px; }
+.saved-empty { padding: 26px; color: #64748b; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 16px; text-align: center; }
+
 .saved-card {
-  background: #1f2937;
+  color: #1e293b;
+  background: #fff;
   border-radius: 16px;
-  padding: 18px;
+  padding: 20px;
   margin-bottom: 14px;
-  border-left: 6px solid #3b82f6;
+  border: 1px solid #dbe5f1;
+  box-shadow: 0 8px 24px rgba(15,23,42,.06);
 }
+
+.saved-card-head { display: flex; justify-content: space-between; gap: 20px; align-items: center; }
+.saved-card-head h3 { margin: 8px 0 3px; font-size: 18px; }
+.saved-card-head p { color: #64748b; }
+.saved-tags { display: flex; flex-wrap: wrap; gap: 7px; }
 
 .score-source {
   display: inline-flex;
@@ -160,6 +172,27 @@
   color: #6d28d9;
   background: #ede9fe;
 }
+
+.score-kind { display: inline-flex; margin-bottom: 6px; padding: 4px 9px; border-radius: 999px; color: #0f766e; background: #ccfbf1; font-size: 12px; font-weight: 700; }
+.score-kind.internal { color: #9a3412; background: #ffedd5; }
+.saved-total { min-width: 130px; padding: 12px 16px; background: #eff6ff; border-radius: 14px; text-align: right; }
+.saved-total small { display: block; color: #64748b; font-size: 11px; }
+.saved-total strong { color: #1d4ed8; font-size: 28px; }
+.saved-total strong span { margin-left: 3px; font-size: 13px; }
+.score-details { margin-top: 16px; border-top: 1px solid #e2e8f0; }
+.score-details summary { padding: 14px 2px 4px; color: #2563eb; font-weight: 750; cursor: pointer; }
+.subject-grid { display: grid; grid-template-columns: repeat(5,minmax(80px,1fr)); gap: 8px; margin-top: 14px; }
+.subject-grid > div { padding: 11px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; text-align: center; }
+.subject-grid span { display: block; color: #64748b; font-size: 12px; }
+.subject-grid strong { display: block; margin-top: 3px; font-size: 20px; }
+.subject-grid small { margin-left: 2px; font-size: 11px; }
+.sub-subjects { grid-template-columns: repeat(4,minmax(80px,1fr)); }
+.subject-group-label { margin: 15px 0 -8px !important; color: #475569; font-weight: 750; }
+.score-calculation { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 12px 14px; color: #334155; background: #f1f5f9; border-radius: 10px; }
+.score-calculation strong { color: #0f172a; }
+.saved-date { margin-top: 12px !important; color: #94a3b8; font-size: 12px !important; }
+.saved-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+.saved-actions .delete-btn { padding: 8px 12px; color: #b91c1c; background: #fff1f2; border: 0; border-radius: 9px; font-weight: 700; cursor: pointer; }
 
 .saved-card p {
   margin: 6px 0;
@@ -199,6 +232,10 @@
   .grid {
     grid-template-columns: repeat(2,1fr);
   }
+
+  .saved-card-head { align-items: stretch; flex-direction: column; }
+  .saved-total { text-align: left; }
+  .subject-grid, .sub-subjects { grid-template-columns: repeat(2,1fr); }
 
   .score-block button {
     font-size: 15px;

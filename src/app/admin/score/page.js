@@ -39,6 +39,15 @@ const SUB=['音楽','美術','保体','技家']
 
 const gradeLabel=g=>g>=7&&g<=9?`中${g-6}`:'不明'
 
+const formatSavedAt=value=>{
+  if(!value) return '保存日時不明'
+  const date=typeof value.toDate==='function'?value.toDate():new Date(value)
+  if(Number.isNaN(date.getTime())) return '保存日時不明'
+  return new Intl.DateTimeFormat('ja-JP',{
+    year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'
+  }).format(date)
+}
+
 export default function AdminScoresPage() {
   const [admin,setAdmin]=useState(null)
   const [checkingAuth,setCheckingAuth]=useState(true)
@@ -392,31 +401,64 @@ export default function AdminScoresPage() {
       </div>
 
       <div className="saved-list">
-        <h2>生徒・管理者が入力した成績</h2>
+        <div className="saved-heading">
+          <div>
+            <span>SCORE ARCHIVE</span>
+            <h2>生徒・管理者が入力した成績</h2>
+          </div>
+          <strong>{saved.length}件</strong>
+        </div>
+
+        {!selectedStudentId && <p className="saved-empty">生徒を選択すると、保存された成績の詳細を確認できます。</p>}
+        {selectedStudentId && saved.length===0 && <p className="saved-empty">保存された成績はありません。</p>}
 
         {saved.map(s=>(
           <div key={s.id} className="saved-card">
-            <span className={`score-source ${s.submittedBy === 'admin' || s.approved === true ? 'admin' : 'student'}`}>
-              {s.submittedBy === 'admin' || s.approved === true ? '管理者入力' : '生徒入力'}
-            </span>
-            {s.type==='exam' ? (
-              <>
-                <p>{gradeLabel(s.grade)} / {s.term} / {s.testType}</p>
-                <p>5計 {s.examTotal}点 / 換算 {s.examConverted}点</p>
-              </>
-            ) : (
-              <>
-                <p>{gradeLabel(s.grade)} / {s.term}</p>
-                <p>内申 {s.internalTotal}点</p>
-              </>
-            )}
+            <div className="saved-card-head">
+              <div>
+                <div className="saved-tags">
+                  <span className={`score-source ${s.submittedBy === 'admin' || s.approved === true ? 'admin' : 'student'}`}>
+                    {s.submittedBy === 'admin' || s.approved === true ? '管理者入力' : '生徒入力'}
+                  </span>
+                  <span className={`score-kind ${s.type}`}>{s.type==='exam'?'五教科テスト':'内申点'}</span>
+                </div>
+                <h3>{s.year||'年度不明'}年度　{gradeLabel(s.grade)}　{s.term||'学期不明'}</h3>
+                <p>{s.type==='exam'?(s.testType||'テスト種別不明'):'9教科内申'}</p>
+              </div>
+              <div className="saved-total">
+                <small>{s.type==='exam'?'5教科合計':'換算内申点'}</small>
+                <strong>{Number(s.type==='exam'?s.examTotal:s.internalTotal)||0}<span>点</span></strong>
+              </div>
+            </div>
 
-            <button
-              onClick={()=>deleteScore(s.id)}
-              className="delete-btn"
-            >
-              削除
-            </button>
+            <details className="score-details">
+              <summary>教科別の詳細を見る</summary>
+              {s.type==='exam' ? (
+                <>
+                  <div className="subject-grid exam-subjects">
+                    {MAIN.map(subject=><div key={subject}><span>{subject}</span><strong>{s.exam?.[subject]??'-'}<small>点</small></strong></div>)}
+                  </div>
+                  <div className="score-calculation"><span>志望校判定用の換算点</span><strong>{Number(s.examConverted)||0}点</strong></div>
+                </>
+              ) : (
+                <>
+                  <p className="subject-group-label">主要5教科</p>
+                  <div className="subject-grid">
+                    {MAIN.map(subject=><div key={subject}><span>{subject}</span><strong>{s.internalMain?.[subject]??'-'}</strong></div>)}
+                  </div>
+                  <p className="subject-group-label">実技4教科</p>
+                  <div className="subject-grid sub-subjects">
+                    {SUB.map(subject=><div key={subject}><span>{subject}</span><strong>{s.internalSub?.[subject]??'-'}</strong></div>)}
+                  </div>
+                  <div className="score-calculation"><span>志望校判定用の換算内申点</span><strong>{Number(s.internalTotal)||0}点</strong></div>
+                </>
+              )}
+              <p className="saved-date">登録：{formatSavedAt(s.createdAt)}{s.updatedAt&&`　更新：${formatSavedAt(s.updatedAt)}`}</p>
+            </details>
+
+            <div className="saved-actions">
+              <button onClick={()=>deleteScore(s.id)} className="delete-btn">この成績を削除</button>
+            </div>
           </div>
         ))}
       </div>
