@@ -1,4 +1,4 @@
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
@@ -70,6 +70,7 @@ export async function POST(request) {
     }
 
     const userRef = adminDb.collection("users").doc(uid);
+    const eventTimestamp = Timestamp.fromDate(new Date(`${date}T12:00:00+09:00`));
     const recordRef = userRef.collection("lessonTerms").doc(termId).collection("records").doc(date);
     const homeworkRewardRef = userRef.collection("lessonRewards").doc(`${termId}_${weekId}_homework_submitted`);
     const homeworkMissedRef = userRef.collection("lessonRewards").doc(`${termId}_${date}_homework_missed`);
@@ -120,7 +121,7 @@ export async function POST(request) {
         });
         transaction.set(homeworkHistoryRef, {
           type: "homework", amount: 50, exp: 50, week: weekId, termId,
-          sourceDate: date, message: "宿題提出ボーナス", createdAt: now, updatedAt: now,
+          sourceDate: date, message: "宿題提出ボーナス", createdAt: eventTimestamp, updatedAt: now,
         }, { merge: true });
       } else if (oldHomework?.sourceDate === date && requestedHomework !== 50) {
         pointDelta -= 50;
@@ -130,7 +131,7 @@ export async function POST(request) {
         transaction.delete(homeworkRewardRef);
         transaction.set(homeworkHistoryRef, {
           type: "homework_undo", amount: -50, exp: -50, week: weekId, termId,
-          sourceDate: date, message: "宿題提出ボーナス取消", updatedAt: now,
+          sourceDate: date, message: "宿題提出ボーナス取消", createdAt: eventTimestamp, updatedAt: now,
         }, { merge: true });
       }
 
@@ -147,13 +148,13 @@ export async function POST(request) {
           }, { merge: true });
           transaction.set(homeworkMissedHistoryRef, {
             type: "homework_missed", amount: -50, exp: -50, week: weekId,
-            termId, sourceDate: date, message: "宿題未提出", createdAt: now, updatedAt: now,
+            termId, sourceDate: date, message: "宿題未提出", createdAt: eventTimestamp, updatedAt: now,
           }, { merge: true });
         } else {
           transaction.delete(homeworkMissedRef);
           transaction.set(homeworkMissedHistoryRef, {
             type: "homework_undo", amount: 50, exp: 50, week: weekId,
-            termId, sourceDate: date, message: "宿題未提出の取消", updatedAt: now,
+            termId, sourceDate: date, message: "宿題未提出の取消", createdAt: eventTimestamp, updatedAt: now,
           }, { merge: true });
         }
       }
@@ -182,7 +183,7 @@ export async function POST(request) {
           exp: requestedWord, correct: wordCompleted ? correct : 0,
           total: wordCompleted ? total : 0, week: weekId, termId, sourceDate: date,
           message: wordCompleted && requestedWord === 0 ? "単語テスト（正答率70%未満・ポイントなし）" : "単語テスト",
-          createdAt: oldWord?.createdAt || now, updatedAt: now,
+          createdAt: eventTimestamp, updatedAt: now,
         }, { merge: true });
       }
 

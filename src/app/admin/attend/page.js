@@ -14,6 +14,7 @@ import {
   query,
   where,
   serverTimestamp,
+  Timestamp,
   increment,
 } from "firebase/firestore";
 import { db, auth } from "../../../firebaseConfig";
@@ -169,8 +170,10 @@ export default function HighSchoolAttendancePage() {
       type: "classAttendance",
       amount: ATTENDANCE_POINT,
       note: `授業出席 (${selectedDate})`,
+      sourceDate: selectedDate,
       seasonId: getCurrentSeason().id,
-      createdAt: serverTimestamp(),
+      createdAt: Timestamp.fromDate(new Date(`${selectedDate}T12:00:00+09:00`)),
+      recordedAt: serverTimestamp(),
     });
 
     // 🔹 4) 画面の状態更新

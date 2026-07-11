@@ -57,7 +57,9 @@ export default function PointHistoryPage() {
       return {
         id: d.id,
         ...data,
-        createdAt: toDate(data.createdAt),
+        createdAt: data.sourceDate
+          ? toDate(`${data.sourceDate}T12:00:00+09:00`)
+          : toDate(data.createdAt),
       };
     });
     return {

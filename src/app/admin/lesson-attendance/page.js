@@ -48,6 +48,10 @@ const isMiddleSchool = (student) => {
   const grade = Number(student.grade);
   return grade >= 7 && grade <= 9;
 };
+const isHighSchool = (student) => {
+  const grade = Number(student.grade);
+  return student.source === "user" && grade >= 10 && grade <= 12;
+};
 const gradeLabel = (grade) =>
   grade <= 6 ? `小${grade}` : ({ 7: "中1", 8: "中2", 9: "中3", 10: "高1", 11: "高2", 12: "高3" }[grade] || "対象外");
 const getLessonStartDate = (student) =>
@@ -301,7 +305,12 @@ export default function LessonAttendancePage() {
           return [studentKey(student), linkMakeupRecords(mapped)];
         }
 
-        const snapshot = await getDocs(collection(db, "adminLessonAttendance", studentKey(student), "records"));
+        const [snapshot, classAttendanceSnapshot] = await Promise.all([
+          getDocs(collection(db, "adminLessonAttendance", studentKey(student), "records")),
+          isHighSchool(student)
+            ? getDocs(collection(db, "users", student.id, "classAttendance"))
+            : Promise.resolve({ docs: [] }),
+        ]);
         const mapped = {};
         snapshot.docs.forEach((item) => {
           const record = normalizeAttendanceRecord(item.data(), item.id, {
@@ -309,6 +318,17 @@ export default function LessonAttendancePage() {
             studentSource: student.source,
             source: "adminLessonAttendance",
           });
+          if (!record.date || record.date < monthStart || record.date > monthEnd) return;
+          mergeAttendanceRecord(mapped, record);
+        });
+        classAttendanceSnapshot.docs.forEach((item) => {
+          const data = item.data();
+          if (!data.attended) return;
+          const record = normalizeAttendanceRecord(
+            { ...data, date: data.date || item.id, status: "present" },
+            item.id,
+            { studentId: student.id, studentSource: "user", source: "classAttendance" }
+          );
           if (!record.date || record.date < monthStart || record.date > monthEnd) return;
           mergeAttendanceRecord(mapped, record);
         });
@@ -352,9 +372,12 @@ export default function LessonAttendancePage() {
       setRecords((current) => ({ ...current, [key]: linkMakeupRecords(mapped) }));
       return;
     }
-    const snapshot = await getDocs(
-      collection(db, "adminLessonAttendance", key, "records")
-    );
+    const [snapshot, classAttendanceSnapshot] = await Promise.all([
+      getDocs(collection(db, "adminLessonAttendance", key, "records")),
+      student && isHighSchool(student)
+        ? getDocs(collection(db, "users", student.id, "classAttendance"))
+        : Promise.resolve({ docs: [] }),
+    ]);
     const mapped = {};
     snapshot.docs.forEach((item) => {
       const record = normalizeAttendanceRecord(item.data(), item.id, {
@@ -362,6 +385,16 @@ export default function LessonAttendancePage() {
         studentSource: student?.source || null,
         source: "adminLessonAttendance",
       });
+      if (record.date) mergeAttendanceRecord(mapped, record);
+    });
+    classAttendanceSnapshot.docs.forEach((item) => {
+      const data = item.data();
+      if (!data.attended) return;
+      const record = normalizeAttendanceRecord(
+        { ...data, date: data.date || item.id, status: "present" },
+        item.id,
+        { studentId: student.id, studentSource: "user", source: "classAttendance" }
+      );
       if (record.date) mergeAttendanceRecord(mapped, record);
     });
     setRecords((current) => ({
