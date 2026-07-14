@@ -21,7 +21,7 @@ export default function VRMAvatarCanvas({
     >
       <Canvas
         frameloop="demand"
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
         gl={{
           antialias: false,
           powerPreference: "high-performance",

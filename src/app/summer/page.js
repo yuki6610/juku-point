@@ -3,15 +3,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import { db } from '@/../firebaseConfig'
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from 'firebase/firestore'
 import './summer.css'
 
 const DEFAULT_END_DATE = '2026-08-22'
@@ -40,53 +31,23 @@ export default function SummerPage() {
       setError('')
 
       try {
-        const [userSnap, eventSnap] = await Promise.all([
-          getDoc(doc(db, 'users', currentUser.uid)),
-          getDoc(doc(db, 'admin_data', 'summerEvent')),
-        ])
+        const token = await currentUser.getIdToken()
+        const controller = new AbortController()
+        const timeoutId = window.setTimeout(() => controller.abort(), 15000)
+        const response = await fetch('/api/summer-event', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        }).finally(() => window.clearTimeout(timeoutId))
+        const result = await response.json().catch(() => ({}))
 
         if (!active) return
-
-        if (!userSnap.exists()) {
-          setError('生徒情報を確認できませんでした。')
-          setLoading(false)
+        if (!response.ok) {
+          if (response.status === 403) router.replace('/mypage')
+          else throw new Error(result.error || '夏期イベントを読み込めませんでした。')
           return
         }
 
-        const userData = userSnap.data()
-        if (!(userData.courseTags || []).includes('summer_course')) {
-          router.replace('/mypage')
-          return
-        }
-
-        if (eventSnap.exists()) {
-          const eventData = eventSnap.data()
-          setYenPerPoint(eventData.yenPerPoint ?? 0.3)
-          setEndDate(eventData.endDate ?? DEFAULT_END_DATE)
-        }
-
-        const [usersSnap, adminsSnap] = await Promise.all([
-          getDocs(
-            query(collection(db, 'users'), where('courseTags', 'array-contains', 'summer_course'))
-          ),
-          getDocs(collection(db, 'admins')),
-        ])
-
-        if (!active) return
-
-        const adminIds = new Set(adminsSnap.docs.map((item) => item.id))
-        const participants = usersSnap.docs
-          .map((item) => {
-            const data = item.data()
-            return {
-              uid: item.id,
-              name: data.realName || data.displayName || '名前なし',
-              point: Number(data.summerExchangePoint || 0),
-              isAdmin: adminIds.has(item.id) || Boolean(data.isAdmin || data.role === 'admin'),
-            }
-          })
-          .filter((student) => !student.isAdmin)
-          .sort((a, b) => b.point - a.point || a.name.localeCompare(b.name, 'ja'))
+        const participants = result.ranking || []
 
         const total = participants.reduce((sum, student) => sum + student.point, 0)
         const myIndex = participants.findIndex((student) => student.uid === currentUser.uid)
@@ -95,6 +56,8 @@ export default function SummerPage() {
         setTotalPoint(total)
         setMyPoint(myIndex >= 0 ? participants[myIndex].point : 0)
         setMyRank(myIndex >= 0 ? myIndex + 1 : 0)
+        setYenPerPoint(result.yenPerPoint ?? 0.3)
+        setEndDate(result.endDate ?? DEFAULT_END_DATE)
         setLoading(false)
       } catch (err) {
         console.error(err)

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "../../firebaseConfig";
-import { doc, getDocFromServer, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import dynamic from "next/dynamic";
 const AvatarCanvas = dynamic(
@@ -84,10 +84,11 @@ export default function MyPage() {
       setUser(currentUser);
 
       try {
-        const snap = await getDocFromServer(doc(db, "users", currentUser.uid));
-        if (snap.exists()) {
-          const d = snap.data();
-          await autoUnbanIfExpired(currentUser.uid, d);
+          // キャッシュを利用できる端末では先に表示し、弱い回線でもホームを開きやすくする。
+          const snap = await getDoc(doc(db, "users", currentUser.uid));
+          if (snap.exists()) {
+            const d = snap.data();
+          autoUnbanIfExpired(currentUser.uid, d).catch(console.error);
           let avatarOverride = null;
           try {
             avatarOverride = JSON.parse(
@@ -126,9 +127,18 @@ export default function MyPage() {
     setShowAvatar(false);
     setAvatarFailed(false);
     if (!data.avatarUrl) return;
-    const timeoutId = window.setTimeout(() => setShowAvatar(true), 100);
-    return () => window.clearTimeout(timeoutId);
+    // 3DライブラリとVRMの読込は、ホーム本体の描画が終わってから開始する。
+    const start = () => setShowAvatar(true);
+    const idleId = window.requestIdleCallback?.(start, { timeout: 1800 });
+    const timeoutId = idleId == null ? window.setTimeout(start, 700) : null;
+    return () => {
+      if (idleId != null) window.cancelIdleCallback?.(idleId);
+      if (timeoutId != null) window.clearTimeout(timeoutId);
+    };
   }, [data.avatarUrl, data.avatarVersion]);
+
+  const handleAvatarError = useCallback(() => setAvatarFailed(true), []);
+  const handleAvatarLoad = useCallback(() => setAvatarFailed(false), []);
 
   if (loading) return <p className="loading-text">読み込み中...</p>;
   if (!user) return null;
@@ -265,8 +275,8 @@ export default function MyPage() {
                 key={`${avatarRenderUrl}:${data.avatarVersion || "legacy"}`}
                 url={avatarRenderUrl}
                 height={250}
-                onError={() => setAvatarFailed(true)}
-                onLoad={() => setAvatarFailed(false)}
+                onError={handleAvatarError}
+                onLoad={handleAvatarLoad}
               />
             )}
             {avatarFailed && (

@@ -293,6 +293,9 @@ export default function SettingsPage() {
           >
             🎭 Vket Avatar Makerで編集
           </a>
+          <p className="settings-desc">
+            外部の3D編集サイトを開きます。古い端末や省メモリ端末では読み込みに時間がかかる場合があります。開かない場合はSafariまたはChromeで直接お試しください。
+          </p>
 
           <h3 className="settings-preview-title">
           プレビュー
