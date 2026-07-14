@@ -95,6 +95,25 @@
   font-weight: 700;
   text-decoration: none;
 }
+.settings-external-link {
+  width: 100%;
+  padding: 0 14px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 13px;
+  cursor: pointer;
+}
+.settings-copy-link {
+  width: 100%;
+  margin: 7px 0 12px;
+  padding: 8px;
+  color: #64748b;
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
 .settings-preview-title { margin: 24px 0 9px; font-size: 15px; }
 .settings-preview-box {
   height: 320px;

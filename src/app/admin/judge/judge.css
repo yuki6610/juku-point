@@ -539,8 +539,36 @@
     print-color-adjust: exact;
   }
 
+  html,
   body {
+    width: 210mm !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: #fff !important;
+  }
+
+  /* 管理画面の278pxサイドバーを印刷レイアウトから完全に外す。 */
+  .admin-app-shell {
+    min-height: 0 !important;
+    display: block !important;
+    background: #fff !important;
+  }
+
+  .admin-desktop-sidebar,
+  .admin-mobile-header,
+  .admin-nav-overlay,
+  .student-bottom-nav,
+  .student-nav-spacer {
+    display: none !important;
+  }
+
+  .admin-app-content,
+  .app-container {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .no-print {
@@ -548,12 +576,17 @@
   }
 
   .judge-page {
-    width: 100%;
-    padding: 0;
+    width: 198mm !important;
+    max-width: 198mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: #fff;
   }
 
   .report-sheet {
+    width: 100% !important;
+    max-width: none !important;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -637,16 +670,56 @@
   }
 
   .behavior-summary {
+    display: block !important;
     margin: 5px 0;
+    overflow: visible !important;
   }
 
-  .pie-row {
-    gap: 10px;
+  .report-sheet .pie-row {
+    display: grid !important;
+    grid-template-columns: 1.2fr 1.2fr .8fr .8fr;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    overflow: visible !important;
   }
 
-  .behavior-summary svg {
-    width: 54px;
-    height: 54px;
+  .report-sheet .pie {
+    min-width: 0;
+    display: grid !important;
+    grid-template-columns: 50px minmax(0, 1fr);
+    align-items: center;
+    gap: 3px;
+    overflow: visible !important;
+  }
+
+  .report-sheet .behavior-summary svg {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px;
+    display: block;
+    overflow: visible !important;
+  }
+
+  .report-sheet .legend {
+    min-width: 0;
+    font-size: 7px;
+    line-height: 1.15;
+  }
+
+  .report-sheet .legend strong {
+    margin-bottom: 2px;
+  }
+
+  .report-sheet .legend div {
+    gap: 2px;
+    margin: 1px 0;
+    white-space: nowrap;
+  }
+
+  .report-sheet .legend span {
+    width: 6px;
+    height: 6px;
   }
 
   .info-card {
@@ -682,5 +755,17 @@
     min-height: 24px;
     font-size: 8.5px;
     line-height: 1.35;
+  }
+
+  .report-header,
+  .report-summary-grid,
+  .selected-score-box,
+  .score-breakdown,
+  .behavior-summary,
+  .detail-table-section,
+  .print-comment,
+  .compare-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }

@@ -23,6 +23,8 @@ const getAvatarDisplayUrl = (url) => {
   return `/api/avatar?url=${encodeURIComponent(url)}`;
 };
 
+const AVATAR_MAKER_URL = "https://avatarmaker.vket.com/edit";
+
 export default function SettingsPage() {
   const router = useRouter();
 
@@ -52,6 +54,27 @@ export default function SettingsPage() {
   const handleAvatarError = useCallback(() => {
     setAvatarStatus("このVRMファイルを表示できません。別のファイルをお試しください。");
   }, []);
+
+  const openAvatarMaker = () => {
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      const fallback = encodeURIComponent(AVATAR_MAKER_URL);
+      window.location.href = `intent://avatarmaker.vket.com/edit#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url=${fallback};end`;
+      return;
+    }
+
+    const externalWindow = window.open(AVATAR_MAKER_URL, "_blank", "noopener,noreferrer");
+    if (!externalWindow) window.location.href = AVATAR_MAKER_URL;
+  };
+
+  const copyAvatarMakerUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(AVATAR_MAKER_URL);
+      setAvatarStatus("アバター編集サイトのURLをコピーしました。");
+    } catch {
+      setAvatarStatus(`URLをコピーできませんでした：${AVATAR_MAKER_URL}`);
+    }
+  };
 
   // -----------------------------
   // ユーザーデータ読み込み
@@ -285,16 +308,22 @@ export default function SettingsPage() {
           {avatarStatus && (
             <p className="settings-avatar-status" role="status">{avatarStatus}</p>
           )}
-          <a
-            href="https://avatarmaker.vket.com/edit"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="settings-link"
+          <button
+            type="button"
+            className="settings-link settings-external-link"
+            onClick={openAvatarMaker}
           >
-            🎭 Vket Avatar Makerで編集
-          </a>
+            🎭 デフォルトのブラウザで編集サイトを開く
+          </button>
+          <button
+            type="button"
+            className="settings-copy-link"
+            onClick={copyAvatarMakerUrl}
+          >
+            開けない場合はURLをコピー
+          </button>
           <p className="settings-desc">
-            外部の3D編集サイトを開きます。古い端末や省メモリ端末では読み込みに時間がかかる場合があります。開かない場合はSafariまたはChromeで直接お試しください。
+            アプリから外部のブラウザへ切り替わります。古い端末や省メモリ端末では、編集サイトの読み込みに時間がかかる場合があります。
           </p>
 
           <h3 className="settings-preview-title">
