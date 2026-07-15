@@ -93,7 +93,14 @@ function PieChart({ title, items }) {
   if (sorted.filter(i => i.value > 0).length === 1) {
     return (
       <div className="pie">
-        <svg width="120" height="120">
+        <svg
+          width="120"
+          height="120"
+          viewBox="0 0 120 120"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`${title}の割合`}
+        >
           <circle
             cx="60"
             cy="60"
@@ -121,7 +128,14 @@ function PieChart({ title, items }) {
 
   return (
     <div className="pie">
-      <svg width="120" height="120">
+      <svg
+        width="120"
+        height="120"
+        viewBox="0 0 120 120"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`${title}の割合`}
+      >
         {sorted.map((i, idx) => {
           const start = (acc / total) * 2 * Math.PI - Math.PI / 2
           const angle = (i.value / total) * 2 * Math.PI

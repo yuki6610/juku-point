@@ -707,7 +707,7 @@
     height: 48px !important;
     min-width: 48px;
     display: block;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
 
   .report-sheet .legend {
