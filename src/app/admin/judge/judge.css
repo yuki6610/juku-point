@@ -156,7 +156,7 @@
 
 .selected-score-box {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -598,6 +598,10 @@
   }
 
   .report-header {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
     padding-bottom: 8px;
   }
 
@@ -609,6 +613,8 @@
   .report-grade { min-width: 52px; padding: 7px 10px; border-radius: 8px; font-size: 16px; }
 
   .report-summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 6px;
     margin: 6px 0;
   }
@@ -624,6 +630,8 @@
   }
 
   .selected-score-box {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 6px;
     margin-bottom: 6px;
   }
@@ -634,6 +642,7 @@
   }
 
   .score-breakdown {
+    display: grid !important;
     grid-template-columns: 0.85fr 1.15fr;
     gap: 7px;
     margin: 6px 0;

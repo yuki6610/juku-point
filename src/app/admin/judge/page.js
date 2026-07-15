@@ -171,7 +171,6 @@ export default function AdminJudgePage(){
     const examDiff = (examScore?.examTotal ?? 0) - (s.scoreTarget ?? 0)
     return { ...s, result, internalDiff, averageDiff, examDiff }
   })
-  const bestResult = schoolResults.find(s => s.result.diff >= 0) || schoolResults[0]
   const examLabel = examScore
     ? `${gradeLabel(examScore.grade)} ${examScore.term} ${examScore.testType}｜5計${examScore.examTotal}点 / 換算${examScore.examConverted}点`
     : '未選択'
@@ -264,7 +263,6 @@ export default function AdminJudgePage(){
               <section className="selected-score-box">
                 <div><span>使用テスト</span><strong>{examLabel}</strong></div>
                 <div><span>使用内申</span><strong>{internalLabel}</strong></div>
-                <div><span>目安</span><strong>{bestResult ? `${bestResult.name}：${bestResult.result.label}` : '高校データなし'}</strong></div>
               </section>
 
               <ScoreBreakdown exam={examScore} internal={internalScore} />
