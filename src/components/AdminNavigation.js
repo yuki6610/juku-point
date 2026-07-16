@@ -10,6 +10,7 @@ const groups = [
     items: [
       { path: "/admin", icon: "⌂", label: "ダッシュボード", exact: true },
       { path: "/admin/lesson-records", icon: "✓", label: "学習記録" },
+      { path: "/admin/course-lessons", icon: "季", label: "講習授業管理" },
       { path: "/admin/lesson-attendance", icon: "▦", label: "授業・振替管理" },
       { path: "/admin/qr", icon: "◷", label: "自習中の生徒" },
       { path: "/admin/study-log", icon: "≡", label: "自習履歴" },
