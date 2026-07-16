@@ -74,6 +74,9 @@ export async function POST(request) {
       if (!student.exists || Number(student.data().grade) < 7 || Number(student.data().grade) > 9) {
         throw new ApiError("対象の中学生が見つかりません。", 404);
       }
+      if (!(program.data().participantIds || []).includes(assignment.uid)) {
+        throw new ApiError("この講習の参加生徒として登録されていません。", 403);
+      }
       if (assignment.assignedDate < program.data().startDate || assignment.assignedDate > program.data().endDate) {
         throw new ApiError("指示日は講習期間内で指定してください。");
       }
@@ -94,7 +97,20 @@ export async function POST(request) {
 export async function PATCH(request) {
   try {
     const adminUid = await requireAdmin(request);
-    const { programId, assignmentId, result, checkedDate } = await request.json();
+    const body = await request.json();
+    const { programId, assignmentId, result, checkedDate } = body;
+    if (body.action === "updateParticipants") {
+      if (!validId(programId) || !Array.isArray(body.participantIds)) throw new ApiError("参加生徒の指定が正しくありません。");
+      const participantIds = [...new Set(body.participantIds)].filter(validId);
+      const snapshots = await Promise.all(participantIds.map((uid) => adminDb.collection("users").doc(uid).get()));
+      if (snapshots.some((snapshot) => !snapshot.exists || Number(snapshot.data().grade) < 7 || Number(snapshot.data().grade) > 9)) {
+        throw new ApiError("中学生以外の生徒が含まれています。");
+      }
+      await adminDb.collection("coursePrograms").doc(programId).set({
+        participantIds, updatedBy: adminUid, updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return Response.json({ ok: true, participantIds });
+    }
     if (!validId(programId) || !validId(assignmentId) || !validDate(checkedDate)) throw new ApiError("対象データが正しくありません。");
     const reference = adminDb.collection("coursePrograms").doc(programId).collection("assignments").doc(assignmentId);
     const snapshot = await reference.get();
