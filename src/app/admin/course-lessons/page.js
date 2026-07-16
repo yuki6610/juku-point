@@ -1,19 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
-import { db } from "@/firebaseConfig";
+import { collection, getDocs } from "firebase/firestore";
+import { auth, db } from "@/firebaseConfig";
 import "./course-lessons.css";
 
 const HOMEWORK_MATERIALS = {
@@ -56,6 +45,19 @@ const blankInstruction = () => ({
   note: "",
 });
 
+async function adminApi(path = "", options = {}) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("管理者のログイン情報を確認できません。ページを再読み込みしてください。");
+  const token = await user.getIdToken();
+  const response = await fetch(`/api/admin/course-programs${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...(options.headers || {}) },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "通信に失敗しました。");
+  return data;
+}
+
 export default function CourseLessonsPage() {
   const currentYear = new Date().getFullYear();
   const [students, setStudents] = useState([]);
@@ -78,29 +80,33 @@ export default function CourseLessonsPage() {
   });
 
   useEffect(() => {
-    getDocs(collection(db, "users")).then((snapshot) => {
-      setStudents(snapshot.docs
-        .map((item) => ({ uid: item.id, ...item.data() }))
+    Promise.all([getDocs(collection(db, "users")), adminApi()]).then(([snapshot, data]) => {
+      setStudents(snapshot.docs.map((item) => ({ uid: item.id, ...item.data() }))
         .filter((item) => Number(item.grade) >= 7 && Number(item.grade) <= 9)
         .sort((a, b) => Number(a.grade) - Number(b.grade) || studentName(a).localeCompare(studentName(b), "ja")));
-    });
-    return onSnapshot(query(collection(db, "coursePrograms"), orderBy("startDate", "desc")), (snapshot) => {
-      const items = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
-      setPrograms(items);
-      setProgramId((current) => current || items[0]?.id || "");
-    });
+      setPrograms(data.programs || []);
+      setProgramId((current) => current || data.programs?.[0]?.id || "");
+    }).catch((error) => setNotice(error.message));
   }, []);
 
   useEffect(() => {
-    if (!programId) {
-      setAssignments([]);
-      return undefined;
-    }
-    return onSnapshot(
-      query(collection(db, "coursePrograms", programId, "assignments"), orderBy("assignedDate", "desc")),
-      (snapshot) => setAssignments(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
-    );
+    if (!programId) return setAssignments([]);
+    adminApi(`?programId=${encodeURIComponent(programId)}`)
+      .then((data) => setAssignments(data.assignments || []))
+      .catch((error) => setNotice(error.message));
   }, [programId]);
+
+  const reloadPrograms = async (preferredId = "") => {
+    const data = await adminApi();
+    setPrograms(data.programs || []);
+    if (preferredId) setProgramId(preferredId);
+  };
+
+  const reloadAssignments = async () => {
+    if (!programId) return;
+    const data = await adminApi(`?programId=${encodeURIComponent(programId)}`);
+    setAssignments(data.assignments || []);
+  };
 
   const program = programs.find((item) => item.id === programId);
   const selected = assignments.find((item) => item.id === selectedId);
@@ -133,17 +139,13 @@ export default function CourseLessonsPage() {
   const createProgram = async () => {
     if (!newProgram.name.trim() || !newProgram.startDate || !newProgram.endDate) return setNotice("講習名と期間を入力してください。");
     if (newProgram.endDate < newProgram.startDate) return setNotice("終了日は開始日以降にしてください。");
-    const reference = await addDoc(collection(db, "coursePrograms"), {
-      name: newProgram.name.trim(),
-      startDate: newProgram.startDate,
-      endDate: newProgram.endDate,
-      purpose: "assignmentManagement",
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    setProgramId(reference.id);
-    setShowProgramForm(false);
-    setNotice("講習期間を作成しました。");
+    setSaving(true);
+    try {
+      const data = await adminApi("", { method: "POST", body: JSON.stringify({ action: "createProgram", ...newProgram }) });
+      await reloadPrograms(data.id);
+      setShowProgramForm(false);
+      setNotice("講習期間を作成しました。");
+    } catch (error) { setNotice(error.message); } finally { setSaving(false); }
   };
 
   const saveInstruction = async () => {
@@ -153,7 +155,7 @@ export default function CourseLessonsPage() {
     const nextWeek = weekRange(addDays(instruction.assignedDate, 7));
     setSaving(true);
     try {
-      await addDoc(collection(db, "coursePrograms", programId, "assignments"), {
+      await adminApi("", { method: "POST", body: JSON.stringify({ action: "createAssignment", programId, assignment: {
         uid: student.uid,
         studentName: studentName(student),
         grade: Number(student.grade),
@@ -166,13 +168,11 @@ export default function CourseLessonsPage() {
         note: instruction.note.trim(),
         checkWeekStart: nextWeek.start,
         checkWeekEnd: nextWeek.end,
-        status: "assigned",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      } }) });
+      await reloadAssignments();
       setInstruction((current) => ({ ...blankInstruction(), studentId: current.studentId, assignedDate: current.assignedDate, type: current.type }));
       setNotice(`${studentName(student)}さんの課題を登録しました。確認予定は${formatDate(nextWeek.start)}〜${formatDate(nextWeek.end)}です。`);
-    } finally {
+    } catch (error) { setNotice(error.message); } finally {
       setSaving(false);
     }
   };
@@ -190,17 +190,13 @@ export default function CourseLessonsPage() {
     }
     setSaving(true);
     try {
-      await setDoc(doc(db, "coursePrograms", programId, "assignments", selected.id), {
-        status: "checked",
-        checkedDate: localDate(),
-        result: selected.type === "homework"
+      await adminApi("", { method: "PATCH", body: JSON.stringify({ programId, assignmentId: selected.id, checkedDate: localDate(), result: selected.type === "homework"
           ? { homeworkStatus: result.homeworkStatus, note: result.note.trim() }
-          : { wordCorrect: Number(result.wordCorrect), wordTotal: Number(result.wordTotal), note: result.note.trim() },
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
+          : { wordCorrect: Number(result.wordCorrect), wordTotal: Number(result.wordTotal), note: result.note.trim() } }) });
+      await reloadAssignments();
       setNotice("確認結果を保存しました。ポイント・生活態度・出欠には反映していません。");
       setSelectedId("");
-    } finally {
+    } catch (error) { setNotice(error.message); } finally {
       setSaving(false);
     }
   };
@@ -219,7 +215,7 @@ export default function CourseLessonsPage() {
           </div>
           <div className="assignment-dates"><span>指示日</span><strong>{formatDate(item.assignedDate)}</strong><span>{historyMode ? "確認日" : "確認予定週"}</span><strong>{historyMode ? formatDate(item.checkedDate) : `${formatDate(item.checkWeekStart)}〜${formatDate(item.checkWeekEnd).slice(5)}`}</strong></div>
           {historyMode ? <div className="result-summary">{item.type === "homework" ? ({ submitted: "提出", partial: "途中", missed: "未提出" }[item.result?.homeworkStatus] || "-") : `${item.result?.wordCorrect ?? "-"} / ${item.result?.wordTotal ?? "-"}`}</div> : <button onClick={() => openResult(item)}>確認結果を入力</button>}
-          {!historyMode && <button className="assignment-delete" aria-label="削除" onClick={() => deleteDoc(doc(db, "coursePrograms", programId, "assignments", item.id))}>×</button>}
+          {!historyMode && <button className="assignment-delete" aria-label="削除" onClick={async () => { try { await adminApi(`?programId=${encodeURIComponent(programId)}&assignmentId=${encodeURIComponent(item.id)}`, { method: "DELETE" }); await reloadAssignments(); setNotice("課題を削除しました。"); } catch (error) { setNotice(error.message); } }}>×</button>}
         </article>
       ))}
     </div>
