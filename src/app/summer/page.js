@@ -124,8 +124,8 @@ export default function SummerPage() {
       <div className="summer-info">
         <span>🏆</span>
         <div>
-          <strong>ランキング1位が食事内容を決定！</strong>
-          <p>対象景品を交換して、みんなでイベントを盛り上げよう。</p>
+          <strong>ランキング上位3人が食事内容を決定！</strong>
+          <p>上位3人で相談して、イベント当日の食事内容を決めます。</p>
         </div>
       </div>
 
