@@ -32,6 +32,7 @@ const weekRange = (dateText) => {
 
 const gradeLabel = (grade) => ({ 7: "中1", 8: "中2", 9: "中3" }[Number(grade)] || "-");
 const studentName = (student) => student?.realName || student?.displayName || "名前未設定";
+const wordTotalForGrade = (grade) => ({ 7: 20, 8: 30, 9: 50 }[Number(grade)] || 20);
 const formatDate = (date) => date ? date.replaceAll("-", "/") : "-";
 
 const blankInstruction = () => ({
@@ -123,6 +124,10 @@ export default function CourseLessonsPage() {
   );
   const thisWeek = weekRange(localDate());
   const dueThisWeek = pending.filter((item) => item.checkWeekStart <= thisWeek.end && item.checkWeekEnd >= thisWeek.start);
+  const nextWeek = weekRange(addDays(localDate(), 7));
+  const dueNextWeek = pending.filter((item) => item.checkWeekStart <= nextWeek.end && item.checkWeekEnd >= nextWeek.start);
+  const nextWeekHomework = dueNextWeek.filter((item) => item.type === "homework");
+  const nextWeekWordTests = dueNextWeek.filter((item) => item.type === "wordTest");
 
   const materialSubjects = HOMEWORK_MATERIALS[instruction.material] || [];
   useEffect(() => {
@@ -140,6 +145,13 @@ export default function CourseLessonsPage() {
       note: selected.result?.note || "",
     });
   }, [selectedId, selected?.updatedAt]);
+
+  useEffect(() => {
+    const student = participatingStudents.find((item) => item.uid === instruction.studentId);
+    if (student) {
+      setInstruction((current) => ({ ...current, wordTotal: String(wordTotalForGrade(student.grade)) }));
+    }
+  }, [instruction.studentId, participantIds.join(",")]);
 
   const createProgram = async () => {
     if (!newProgram.name.trim() || !newProgram.startDate || !newProgram.endDate) return setNotice("講習名と期間を入力してください。");
@@ -186,7 +198,7 @@ export default function CourseLessonsPage() {
         material: instruction.type === "homework" ? instruction.material : "単語テスト",
         subject: instruction.type === "homework" ? instruction.subject : "英語",
         range: instruction.range.trim(),
-        wordTotal: instruction.type === "wordTest" ? Number(instruction.wordTotal || student.wordTestQuestionCount || 20) : null,
+        wordTotal: instruction.type === "wordTest" ? wordTotalForGrade(student.grade) : null,
         note: instruction.note.trim(),
         checkWeekStart: nextWeek.start,
         checkWeekEnd: nextWeek.end,
@@ -258,6 +270,7 @@ export default function CourseLessonsPage() {
       {program && tab === "pending" && <section className="pending-layout"><section className="course-card"><div className="list-toolbar"><div><h2>確認待ち</h2><p>指示した翌週に結果を入力します。</p></div><div><select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}><option value="all">全学年</option><option value="7">中1</option><option value="8">中2</option><option value="9">中3</option></select><select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}><option value="all">全生徒</option>{students.map((item) => <option key={item.uid} value={item.uid}>{studentName(item)}</option>)}</select></div></div><AssignmentList items={pending} /></section>{selected && <aside className="course-card result-panel"><span>STEP 2</span><h2>確認結果</h2><div className="selected-assignment"><strong>{selected.studentName}</strong><p>{selected.material}・{selected.subject}</p><b>{selected.range}</b></div>{selected.type === "homework" ? <div className="result-options">{[["submitted", "提出"], ["partial", "途中"], ["missed", "未提出"]].map(([value, label]) => <button className={result.homeworkStatus === value ? "active" : ""} key={value} onClick={() => setResult({ ...result, homeworkStatus: value })}>{label}</button>)}</div> : <div className="word-result"><label>正答数<input type="number" min="0" value={result.wordCorrect} onChange={(e) => setResult({ ...result, wordCorrect: e.target.value })} /></label><span>/</span><label>問題数<input type="number" min="1" value={result.wordTotal} onChange={(e) => setResult({ ...result, wordTotal: e.target.value })} /></label></div>}<label>確認メモ<textarea rows="3" value={result.note} onChange={(e) => setResult({ ...result, note: e.target.value })} /></label><button className="primary" disabled={saving} onClick={saveResult}>確認済みにする</button></aside>}</section>}
 
       {program && tab === "history" && <section className="course-card"><div className="list-toolbar"><div><h2>確認履歴</h2><p>講習期間中に指示・確認した内容を保存します。</p></div><div><select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}><option value="all">全学年</option><option value="7">中1</option><option value="8">中2</option><option value="9">中3</option></select><select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}><option value="all">全生徒</option>{students.map((item) => <option key={item.uid} value={item.uid}>{studentName(item)}</option>)}</select></div></div><AssignmentList items={history} historyMode /></section>}
+      {program && tab === "instruction" && <section className="course-card next-week-separated"><div className="section-heading"><div><span>NEXT WEEK</span><h2>次週の確認予定</h2><p>{formatDate(nextWeek.start)}〜{formatDate(nextWeek.end)}</p></div><strong>{dueNextWeek.length}件</strong></div><div className="next-week-columns"><section><div className="next-week-title homework"><h3>宿題</h3><span>{nextWeekHomework.length}件</span></div><AssignmentList items={nextWeekHomework} /></section><section><div className="next-week-title word"><h3>単語テスト</h3><span>{nextWeekWordTests.length}件</span></div><p className="word-rule">中1：20問　中2：30問　中3：50問</p><AssignmentList items={nextWeekWordTests} /></section></div></section>}
       {notice && <p className="course-notice" role="status">{notice}</p>}
     </main>
   );

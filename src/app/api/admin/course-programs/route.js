@@ -22,6 +22,7 @@ async function requireAdmin(request) {
 
 const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || "");
 const validId = (value) => /^[A-Za-z0-9_-]{6,128}$/.test(value || "");
+const wordTotalForGrade = (grade) => ({ 7: 20, 8: 30, 9: 50 }[Number(grade)] || 20);
 
 export async function GET(request) {
   try {
@@ -81,7 +82,9 @@ export async function POST(request) {
         throw new ApiError("指示日は講習期間内で指定してください。");
       }
       const reference = await programRef.collection("assignments").add({
-        ...assignment, range: String(assignment.range).trim(), note: String(assignment.note || "").trim(),
+        ...assignment,
+        wordTotal: assignment.type === "wordTest" ? wordTotalForGrade(student.data().grade) : null,
+        range: String(assignment.range).trim(), note: String(assignment.note || "").trim(),
         status: "assigned", createdBy: adminUid, updatedBy: adminUid,
         createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
       });
@@ -117,8 +120,9 @@ export async function PATCH(request) {
     if (!snapshot.exists) throw new ApiError("課題が見つかりません。", 404);
     if (snapshot.data().type === "wordTest") {
       const correct = Number(result?.wordCorrect);
-      const total = Number(result?.wordTotal);
+      const total = wordTotalForGrade(snapshot.data().grade);
       if (!Number.isFinite(correct) || !Number.isFinite(total) || correct < 0 || total <= 0 || correct > total) throw new ApiError("単語テストの点数が正しくありません。");
+      result.wordTotal = total;
     }
     await reference.set({ status: "checked", checkedDate, result, updatedBy: adminUid, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     return Response.json({ ok: true });
