@@ -124,6 +124,13 @@ const menuGroups = [
         tone: "amber",
       },
       {
+        title: "ガチャ管理",
+        desc: "抽選結果と景品の引き渡しを確認",
+        icon: "☆",
+        path: "/admin/gacha",
+        tone: "violet",
+      },
+      {
         title: "不正検知",
         desc: "位置情報と不正な入退室記録",
         icon: "!",

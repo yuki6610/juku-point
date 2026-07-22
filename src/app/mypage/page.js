@@ -103,6 +103,7 @@ export default function MyPage() {
               Number(d.avatarVersion || 0);
           setData(useLocalAvatar ? { ...d, ...avatarOverride } : d);
 
+
           const lastLevel = parseInt(localStorage.getItem("lastLevel") || "0");
           if ((d.level ?? 1) > lastLevel) {
             setLevelUpVisible(true);
