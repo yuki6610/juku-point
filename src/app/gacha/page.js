@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebaseConfig";
 import "./gacha.css";
+import "./gacha-sound.css";
 
 const labels = { meal: "食事代券", snack: "お菓子", regular: "アイス・通常景品" };
 const icons = { meal: "🎟", snack: "🍬", regular: "🍨" };
@@ -18,6 +19,7 @@ export default function GachaPage() {
   const [result, setResult] = useState(null);
   const [showCount, setShowCount] = useState(10);
   const [skip, setSkip] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const request = async (url, options) => {
     const user = auth.currentUser;
@@ -35,20 +37,43 @@ export default function GachaPage() {
     catch (e) { setError(e.message); }
   }), [router]);
 
-  const grouped = useMemo(() => {
-    const map = { meal: [], snack: [], regular: [] };
-    state?.rewards?.forEach((reward) => map[reward.kind]?.push(reward));
-    return map;
-  }, [state]);
+  const playTone = (frequency, start, duration, volume = 0.08, type = "sine") => {
+    if (!soundEnabled) return;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const context = window.__gachaAudioContext || new AudioContext();
+    window.__gachaAudioContext = context;
+    if (context.state === "suspended") context.resume().catch(() => {});
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, context.currentTime + start);
+    gain.gain.setValueAtTime(0.0001, context.currentTime + start);
+    gain.gain.exponentialRampToValueAtTime(volume, context.currentTime + start + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + start + duration);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(context.currentTime + start);
+    oscillator.stop(context.currentTime + start + duration + 0.02);
+  };
+
+  const playDrawSound = () => {
+    [0, .14, .28, .42, .56, .7].forEach((start, index) => playTone(150 + index * 24, start, .09, .045, "square"));
+  };
+
+  const playWinSound = () => {
+    [523, 659, 784, 1047].forEach((frequency, index) => playTone(frequency, index * .11, .34, .075));
+  };
 
   const draw = async () => {
     if (drawing || !state || state.points < state.cost) return;
     setDrawing(true); setError(""); setResult(null);
+    playDrawSound();
     try {
       const body = await request("/api/gacha", { method: "POST", body: "{}" });
       const refreshedPromise = request("/api/gacha").catch(() => null);
       if (!skip) await new Promise((resolve) => window.setTimeout(resolve, 2100));
       setResult(body);
+      playWinSound();
       const refreshed = await refreshedPromise;
       if (refreshed) setState(refreshed);
       else setState((current) => ({
@@ -87,22 +112,22 @@ export default function GachaPage() {
           {drawing ? "抽選中…" : `${state.cost}ptで1回引く`}
         </button>
         {state.points < state.cost && <p className="point-shortage">あと{(state.cost - state.points).toLocaleString()}pt必要です</p>}
-        <label className="skip-option"><input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} />演出を短くする</label>
+        <div className="gacha-options">
+          <label className="skip-option"><input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} />演出を短くする</label>
+          <label className="skip-option"><input type="checkbox" checked={soundEnabled} onChange={(e) => setSoundEnabled(e.target.checked)} />音を出す</label>
+        </div>
       </section>
 
       <section className="gacha-card rates-card">
         <div className="section-title"><div><span>PRIZE LINEUP</span><h2>景品と提供割合</h2></div><strong>合計100%</strong></div>
-        {Object.entries(grouped).map(([kind, rewards]) => rewards.length > 0 && (
-          <div className="rate-group" key={kind}>
-            <h3><span>{icons[kind]}</span>{labels[kind]}</h3>
-            {rewards.map((reward) => (
-              <div className="rate-row" key={reward.id}>
-                <div>{reward.image ? <img src={reward.image} alt="" loading="lazy" /> : <span className="rate-icon">{icons[kind]}</span>}<strong>{reward.name}</strong></div>
-                <b>{Number(reward.probability).toFixed(2)}%</b>
-              </div>
-            ))}
-          </div>
-        ))}
+        <div className="rate-group">
+          {state.rewards.map((reward) => (
+            <div className="rate-row" key={reward.id}>
+              <div>{reward.image ? <img src={reward.image} alt="" loading="lazy" /> : <span className="rate-icon">{icons[reward.kind]}</span>}<span className="rate-copy"><strong>{reward.name}</strong><small>{labels[reward.kind]}</small></span></div>
+              <b>{Number(reward.probability).toFixed(2)}%</b>
+            </div>
+          ))}
+        </div>
         {!state.rewards.length && <p className="empty-gacha">現在提供できる景品がありません。</p>}
         <p className="rate-note">在庫切れの景品は提供を終了し、表示中の景品で割合を再計算します。</p>
       </section>

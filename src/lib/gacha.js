@@ -43,7 +43,7 @@ export function buildGachaPool(rewards) {
   const rounded = raw.map((item) => ({ ...item, probability: Math.round(item.probability * 100) / 100 }));
   const difference = Math.round((100 - rounded.reduce((sum, item) => sum + item.probability, 0)) * 100) / 100;
   if (rounded.length) rounded[rounded.length - 1].probability += difference;
-  return rounded;
+  return rounded.sort((a, b) => b.probability - a.probability || String(a.name).localeCompare(String(b.name), "ja"));
 }
 
 export function serializeGachaReward(reward) {
