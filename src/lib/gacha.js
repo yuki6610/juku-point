@@ -8,6 +8,7 @@ export function gachaKind(reward = {}) {
   if (reward.gachaEligible === false) return "excluded";
   if (category === "stationery" || STATIONERY_WORDS.some((word) => name.includes(word.toLowerCase()))) return "excluded";
   if (name.includes("fifa") || name.includes("フィファ")) return "excluded";
+  if (name.includes("コストコ") || name.includes("costco")) return "excluded";
   if (
     name.includes("食事代") || name.includes("食事券") || name.includes("円券") || name.includes("食事チケット")
   ) return "meal";
