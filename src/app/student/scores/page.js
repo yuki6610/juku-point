@@ -31,6 +31,10 @@ const BASE_TEST_TYPES = [
   "3学期実力",
 ];
 const PAST_EXAMS = Array.from({ length: 10 }, (_, index) => `過去問${2016 + index}`);
+const SUMMER_ENTRANCE_PRACTICE = Array.from(
+  { length: 10 },
+  (_, index) => `入試演習問題${index + 1}`,
+);
 const MAIN = ["国語", "社会", "数学", "理科", "英語"];
 const SUB = ["音楽", "美術", "保体", "技家"];
 
@@ -112,10 +116,21 @@ export default function StudentScoresPage() {
     profile?.grade === 9 &&
     Array.isArray(profile?.courseTags) &&
     profile.courseTags.includes("past_exam");
-  const testTypes =
-    isPastExamStudent && grade === "中3"
-      ? [...BASE_TEST_TYPES, ...PAST_EXAMS]
-      : BASE_TEST_TYPES;
+  const isSummerEntranceStudent =
+    profile?.grade === 9 &&
+    Array.isArray(profile?.courseTags) &&
+    profile.courseTags.includes("summer_course");
+  const testTypes = grade === "中3"
+    ? [
+        ...BASE_TEST_TYPES,
+        ...(isSummerEntranceStudent ? SUMMER_ENTRANCE_PRACTICE : []),
+        ...(isPastExamStudent ? PAST_EXAMS : []),
+      ]
+    : BASE_TEST_TYPES;
+
+  useEffect(() => {
+    if (!testTypes.includes(testType)) setTestType(BASE_TEST_TYPES[0]);
+  }, [grade, isPastExamStudent, isSummerEntranceStudent]);
 
   const sortedSchools = useMemo(
     () => [...schools].sort((a, b) => Number(b.minScore || 0) - Number(a.minScore || 0)),

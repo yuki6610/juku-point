@@ -33,6 +33,7 @@ const PAST_EXAMS=[
   '過去問2020','過去問2021','過去問2022','過去問2023',
   '過去問2024','過去問2025'
 ]
+const SUMMER_ENTRANCE_PRACTICE=Array.from({length:10},(_,index)=>`入試演習問題${index+1}`)
 
 const MAIN=['国語','社会','数学','理科','英語']
 const SUB=['音楽','美術','保体','技家']
@@ -150,12 +151,13 @@ export default function AdminScoresPage() {
     Object.values(internalMain).reduce((a,b)=>a+b,0)*4+
     Object.values(internalSub).reduce((a,b)=>a+b,0)*7.5
 
-  const TEST_TYPES=
-    selectedStudent?.grade===9 &&
-    selectedStudent?.courseTags?.includes('past_exam') &&
-    grade==='中3'
-      ? [...BASE_TEST_TYPES,...PAST_EXAMS]
-      : BASE_TEST_TYPES
+  const TEST_TYPES=selectedStudent?.grade===9&&grade==='中3'
+    ? [
+        ...BASE_TEST_TYPES,
+        ...(selectedStudent?.courseTags?.includes('summer_course')?SUMMER_ENTRANCE_PRACTICE:[]),
+        ...(selectedStudent?.courseTags?.includes('past_exam')?PAST_EXAMS:[]),
+      ]
+    : BASE_TEST_TYPES
 
   const isDuplicateExam=()=>saved.some(
     s=>
