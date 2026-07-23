@@ -44,6 +44,7 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [showAvatar, setShowAvatar] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [gachaAccess, setGachaAccess] = useState({ eligible: false, pendingCount: 0 });
 
   const [levelUpVisible, setLevelUpVisible] = useState(false);
 
@@ -102,6 +103,12 @@ export default function MyPage() {
             Number(avatarOverride.avatarVersion || 0) >=
               Number(d.avatarVersion || 0);
           setData(useLocalAvatar ? { ...d, ...avatarOverride } : d);
+
+          currentUser.getIdToken().then((token) =>
+            fetch("/api/gacha/eligibility", { headers: { Authorization: `Bearer ${token}` } })
+          ).then((response) => response.ok ? response.json() : null)
+            .then((result) => result && setGachaAccess(result))
+            .catch(() => {});
 
 
           const lastLevel = parseInt(localStorage.getItem("lastLevel") || "0");
@@ -164,6 +171,17 @@ export default function MyPage() {
         ]),
     ...(data?.courseTags?.includes("summer_course")
       ? [{ icon: "☀", label: "夏期イベント", note: "期間限定イベント", path: "/summer", tone: "gold" }]
+      : []),
+    ...(gachaAccess.eligible
+      ? [{
+          icon: "☆",
+          label: "ガチャ",
+          note: gachaAccess.pendingCount > 0
+            ? `受け取り待ち ${gachaAccess.pendingCount}件`
+            : "500ptで必ず当たる",
+          path: "/gacha",
+          tone: "gold",
+        }]
       : []),
     { icon: "P", label: "ポイント履歴", note: "獲得・利用履歴", path: "/points", tone: "cyan" },
     { icon: "⚙", label: "設定", note: "名前・アバター", path: "/settings", tone: "gray" },
