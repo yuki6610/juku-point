@@ -87,7 +87,7 @@ export default function GachaPage() {
 
   if (!state && !error) return <main className="gacha-state">ガチャを準備しています…</main>;
   if (error && !state) return <main className="gacha-state"><p>{error}</p><button onClick={() => router.push("/mypage")}>マイページへ戻る</button></main>;
-  if (!state?.eligible) return <main className="gacha-state"><p>このガチャは講習参加者限定です。</p><button onClick={() => router.push("/mypage")}>マイページへ戻る</button></main>;
+  if (!state?.eligible) return <main className="gacha-state"><p>このガチャは中3の講習参加者限定です。</p><button onClick={() => router.push("/mypage")}>マイページへ戻る</button></main>;
 
   return (
     <main className="gacha-page">
@@ -98,7 +98,7 @@ export default function GachaPage() {
       </header>
 
       <section className={`gacha-stage ${drawing ? "is-drawing" : ""}`}>
-        <div className="gacha-badge">{state.adminPreview ? "管理者確認モード" : "講習参加者限定"}</div>
+        <div className="gacha-badge">{state.adminPreview ? "管理者確認モード" : "中3・講習参加者限定"}</div>
         <div className="gacha-machine" aria-hidden="true">
           <div className="machine-glow" />
           <div className="machine-window"><span>🎟</span><span>🍬</span><span>🍨</span></div>

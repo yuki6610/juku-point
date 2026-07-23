@@ -8,13 +8,15 @@ export async function GET(request) {
     const authorization = request.headers.get("authorization") || "";
     if (!authorization.startsWith("Bearer ")) return Response.json({ eligible: false }, { status: 401 });
     const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
-    const [snapshot, adminSnapshot] = await Promise.all([
+    const [snapshot, adminSnapshot, userSnapshot] = await Promise.all([
       adminDb.collection("coursePrograms")
         .where("participantIds", "array-contains", decoded.uid).limit(1).get(),
       adminDb.collection("admins").doc(decoded.uid).get(),
+      adminDb.collection("users").doc(decoded.uid).get(),
     ]);
     const isAdmin = adminSnapshot.exists;
-    if (snapshot.empty && !isAdmin) return Response.json({ eligible: false, pendingCount: 0 });
+    const isEligibleStudent = !snapshot.empty && Number(userSnapshot.data()?.grade) === 9;
+    if (!isEligibleStudent && !isAdmin) return Response.json({ eligible: false, pendingCount: 0 });
     const draws = await adminDb.collection("gachaDraws")
       .where("userId", "==", decoded.uid).limit(50).get();
     return Response.json({

@@ -47,7 +47,7 @@ async function stateFor(uid) {
     .slice(0, 50)
     .map((item) => ({ ...item, createdAt: iso(item.createdAt), deliveredAt: iso(item.deliveredAt), canceledAt: iso(item.canceledAt) }));
   return {
-    eligible: Boolean(program) || isAdmin,
+    eligible: isAdmin || (Boolean(program) && Number(user.data().grade) === 9),
     adminPreview: isAdmin,
     program: program ? { id: program.id, name: program.name || "講習" } : isAdmin ? { id: "admin-preview", name: "管理者確認" } : null,
     points: Number(user.data().points || 0),
@@ -71,8 +71,13 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const decoded = await currentUser(request);
-    const [registeredProgram, isAdmin] = await Promise.all([participation(decoded.uid), adminAccess(decoded.uid)]);
-    if (!registeredProgram && !isAdmin) throw new GachaError("講習参加者限定のガチャです。", 403);
+    const [registeredProgram, isAdmin, userForEligibility] = await Promise.all([
+      participation(decoded.uid),
+      adminAccess(decoded.uid),
+      adminDb.collection("users").doc(decoded.uid).get(),
+    ]);
+    const isEligibleStudent = registeredProgram && Number(userForEligibility.data()?.grade) === 9;
+    if (!isEligibleStudent && !isAdmin) throw new GachaError("中3の講習参加者限定のガチャです。", 403);
     const program = registeredProgram || { id: "admin-preview", name: "管理者確認" };
     const rewardSnapshot = await adminDb.collection("rewards").get();
     const pool = buildGachaPool(rewardSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
