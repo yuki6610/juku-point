@@ -178,7 +178,9 @@ export default function MyPage() {
           label: "ガチャ",
           note: gachaAccess.pendingCount > 0
             ? `受け取り待ち ${gachaAccess.pendingCount}件`
-            : "500ptで必ず当たる",
+            : gachaAccess.adminPreview
+              ? "管理者の動作確認"
+              : "500ptで必ず当たる",
           path: "/gacha",
           tone: "gold",
         }]
