@@ -11,9 +11,8 @@ const groups = [
       { path: "/admin", icon: "⌂", label: "ダッシュボード", exact: true },
       { path: "/admin/lesson-records", icon: "✓", label: "学習記録" },
       { path: "/admin/course-lessons", icon: "季", label: "講習授業管理" },
-      { path: "/admin/lesson-attendance", icon: "▦", label: "授業・振替管理" },
+      { path: "/admin/lesson-attendance", icon: "▦", label: "授業・出欠・振替" },
       { path: "/admin/study-log", icon: "◷", label: "自習管理" },
-      { path: "/admin/attend", icon: "○", label: "高校生の出席" },
     ],
   },
   {

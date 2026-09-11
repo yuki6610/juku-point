@@ -4,19 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   collection,
-  deleteField,
   doc,
   getDoc,
   getDocs,
   serverTimestamp,
   setDoc,
   updateDoc,
-  writeBatch,
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./lesson-attendance.css";
 import "./attendance-adjustments.css";
 import "./annual-calendar.css";
+import "./edit-record.css";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const TEACHING_DAYS = [1, 2, 3, 4, 5, 6];
@@ -228,6 +227,7 @@ export default function LessonAttendancePage() {
   const [status, setStatus] = useState("present");
   const [originalDate, setOriginalDate] = useState("");
   const [note, setNote] = useState("");
+  const [editingDate, setEditingDate] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
@@ -650,47 +650,21 @@ export default function LessonAttendancePage() {
     }
     setBusy(true);
     try {
-      const batch = writeBatch(db);
-      const base = doc(db, "adminLessonAttendance", selectedKey, "records", recordDate);
-      batch.set(base, {
-        date: recordDate,
-        status,
-        originalDate: status === "makeup" ? originalDate : null,
-        note: note.trim(),
-        studentId: selectedStudent.id,
-        studentSource: selectedStudent.source,
-        updatedAt: serverTimestamp(),
-        updatedBy: auth.currentUser?.uid || null,
-      }, { merge: true });
-      if (status === "makeup") {
-        batch.set(
-          doc(db, "adminLessonAttendance", selectedKey, "records", originalDate),
-          { makeupDate: recordDate, makeupCompleted: true, updatedAt: serverTimestamp() },
-          { merge: true }
-        );
-      }
-      if (isMiddleSchool(selectedStudent)) {
-        const targetTermId = termIdForDate(recordDate, termSettings, year);
-        if (targetTermId) {
-          batch.set(
-            doc(db, "users", selectedStudent.id, "lessonTerms", targetTermId, "records", recordDate),
-            {
-              date: recordDate,
-              termId: targetTermId,
-              attendance: status,
-              originalLessonDate: status === "makeup" ? originalDate : null,
-              behaviorNote: note.trim(),
-              updatedBy: auth.currentUser?.uid || null,
-              updatedAt: serverTimestamp(),
-            },
-            { merge: true }
-          );
-        }
-      }
-      await batch.commit();
+      const token = await auth.currentUser?.getIdToken();
+      const response = await fetch("/api/admin/lesson-attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "save", student: { id: selectedStudent.id, source: selectedStudent.source, grade: selectedStudent.grade }, date: recordDate, status, originalDate, note, year, terms: termSettings }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "保存に失敗しました。");
       await loadRecords();
-      setNotice(status === "makeup" ? "欠席と振替をセットで保存しました。" : "出欠を保存しました。");
+      setNotice(`${editingDate ? "出欠を修正" : "出欠を保存"}しました。${result.pointDelta ? ` 高校生のポイントを${result.pointDelta > 0 ? "+" : ""}${result.pointDelta}pt調整しました。` : ""}`);
       setNote("");
+      setEditingDate("");
+    } catch (error) {
+      console.error(error);
+      setNotice(error.message || "出欠記録を保存できませんでした。");
     } finally {
       setBusy(false);
     }
@@ -706,57 +680,14 @@ export default function LessonAttendancePage() {
 
     setBusy(true);
     try {
-      const batch = writeBatch(db);
-      const attendanceRecordRef = (date) =>
-        doc(db, "adminLessonAttendance", selectedKey, "records", date);
-      const termRecordRef = (date) => {
-        const termId = termIdForDate(date, termSettings, year);
-        return termId ? doc(db, "users", selectedStudent.id, "lessonTerms", termId, "records", date) : null;
-      };
-      const deleteRecordAt = (date) => {
-        batch.delete(attendanceRecordRef(date));
-        if (isMiddleSchool(selectedStudent)) {
-          const ref = termRecordRef(date);
-          if (ref) batch.delete(ref);
-        }
-      };
-      const clearMakeupLinkAt = (date) => {
-        batch.set(
-          attendanceRecordRef(date),
-          {
-            makeupDate: deleteField(),
-            makeupCompleted: deleteField(),
-            updatedAt: serverTimestamp(),
-            updatedBy: auth.currentUser?.uid || null,
-          },
-          { merge: true }
-        );
-        if (isMiddleSchool(selectedStudent)) {
-          const ref = termRecordRef(date);
-          if (ref) {
-            batch.set(
-              ref,
-              {
-                makeupDate: deleteField(),
-                makeupCompleted: deleteField(),
-                updatedAt: serverTimestamp(),
-                updatedBy: auth.currentUser?.uid || null,
-              },
-              { merge: true }
-            );
-          }
-        }
-      };
-
-      deleteRecordAt(record.date);
-      if (record.status === "makeup" && record.originalDate) {
-        clearMakeupLinkAt(record.originalDate);
-      }
-      if (record.status === "absent" && record.makeupDate) {
-        deleteRecordAt(record.makeupDate);
-      }
-
-      await batch.commit();
+      const token = await auth.currentUser?.getIdToken();
+      const response = await fetch("/api/admin/lesson-attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: "delete", student: { id: selectedStudent.id, source: selectedStudent.source, grade: selectedStudent.grade }, date: record.date, year, terms: termSettings }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "削除に失敗しました。");
       await loadStudentRecords(selectedKey);
       await loadRecords(visibleStudents);
       setNotice("出欠記録を削除しました。");
@@ -766,6 +697,24 @@ export default function LessonAttendancePage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const editAttendance = (record) => {
+    setEditingDate(record.date);
+    setRecordDate(record.date);
+    setStatus(record.status);
+    setOriginalDate(record.originalDate || "");
+    setNote(record.note || "");
+    setNotice(`${record.date}の記録を修正しています。`);
+  };
+
+  const cancelEdit = () => {
+    setEditingDate("");
+    setRecordDate(todayId());
+    setStatus("present");
+    setOriginalDate("");
+    setNote("");
+    setNotice("修正を取り消しました。");
   };
 
   const weekdayCounts = TEACHING_DAYS.map((weekday) => ({
@@ -903,7 +852,7 @@ export default function LessonAttendancePage() {
             <h2>生徒を選択</h2>
             {visibleStudents.map((student) => {
               const key = studentKey(student);
-              return <button key={key} className={selectedKey === key ? "active" : ""} onClick={() => setSelectedKey(key)}>
+              return <button key={key} className={selectedKey === key ? "active" : ""} onClick={() => { setSelectedKey(key); setEditingDate(""); setNote(""); setOriginalDate(""); }}>
                 <strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}</span>
               </button>;
             })}
@@ -911,15 +860,15 @@ export default function LessonAttendancePage() {
           </aside>
           <div className="attendance-form">
             {!selectedStudent ? <div className="attendance-empty">左から生徒を選択してください。</div> : <>
-              <div className="form-heading"><div><span>{gradeLabel(selectedStudent.grade)}</span><h2>{selectedStudent.name || selectedStudent.realName}</h2></div><input type="date" value={recordDate} onChange={(event) => setRecordDate(event.target.value)} /></div>
+              <div className="form-heading"><div><span>{editingDate ? "記録を修正中" : gradeLabel(selectedStudent.grade)}</span><h2>{selectedStudent.name || selectedStudent.realName}</h2></div><input type="date" value={recordDate} disabled={Boolean(editingDate)} onChange={(event) => setRecordDate(event.target.value)} /></div>
               <div className="status-choices">
                 {[["present", "通常授業を実施"], ["absent", "欠席"], ["makeup", "振替を実施"]].map(([value, label]) =>
                   <button key={value} className={status === value ? "active" : ""} onClick={() => setStatus(value)}>{label}</button>
                 )}
               </div>
-              {status === "makeup" && <label>振替元の欠席日<select value={originalDate} onChange={(event) => setOriginalDate(event.target.value)}><option value="">選択してください</option>{Object.values(selectedRecords).filter((record) => record.status === "absent" && !record.makeupDate).map((record) => <option key={record.date} value={record.date}>{record.date}</option>)}</select></label>}
+              {status === "makeup" && <label>振替元の欠席日<select value={originalDate} onChange={(event) => setOriginalDate(event.target.value)}><option value="">選択してください</option>{Object.values(selectedRecords).filter((record) => record.status === "absent" && (!record.makeupDate || record.makeupDate === editingDate)).map((record) => <option key={record.date} value={record.date}>{record.date}</option>)}</select></label>}
               <label>メモ（任意）<textarea value={note} onChange={(event) => setNote(event.target.value)} rows="3" /></label>
-              <button className="primary-action" disabled={busy} onClick={saveAttendance}>{busy ? "保存中…" : "記録を保存"}</button>
+              <div className="record-form-actions"><button className="primary-action" disabled={busy} onClick={saveAttendance}>{busy ? "保存中…" : editingDate ? "修正内容を保存" : "記録を保存"}</button>{editingDate && <button type="button" className="record-cancel" disabled={busy} onClick={cancelEdit}>修正をやめる</button>}</div>
               <div className="recent-records">
                 <h3>記録履歴 <small>{selectedRecordList.length}件</small></h3>
                 <div className="record-history-list">
@@ -928,7 +877,7 @@ export default function LessonAttendancePage() {
                       <time>{record.date}</time>
                       <strong>{record.status === "present" ? "実施" : record.status === "absent" ? "欠席" : "振替実施"}</strong>
                       <span>{record.makeupDate ? `振替済 ${record.makeupDate}` : record.status === "makeup" && record.originalDate ? `振替元 ${record.originalDate}` : record.status === "absent" ? "振替待ち" : record.note}</span>
-                      <button type="button" className="record-delete" disabled={busy} onClick={() => deleteAttendance(record)}>削除</button>
+                      <div className="record-row-actions"><button type="button" className="record-edit" disabled={busy} onClick={() => editAttendance(record)}>修正</button><button type="button" className="record-delete" disabled={busy} onClick={() => deleteAttendance(record)}>削除</button></div>
                     </div>
                   ))}
                   {selectedRecordList.length === 0 && <p className="record-history-empty">まだ記録がありません。</p>}

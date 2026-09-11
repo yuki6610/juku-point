@@ -37,13 +37,6 @@ const menuGroups = [
         path: "/admin/study-log",
         tone: "cyan",
       },
-      {
-        title: "高校生の出席",
-        desc: "通常授業の出席確認とポイント付与",
-        icon: "○",
-        path: "/admin/attend",
-        tone: "orange",
-      },
     ],
   },
   {
@@ -53,8 +46,8 @@ const menuGroups = [
     description: "生徒情報、成績、志望校判定を管理します。",
     items: [
       {
-        title: "授業・振替管理",
-        desc: "小中学生の欠席、振替、授業回数を照合",
+        title: "授業・出欠・振替管理",
+        desc: "小中高の出欠・振替・授業回数・高校生ポイントを一括管理",
         icon: "▦",
         path: "/admin/lesson-attendance",
         tone: "violet",
