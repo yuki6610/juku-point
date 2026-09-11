@@ -249,6 +249,7 @@ export default function LessonAttendancePage() {
   const [notice, setNotice] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
   const [calendarDirty, setCalendarDirty] = useState(false);
+  const [scheduleDrafts, setScheduleDrafts] = useState({});
 
   const loadStudents = async () => {
     const [usersResult, elementaryResult] = await Promise.allSettled([
@@ -260,14 +261,14 @@ export default function LessonAttendancePage() {
       elementaryResult.status === "fulfilled" ? elementaryResult.value : { docs: [] };
     const secondary = usersSnap.docs
       .map((item) => ({ id: item.id, source: "user", ...item.data() }))
-      .filter((item) => Number(item.grade) >= 7 && Number(item.grade) <= 12);
+      .filter((item) => item.active !== false && item.enrollmentStatus !== "withdrawn" && Number(item.grade) >= 7 && Number(item.grade) <= 12);
     const elementary = elementarySnap.docs
       .map((item) => ({
         id: item.id,
         source: "elementary",
         ...item.data(),
       }))
-      .filter((item) => Number(item.grade) >= 1 && Number(item.grade) <= 6);
+      .filter((item) => item.active !== false && item.enrollmentStatus !== "withdrawn" && Number(item.grade) >= 1 && Number(item.grade) <= 6);
     setStudents([...elementary, ...secondary].sort((a, b) =>
       Number(a.grade || 0) - Number(b.grade || 0) ||
       String(a.realName || a.name || "").localeCompare(String(b.realName || b.name || ""), "ja")
@@ -570,6 +571,7 @@ export default function LessonAttendancePage() {
         ? { weekdays, updatedAt: serverTimestamp() }
         : { lessonSchedule: { ...(student.lessonSchedule || {}), weekdays }, updatedAt: serverTimestamp() });
       await loadStudents();
+      setScheduleDrafts((current) => { const next = { ...current }; delete next[studentKey(student)]; return next; });
       setNotice("通塾曜日を保存しました。");
     } catch (error) {
       console.error(error);
@@ -913,12 +915,16 @@ export default function LessonAttendancePage() {
           </div>
           <div className="schedule-list">{visibleStudents.map((student) => {
             const current = student.lessonSchedule?.weekdays || student.weekdays || [];
+            const key = studentKey(student);
+            const draft = scheduleDrafts[key] || current;
+            const changed = JSON.stringify(draft) !== JSON.stringify(current);
             return <article key={studentKey(student)}>
               <div>
                 <strong>{student.name || student.realName || student.displayName}</strong>
                 <span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "生徒アカウント"}</span>
               </div>
-              <div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={current.includes(day) ? "active" : ""} disabled={busy} onClick={() => saveSchedule(student, current.includes(day) ? current.filter((value) => value !== day) : [...current, day].sort())}>{WEEKDAYS[day]}</button>)}</div>
+              <div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={draft.includes(day) ? "active" : ""} disabled={busy} onClick={() => setScheduleDrafts((values) => ({ ...values, [key]: draft.includes(day) ? draft.filter((value) => value !== day) : [...draft, day].sort() }))}>{WEEKDAYS[day]}</button>)}</div>
+              <button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft)}>曜日を保存</button>
               <label className="lesson-start-field">
                 計算開始日
                 <input

@@ -75,7 +75,7 @@ export default function AdminJudgePage(){
       setStudents(
         snap.docs
           .map(d=>({uid:d.id,...d.data()}))
-          .filter(s=>Number(s.grade)>=7&&Number(s.grade)<=9)
+          .filter(s=>s.active!==false&&s.enrollmentStatus!=='withdrawn'&&Number(s.grade)>=7&&Number(s.grade)<=9)
           .sort((a,b)=>
             Number(a.grade||0)-Number(b.grade||0) ||
             String(a.realName||a.displayName||'').localeCompare(String(b.realName||b.displayName||''),'ja')

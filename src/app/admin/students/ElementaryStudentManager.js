@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addDoc, collection, deleteDoc, doc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./elementary-manager.css";
 
@@ -11,6 +11,7 @@ export default function ElementaryStudentManager({ onNotice }) {
   const [grade, setGrade] = useState(1);
   const [editing, setEditing] = useState({});
   const [busy, setBusy] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("active");
 
   const notify = (message) => onNotice?.(message);
   const loadStudents = async () => {
@@ -45,11 +46,11 @@ export default function ElementaryStudentManager({ onNotice }) {
     finally { setBusy(false); }
   };
 
-  const removeStudent = async (student) => {
-    if (!window.confirm(`${student.name}さんを削除しますか？`)) return;
+  const setEnrollmentStatus = async (student, withdrawn) => {
+    if (withdrawn && !window.confirm(`${student.name}さんを退塾扱いにしますか？\n過去の出欠記録は残ります。`)) return;
     setBusy(true);
-    try { await deleteDoc(doc(db, "adminStudents", student.id)); await loadStudents(); notify("小学生を削除しました。"); }
-    catch (error) { console.error(error); notify("小学生を削除できませんでした。"); }
+    try { await updateDoc(doc(db, "adminStudents", student.id), { active: !withdrawn, enrollmentStatus: withdrawn ? "withdrawn" : "active", withdrawnAt: withdrawn ? serverTimestamp() : null, updatedAt: serverTimestamp() }); await loadStudents(); notify(withdrawn ? "退塾者へ移動しました。" : "在籍中へ戻しました。"); }
+    catch (error) { console.error(error); notify("在籍状態を更新できませんでした。"); }
     finally { setBusy(false); }
   };
 
@@ -60,13 +61,14 @@ export default function ElementaryStudentManager({ onNotice }) {
       <label>学年<select value={grade} onChange={(event) => setGrade(Number(event.target.value))}>{[1,2,3,4,5,6].map((value) => <option key={value} value={value}>小学{value}年</option>)}</select></label>
       <button disabled={busy}>{busy ? "登録中…" : "小学生を登録"}</button>
     </form>
+    <div className="elementary-status-filter"><button className={statusFilter === "active" ? "active" : ""} onClick={() => setStatusFilter("active")}>在籍中</button><button className={statusFilter === "withdrawn" ? "active" : ""} onClick={() => setStatusFilter("withdrawn")}>退塾者</button></div>
     <div className="elementary-manager-list">
-      {students.map((student) => { const values = editing[student.id] || {}; return <article key={student.id}>
+      {students.filter((student) => statusFilter === "withdrawn" ? student.active === false || student.enrollmentStatus === "withdrawn" : student.active !== false && student.enrollmentStatus !== "withdrawn").map((student) => { const values = editing[student.id] || {}; return <article key={student.id}>
         <input value={values.name ?? student.name ?? ""} onChange={(event) => setEditing((current) => ({ ...current, [student.id]: { ...current[student.id], name: event.target.value } }))} aria-label={`${student.name}の名前`} />
         <select value={values.grade ?? student.grade ?? 1} onChange={(event) => setEditing((current) => ({ ...current, [student.id]: { ...current[student.id], grade: Number(event.target.value) } }))}>{[1,2,3,4,5,6].map((value) => <option key={value} value={value}>小学{value}年</option>)}</select>
         <span>{(student.weekdays || []).length ? "通塾曜日設定済み" : "通塾曜日未設定"}</span>
         <button disabled={busy} onClick={() => saveStudent(student)}>保存</button>
-        <button disabled={busy} className="delete" onClick={() => removeStudent(student)}>削除</button>
+        <button disabled={busy} className={student.active === false || student.enrollmentStatus === "withdrawn" ? "restore" : "delete"} onClick={() => setEnrollmentStatus(student, !(student.active === false || student.enrollmentStatus === "withdrawn"))}>{student.active === false || student.enrollmentStatus === "withdrawn" ? "復帰" : "退塾"}</button>
       </article>; })}
       {!students.length && <p className="elementary-manager-empty">登録された小学生はいません。</p>}
     </div>

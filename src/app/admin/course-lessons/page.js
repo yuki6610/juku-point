@@ -86,7 +86,7 @@ export default function CourseLessonsPage() {
   useEffect(() => {
     Promise.all([getDocs(collection(db, "users")), adminApi()]).then(([snapshot, data]) => {
       setStudents(snapshot.docs.map((item) => ({ uid: item.id, ...item.data() }))
-        .filter((item) => Number(item.grade) >= 7 && Number(item.grade) <= 9)
+        .filter((item) => item.active !== false && item.enrollmentStatus !== "withdrawn" && Number(item.grade) >= 7 && Number(item.grade) <= 9)
         .sort((a, b) => Number(a.grade) - Number(b.grade) || studentName(a).localeCompare(studentName(b), "ja")));
       setPrograms(data.programs || []);
       setProgramId((current) => current || data.programs?.[0]?.id || "");

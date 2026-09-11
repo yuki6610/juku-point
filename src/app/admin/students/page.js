@@ -17,6 +17,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import GradeTag from '@/components/GradeTag';
 import { getCurrentSeason } from '../../utils/season';
 import './students.css';
+import './enrollment.css';
 import ElementaryStudentManager from './ElementaryStudentManager';
 
 const GRADES = [
@@ -30,6 +31,8 @@ const GRADES = [
 ];
 
 const STATUS_FILTERS = [
+  { value: 'active', label: '在籍中' },
+  { value: 'withdrawn', label: '退塾者' },
   { value: 'all', label: 'すべて' },
   { value: 'attention', label: '要確認' },
   { value: 'banned', label: '出禁中' },
@@ -98,7 +101,7 @@ const sortStudents = (students, sortKey) => {
 export default function StudentsPage() {
   const [students, setStudents] = useState([]);
   const [filterGrade, setFilterGrade] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [sortKey, setSortKey] = useState('grade');
   const [search, setSearch] = useState('');
   const [courseModalOpen, setCourseModalOpen] = useState(false);
@@ -168,13 +171,17 @@ export default function StudentsPage() {
     const high = students.filter((student) => Number(student.grade) >= 10 && Number(student.grade) <= 12);
     const attention = students.filter((student) => Number(student.yellowCard || 0) > 0 || student.isBanned);
     const totalCurrentPoints = students.reduce((sum, student) => sum + Number(student.points || 0), 0);
-    return { total: students.length, middle: middle.length, high: high.length, attention: attention.length, totalCurrentPoints };
+    const withdrawn = students.filter((student) => student.active === false || student.enrollmentStatus === 'withdrawn').length;
+    return { total: students.length, middle: middle.length, high: high.length, attention: attention.length, withdrawn, totalCurrentPoints };
   }, [students]);
 
   const filteredStudents = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     const filtered = students.filter((student) => {
       if (filterGrade !== 'ALL' && Number(student.grade) !== Number(filterGrade)) return false;
+      const isWithdrawn = student.active === false || student.enrollmentStatus === 'withdrawn';
+      if (statusFilter === 'active' && isWithdrawn) return false;
+      if (statusFilter === 'withdrawn' && !isWithdrawn) return false;
       if (statusFilter === 'attention' && !student.isBanned && Number(student.yellowCard || 0) === 0) return false;
       if (statusFilter === 'banned' && !student.isBanned) return false;
       if (statusFilter === 'course' && !(student.courseTags || []).length) return false;
@@ -312,6 +319,17 @@ export default function StudentsPage() {
     setNotice('出禁を解除しました。');
   };
 
+  const setEnrollmentStatus = async (student, withdrawn) => {
+    if (withdrawn && !window.confirm(`${displayName(student)}さんを退塾扱いにしますか？\n過去の成績・ポイント・出欠記録は残ります。`)) return;
+    setSavingField(`${student.uid}:enrollment`);
+    try {
+      await updateDoc(doc(db, 'users', student.uid), { active: !withdrawn, enrollmentStatus: withdrawn ? 'withdrawn' : 'active', withdrawnAt: withdrawn ? serverTimestamp() : null, updatedAt: serverTimestamp() });
+      updateLocalStudent(student.uid, { active: !withdrawn, enrollmentStatus: withdrawn ? 'withdrawn' : 'active', withdrawnAt: withdrawn ? new Date() : null });
+      setNotice(withdrawn ? `${displayName(student)}さんを退塾者へ移動しました。` : `${displayName(student)}さんを在籍中へ戻しました。`);
+    } catch (error) { console.error(error); setNotice('在籍状態を更新できませんでした。'); }
+    finally { setSavingField(''); }
+  };
+
   const confiscateAllPoints = async (student) => {
     if (!student) return;
     const name = displayName(student);
@@ -419,6 +437,7 @@ export default function StudentsPage() {
         <article><span>高校生</span><strong>{stats.high}</strong></article>
         <article className={stats.attention ? 'attention' : ''}><span>要確認</span><strong>{stats.attention}</strong></article>
         <article><span>現在Pt合計</span><strong>{stats.totalCurrentPoints.toLocaleString()}</strong></article>
+        <article><span>退塾者</span><strong>{stats.withdrawn}</strong></article>
       </section>
 
       <nav className="student-type-tabs" aria-label="生徒種別">
@@ -630,6 +649,12 @@ export default function StudentsPage() {
                 >
                   全ポイント没収
                 </button>
+              </section>
+              <section className="enrollment-panel">
+                <div><h3>在籍状態</h3><p>退塾にしても過去の成績・ポイント・出欠記録は削除されません。</p></div>
+                {selectedStudent.active === false || selectedStudent.enrollmentStatus === 'withdrawn'
+                  ? <button type="button" className="restore-student" disabled={Boolean(savingField)} onClick={() => setEnrollmentStatus(selectedStudent, false)}>在籍中へ戻す</button>
+                  : <button type="button" className="withdraw-student" disabled={Boolean(savingField)} onClick={() => setEnrollmentStatus(selectedStudent, true)}>退塾にする</button>}
               </section>
             </>
           )}

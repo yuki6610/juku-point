@@ -157,7 +157,7 @@ export default function LessonRecordsPage() {
       setStudents(
         snapshot.docs
           .map((item) => ({ uid: item.id, ...item.data() }))
-          .filter((student) => Number(student.grade) >= 7 && Number(student.grade) <= 9)
+          .filter((student) => student.active !== false && student.enrollmentStatus !== "withdrawn" && Number(student.grade) >= 7 && Number(student.grade) <= 9)
           .sort(
             (a, b) =>
               Number(a.grade || 0) - Number(b.grade || 0) ||
