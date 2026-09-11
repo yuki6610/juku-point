@@ -248,8 +248,8 @@ export default function CourseLessonsPage() {
             {item.note && <small>メモ：{item.note}</small>}
           </div>
           <div className="assignment-dates"><span>指示日</span><strong>{formatDate(item.assignedDate)}</strong><span>{historyMode ? "確認日" : "確認予定週"}</span><strong>{historyMode ? formatDate(item.checkedDate) : `${formatDate(item.checkWeekStart)}〜${formatDate(item.checkWeekEnd).slice(5)}`}</strong></div>
-          {historyMode ? <div className="result-summary">{item.type === "homework" ? ({ submitted: "提出", partial: "途中", missed: "未提出" }[item.result?.homeworkStatus] || "-") : `${item.result?.wordCorrect ?? "-"} / ${item.result?.wordTotal ?? "-"}`}</div> : <button onClick={() => openResult(item)}>確認結果を入力</button>}
-          {!historyMode && <button className="assignment-delete" aria-label="削除" onClick={async () => { try { await adminApi(`?programId=${encodeURIComponent(programId)}&assignmentId=${encodeURIComponent(item.id)}`, { method: "DELETE" }); await reloadAssignments(); setNotice("課題を削除しました。"); } catch (error) { setNotice(error.message); } }}>×</button>}
+          {historyMode ? <div className="result-summary">{item.type === "homework" ? ({ submitted: "提出", partial: "途中", missed: "未提出" }[item.result?.homeworkStatus] || "-") : `${item.result?.wordCorrect ?? "-"} / ${item.result?.wordTotal ?? "-"}`}<button onClick={() => { openResult(item); setTab("pending"); }}>修正</button></div> : <button onClick={() => openResult(item)}>確認結果を入力</button>}
+          {!historyMode && <button className="assignment-delete" aria-label="削除" onClick={async () => { if (!window.confirm(`${item.studentName}さんの課題を削除しますか？`)) return; try { await adminApi(`?programId=${encodeURIComponent(programId)}&assignmentId=${encodeURIComponent(item.id)}`, { method: "DELETE" }); await reloadAssignments(); setNotice("課題を削除しました。"); } catch (error) { setNotice(error.message); } }}>×</button>}
         </article>
       ))}
     </div>

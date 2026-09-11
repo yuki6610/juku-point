@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { db } from '../../../firebaseConfig'
-import { collection, doc, getDocs, limit, orderBy, query, updateDoc } from 'firebase/firestore'
+import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, updateDoc } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import '../rewardHistory/rewardHistory.css'
 
@@ -29,35 +29,18 @@ export default function AdminRewardHistory() {
   // 🔹 新形式のサブコレクションを優先し、旧配列形式も互換表示
   const fetchAllHistories = async () => {
     try {
-      const usersRef = collection(db, 'users')
-      const snapshot = await getDocs(usersRef)
-      const perUserHistories = await Promise.all(snapshot.docs.map(async (userDoc) => {
-        const data = userDoc.data()
-        const userName = data.displayName || data.realName || '未登録'
-        const subSnap = await getDocs(query(
-          collection(db, 'users', userDoc.id, 'rewardHistory'),
-          orderBy('date', 'desc'),
-          limit(100)
-        ))
-        const subItems = subSnap.docs.map((historyDoc) => ({
-          userId: userDoc.id,
-          userName,
-          historyId: historyDoc.id,
-          ...historyDoc.data(),
-        }))
-
-        if (subItems.length > 0) return subItems
-
-        return (data.rewardHistory || []).map((item, index) => ({
-          userId: userDoc.id,
-          userName,
-          index,
-          legacy: true,
-          ...item,
-        }))
+      const historySnap = await getDocs(query(collectionGroup(db, 'rewardHistory'), orderBy('date', 'desc'), limit(200)))
+      const userIds = [...new Set(historySnap.docs.map((item) => item.ref.parent.parent?.id).filter(Boolean))]
+      const userEntries = await Promise.all(userIds.map(async (uid) => {
+        const snapshot = await getDoc(doc(db, 'users', uid))
+        const data = snapshot.exists() ? snapshot.data() : {}
+        return [uid, data.realName || data.displayName || '未登録']
       }))
-
-      const all = perUserHistories.flat()
+      const names = Object.fromEntries(userEntries)
+      const all = historySnap.docs.map((historyDoc) => {
+        const userId = historyDoc.ref.parent.parent?.id
+        return { userId, userName: names[userId] || '未登録', historyId: historyDoc.id, ...historyDoc.data() }
+      })
 
       // 日付順にソート（新しい順）
       all.sort((a, b) => toMillis(b.date) - toMillis(a.date))
@@ -129,6 +112,7 @@ export default function AdminRewardHistory() {
   return (
     <div className="admin-history-container">
       <h1 className="admin-history-title">🎁 交換履歴管理</h1>
+      <p className="history-range-note">全生徒の直近200件を表示しています。</p>
 
       {/* 🔘 フィルタボタン */}
       <div className="filter-buttons">

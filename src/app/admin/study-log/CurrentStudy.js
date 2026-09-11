@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react";
 import { db } from "../../../firebaseConfig";
 import {
+  collectionGroup,
   doc,
   getDoc,
   getDocs,
+  query,
   updateDoc,
-  collection,
+  where,
 } from "firebase/firestore";
 import "../qr/selfstudy.css";
 
@@ -25,40 +27,36 @@ export default function SelfStudyList() {
 
   async function loadSelfStudyStudents() {
     const todayId = getTodayId();
-    const usersSnap = await getDocs(collection(db, "users"));
-    const list = [];
-
-    for (const userDoc of usersSnap.docs) {
-      const uid = userDoc.id;
-      const userData = userDoc.data();
-
-      const checkSnap = await getDoc(
-        doc(db, `users/${uid}/checkins/${todayId}`)
-      );
-
-      if (!checkSnap.exists()) continue;
+    const activeSnap = await getDocs(query(
+      collectionGroup(db, "checkins"),
+      where("currentSessionActive", "==", true)
+    ));
+    const todayDocs = activeSnap.docs.filter((item) => item.id === todayId);
+    const list = await Promise.all(todayDocs.map(async (checkSnap) => {
+      const uid = checkSnap.ref.parent.parent?.id;
       const c = checkSnap.data();
-
-      // ⭐ currentSessionActive === true の生徒のみ表示
-      if (c.currentSessionActive === true) {
+      let userData = { realName: c.userName, grade: c.grade };
+      if (!c.userName || !c.grade) {
+        const userSnap = await getDoc(doc(db, "users", uid));
+        userData = userSnap.exists() ? userSnap.data() : userData;
+      }
         const enterAt = c.enterAt || c.lastEnterAt;
-        if (!enterAt) continue;
+        if (!enterAt) return null;
 
         const enterTimeText = new Date(enterAt).toLocaleTimeString("ja-JP", {
           hour: "2-digit",
           minute: "2-digit",
         });
 
-        list.push({
+        return {
           uid,
           name: userData.realName || userData.displayName || "名前未登録",
           grade: userData.grade ?? "ー",
           enterTime: enterTimeText,
-        });
-      }
-    }
+        };
+    }));
 
-    setStudents(list);
+    setStudents(list.filter(Boolean));
     setLoading(false);
   }
 

@@ -165,6 +165,8 @@ export default function CheckinPage() {
               }
 
               const snap = await getDoc(checkRef);
+              const profileSnap = await getDoc(doc(db, "users", user.uid));
+              const profile = profileSnap.exists() ? profileSnap.data() : {};
               const nowMs = now.getTime();
 
               if (!snap.exists()) {
@@ -174,6 +176,8 @@ export default function CheckinPage() {
                   enterAt: nowMs,
                   lastEnterAt: nowMs,
                   sessions: [],
+                  userName: profile.realName || profile.displayName || "名前未登録",
+                  grade: Number(profile.grade || 0),
                 });
               } else {
                 // 2回目以降
@@ -181,6 +185,8 @@ export default function CheckinPage() {
                   currentSessionActive: true,
                   enterAt: nowMs,
                   lastEnterAt: nowMs,
+                  userName: profile.realName || profile.displayName || "名前未登録",
+                  grade: Number(profile.grade || 0),
                 });
               }
 

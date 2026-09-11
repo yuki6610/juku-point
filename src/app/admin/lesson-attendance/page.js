@@ -4,11 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   collection,
+  documentId,
   doc,
   getDoc,
   getDocs,
+  orderBy,
+  query,
   serverTimestamp,
   setDoc,
+  startAt,
+  endAt,
   updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
@@ -59,6 +64,10 @@ const getLessonStartDate = (student) =>
   student.enrollmentDate ||
   student.joinedAt ||
   "";
+
+const getDocsInDateRange = (segments, start, end) => getDocs(query(
+  collection(db, ...segments), orderBy(documentId()), startAt(start), endAt(end)
+));
 
 const defaultTerms = (year) =>
   year === 2026
@@ -287,7 +296,7 @@ export default function LessonAttendancePage() {
                 getDocs(collection(db, "users", student.id, "lessonTerms", `${year}_${term}`, "records"))
               )
             ),
-            getDocs(collection(db, "adminLessonAttendance", studentKey(student), "records")),
+            getDocsInDateRange(["adminLessonAttendance", studentKey(student), "records"], monthStart, monthEnd),
           ]);
           const mapped = {};
           termSnapshots.forEach((snapshot) => {
@@ -314,9 +323,9 @@ export default function LessonAttendancePage() {
         }
 
         const [snapshot, classAttendanceSnapshot] = await Promise.all([
-          getDocs(collection(db, "adminLessonAttendance", studentKey(student), "records")),
+          getDocsInDateRange(["adminLessonAttendance", studentKey(student), "records"], monthStart, monthEnd),
           isHighSchool(student)
-            ? getDocs(collection(db, "users", student.id, "classAttendance"))
+            ? getDocsInDateRange(["users", student.id, "classAttendance"], monthStart, monthEnd)
             : Promise.resolve({ docs: [] }),
         ]);
         const mapped = {};
