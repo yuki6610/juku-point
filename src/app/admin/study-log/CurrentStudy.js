@@ -9,7 +9,7 @@ import {
   updateDoc,
   collection,
 } from "firebase/firestore";
-import "./selfstudy.css";
+import "../qr/selfstudy.css";
 
 export default function SelfStudyList() {
   const [students, setStudents] = useState([]);

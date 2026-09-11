@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ScoreManager from './ScoreManager'
-import SchoolJudge from '../judge/page'
+import SchoolJudge from './SchoolJudge'
 import './score-hub.css'
 
 const TABS = [

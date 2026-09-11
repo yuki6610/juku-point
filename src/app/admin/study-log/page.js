@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import CurrentStudy from '../qr/page'
+import CurrentStudy from './CurrentStudy'
 import StudyHistory from './StudyHistory'
-import IllegalCheckins from '../illegal/page'
+import IllegalCheckins from './IllegalCheckins'
 import './study-hub.css'
 
 const TABS = [

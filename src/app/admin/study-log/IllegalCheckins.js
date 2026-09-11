@@ -5,7 +5,7 @@ import { db } from '../../../firebaseConfig'
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { useRouter } from 'next/navigation'
-import './illegal.css'
+import '../illegal/illegal.css'
 
 export default function IllegalListPage() {
   const [records, setRecords] = useState([])

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { db } from '../../../firebaseConfig'
 import { collection, doc, getDocs, limit, orderBy, query, updateDoc } from 'firebase/firestore'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import './rewardHistory.css'
+import '../rewardHistory/rewardHistory.css'
 
 export default function AdminRewardHistory() {
   const [user, setUser] = useState(null)

@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../../firebaseConfig";
-import "./gacha-admin.css";
-import "./gacha-inventory.css";
+import "../gacha/gacha-admin.css";
+import "../gacha/gacha-inventory.css";
 
 const statusLabel = { pending: "未引き渡し", delivered: "引き渡し済み", canceled: "取消済み" };
 const kindLabel = { meal: "食事代券", snack: "お菓子", regular: "アイス・通常景品" };

@@ -10,7 +10,7 @@ import {
     setDoc,
   onSnapshot
 } from 'firebase/firestore'
-import './judge.css'
+import '../judge/judge.css'
 
 import ScoreBreakdown from '@/components/ScoreBreakdown'
 import BehaviorSummary from '@/components/BehaviorSummary'

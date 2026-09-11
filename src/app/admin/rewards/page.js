@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import RewardCatalog from './RewardCatalog'
-import RewardHistory from '../rewardHistory/page'
-import GachaManagement from '../gacha/page'
+import RewardHistory from './RewardHistory'
+import GachaManagement from './GachaManagement'
 import './rewards-hub.css'
 
 const TABS = [
