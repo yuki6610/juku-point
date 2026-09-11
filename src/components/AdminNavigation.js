@@ -12,8 +12,7 @@ const groups = [
       { path: "/admin/lesson-records", icon: "✓", label: "学習記録" },
       { path: "/admin/course-lessons", icon: "季", label: "講習授業管理" },
       { path: "/admin/lesson-attendance", icon: "▦", label: "授業・振替管理" },
-      { path: "/admin/qr", icon: "◷", label: "自習中の生徒" },
-      { path: "/admin/study-log", icon: "≡", label: "自習履歴" },
+      { path: "/admin/study-log", icon: "◷", label: "自習管理" },
       { path: "/admin/attend", icon: "○", label: "高校生の出席" },
     ],
   },
@@ -22,18 +21,14 @@ const groups = [
     items: [
       { path: "/admin/students", icon: "◎", label: "生徒管理" },
       { path: "/admin/elementary-students", icon: "＋", label: "小学生登録" },
-      { path: "/admin/judge", icon: "△", label: "志望校判定" },
-      { path: "/admin/score", icon: "+", label: "成績確認・入力" },
+      { path: "/admin/score", icon: "△", label: "成績・志望校" },
     ],
   },
   {
     label: "ポイント・景品",
     items: [
       { path: "/admin/point-history", icon: "P", label: "ポイント履歴" },
-      { path: "/admin/rewards", icon: "◇", label: "景品管理" },
-      { path: "/admin/gacha", icon: "☆", label: "ガチャ管理" },
-      { path: "/admin/rewardHistory", icon: "↺", label: "交換履歴" },
-      { path: "/admin/illegal", icon: "!", label: "不正検知" },
+      { path: "/admin/rewards", icon: "◇", label: "景品・交換管理" },
     ],
   },
 ];

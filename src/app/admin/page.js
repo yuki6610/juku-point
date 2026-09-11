@@ -31,18 +31,11 @@ const menuGroups = [
         featured: true,
       },
       {
-        title: "自習中の生徒",
-        desc: "現在の入室状況と強制退出",
+        title: "自習管理",
+        desc: "入室状況、自習履歴、不正記録をまとめて確認",
         icon: "◷",
-        path: "/admin/qr",
-        tone: "cyan",
-      },
-      {
-        title: "自習履歴",
-        desc: "生徒ごとの入退室・学習時間",
-        icon: "≡",
         path: "/admin/study-log",
-        tone: "blue",
+        tone: "cyan",
       },
       {
         title: "高校生の出席",
@@ -81,16 +74,9 @@ const menuGroups = [
         tone: "sky",
       },
       {
-        title: "志望校判定",
-        desc: "成績と高校の基準点を比較",
+        title: "成績・志望校",
+        desc: "成績の確認・入力、志望校比較、印刷",
         icon: "△",
-        path: "/admin/judge",
-        tone: "green",
-      },
-      {
-        title: "成績確認・入力",
-        desc: "生徒が入力した成績の確認と管理者側からの記録",
-        icon: "+",
         path: "/admin/score",
         tone: "sky",
       },
@@ -110,32 +96,11 @@ const menuGroups = [
         tone: "sky",
       },
       {
-        title: "景品管理",
-        desc: "景品・必要ポイント・在庫を設定",
+        title: "景品・交換管理",
+        desc: "在庫、通常交換、ガチャの引き渡しを一元管理",
         icon: "◇",
         path: "/admin/rewards",
         tone: "mint",
-      },
-      {
-        title: "景品交換履歴",
-        desc: "生徒ごとの交換状況を確認",
-        icon: "↺",
-        path: "/admin/rewardHistory",
-        tone: "amber",
-      },
-      {
-        title: "ガチャ管理",
-        desc: "抽選結果と景品の引き渡しを確認",
-        icon: "☆",
-        path: "/admin/gacha",
-        tone: "violet",
-      },
-      {
-        title: "不正検知",
-        desc: "位置情報と不正な入退室記録",
-        icon: "!",
-        path: "/admin/illegal",
-        tone: "red",
       },
       {
         title: "大学情報取込",
@@ -275,7 +240,7 @@ export default function AdminPage() {
             </div>
             <i>→</i>
           </button>
-          <button type="button" onClick={() => router.push("/admin/qr")}>
+          <button type="button" onClick={() => router.push("/admin/study-log")}>
             <span className="quick-number">02</span>
             <div>
               <strong>自習中の生徒を確認</strong>

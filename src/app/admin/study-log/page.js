@@ -1,152 +1,39 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { auth } from '../../../firebaseConfig'
-import { onAuthStateChanged } from 'firebase/auth'
-import { useRouter } from 'next/navigation'
-import './study-log.css'
+import { useEffect, useState } from 'react'
+import CurrentStudy from '../qr/page'
+import StudyHistory from './StudyHistory'
+import IllegalCheckins from '../illegal/page'
+import './study-hub.css'
 
-export default function StudyLogPage() {
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [students, setStudents] = useState([])
-  const [selectedStudent, setSelectedStudent] = useState(null)
-  const [logs, setLogs] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [logsLoading, setLogsLoading] = useState(false)
-  const [error, setError] = useState('')
+const TABS = [
+  { id: 'current', label: '現在自習中', note: '入室状況と強制退出' },
+  { id: 'history', label: '自習履歴', note: '学習時間と入退室記録' },
+  { id: 'alerts', label: '要確認', note: '位置情報と不正記録' },
+]
 
-  const router = useRouter()
+export default function StudyManagementPage() {
+  const [tab, setTab] = useState('current')
 
-  // 🔐 管理者認証
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.push("/login")
-        return
-      }
+    const requested = new URLSearchParams(window.location.search).get('tab')
+    if (TABS.some((item) => item.id === requested)) setTab(requested)
+  }, [])
 
-      try {
-        const token = await user.getIdToken()
-        const response = await fetch('/api/admin/study-logs', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        const result = await response.json()
-        if (!response.ok) throw new Error(result.error)
-        setStudents(result.students || [])
-        setIsAdmin(true)
-      } catch (e) {
-        setError(e.message || '学習記録を取得できませんでした。')
-      } finally {
-        setLoading(false)
-      }
-    })
-
-    return () => unsub()
-  }, [router])
-
-  // 📘 自習ログ取得
-  const loadLogs = async (uid) => {
-    setSelectedStudent(uid)
-    setLogs([])
-    setLogsLoading(true)
-    setError('')
-    try {
-      const token = await auth.currentUser?.getIdToken()
-      if (!token) throw new Error('ログイン情報を確認できません。')
-      const response = await fetch(`/api/admin/study-logs?uid=${encodeURIComponent(uid)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error)
-      setLogs(result.logs || [])
-    } catch (e) {
-      setError(e.message || '自習ログを取得できませんでした。')
-    } finally {
-      setLogsLoading(false)
-    }
+  const selectTab = (next) => {
+    setTab(next)
+    window.history.replaceState(null, '', `/admin/study-log?tab=${next}`)
   }
 
-  if (loading) return <p>読み込み中...</p>
-  if (!isAdmin) return <p role="alert">{error || 'アクセス権がありません。'}</p>
-
-  return (
-    <div className="studylog-container">
-      
-      <h1 className="studylog-title">📘 自習履歴（チェックインログ）</h1>
-      {error && <p className="studylog-error" role="alert">{error}</p>}
-
-      {/* ▼ 2カラムで並べる */}
-      <div className="studylog-layout">
-
-        {/* 左：生徒一覧 */}
-        <div className="student-list-card">
-          <h3 className="student-title">生徒一覧</h3>
-
-          {students.map((s) => (
-            <button
-              type="button"
-              key={s.id}
-              className={`student-item ${selectedStudent === s.id ? "active" : ""}`}
-              onClick={() => loadLogs(s.id)}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-
-        {/* 右：自習ログ */}
-        <div className="log-card">
-          <h3 className="log-title">📅 自習ログ</h3>
-
-          {logsLoading && <p className="empty-log">読み込み中...</p>}
-          {selectedStudent && !logsLoading && logs.length === 0 && (
-            <p className="empty-log">自習記録がありません。</p>
-          )}
-
-          {logs.map((log, i) => {
-            const dateLabel = log.date;
-
-            // ✨ 今日の入退室状況（current session）
-            const currentEnter = log.enterAt ? new Date(log.enterAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : "ー";
-
-            // ✨ 過去のセッション
-            const sessions = log.sessions || [];
-
-            return (
-              <div key={i} className="log-row">
-                <div className="log-date">{dateLabel}</div>
-
-                {/* ▼ 現在進行中のセッション（exit が無い場合のみ表示） */}
-                {log.currentSessionActive && (
-                  <div className="log-detail">
-                    <p>入室：{currentEnter}</p>
-                    <p>退出：ー</p>
-                    <p>⏱ 自習：進行中</p>
-                    <p>🏷 自習扱い：未確定</p>
-                    <p>✨ XP：未</p>
-                    <p>📍 位置：OK</p>
-                  </div>
-                )}
-
-                {/* ▼ 完了済みセッション一覧 */}
-                {sessions.map((s, idx) => (
-                  <div key={idx} className="log-detail session-box">
-                    <p>入室：{s.enterAt ? new Date(s.enterAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : 'ー'}</p>
-                    <p>退出：{s.exitAt ? new Date(s.exitAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : 'ー'}</p>
-                    <p>⏱ 自習：{s.minutes} 分</p>
-                    <p>🏷 自習扱い：はい</p>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-
-      </div>
-
-      <button onClick={() => router.push("/admin")} className="back-btn">
-        ← 管理者ページへ戻る
-      </button>
-    </div>
-  )
+  return <main className="study-hub">
+    <header className="study-hub-header"><span>SELF STUDY OPERATIONS</span><h1>自習管理</h1><p>現在の入室状況、過去の学習時間、位置情報の要確認記録をまとめて確認します。</p></header>
+    <nav className="study-hub-tabs" aria-label="自習管理メニュー">
+      {TABS.map((item) => <button type="button" key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => selectTab(item.id)}><strong>{item.label}</strong><small>{item.note}</small></button>)}
+    </nav>
+    <section className="study-hub-content">
+      {tab === 'current' && <CurrentStudy />}
+      {tab === 'history' && <StudyHistory />}
+      {tab === 'alerts' && <IllegalCheckins />}
+    </section>
+  </main>
 }
