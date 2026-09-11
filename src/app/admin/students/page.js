@@ -529,9 +529,9 @@ export default function StudentsPage() {
                         [selectedStudent.uid]: { ...prev[selectedStudent.uid], realName: event.target.value },
                       }))
                     }
-                    onBlur={(event) => updateName(selectedStudent.uid, event.target.value)}
                   />
                 </label>
+                <button type="button" disabled={Boolean(savingField)} onClick={() => updateName(selectedStudent.uid, editValues[selectedStudent.uid]?.realName ?? displayName(selectedStudent))}>名前を保存</button>
               </div>
 
               <div className="status-cards">
@@ -578,7 +578,6 @@ export default function StudentsPage() {
                               [selectedStudent.uid]: { ...prev[selectedStudent.uid], [field.key]: event.target.value },
                             }))
                           }
-                          onBlur={(event) => updateUserValue(selectedStudent.uid, field.key, event.target.value)}
                         />
                         {['points', 'level'].includes(field.key) && (
                           <button
@@ -589,6 +588,7 @@ export default function StudentsPage() {
                             +
                           </button>
                         )}
+                        <button type="button" className="save-value" disabled={Boolean(savingField)} onClick={() => updateUserValue(selectedStudent.uid, field.key, value)}>保存</button>
                       </div>
                     </label>
                   );

@@ -136,6 +136,8 @@ export default function RewardCatalog() {
   }
 
   const deleteReward = async (id) => {
+    const reward = rewards.find((item) => item.id === id)
+    if (!window.confirm(`「${reward?.name || 'この景品'}」を削除しますか？\n過去の交換履歴は残ります。通常は在庫を0にする運用を推奨します。`)) return
     await deleteDoc(doc(db, 'rewards', id))
     fetchRewards()
   }

@@ -132,8 +132,25 @@ export default function LessonRecordsPage() {
   const [behaviorNote, setBehaviorNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [termSettings, setTermSettings] = useState({});
 
   const termId = `${academicYear}_${term}`;
+
+  useEffect(() => {
+    getDoc(doc(db, "adminTermSettings", String(academicYear))).then((snapshot) => {
+      const configured = snapshot.exists() ? snapshot.data().terms || {} : {};
+      setTermSettings(configured);
+    }).catch(() => setTermSettings({}));
+  }, [academicYear]);
+
+  useEffect(() => {
+    if (!date) return;
+    const matched = [1, 2, 3].find((value) => {
+      const setting = termSettings[value] || termSettings[String(value)];
+      return setting?.start && setting?.end && date >= setting.start && date <= setting.end;
+    });
+    if (matched && matched !== term) setTerm(matched);
+  }, [date, termSettings]);
 
   useEffect(() => {
     getDocs(collection(db, "users")).then((snapshot) => {
@@ -247,23 +264,6 @@ export default function LessonRecordsPage() {
         termId,
         "records"
       );
-      const beforeSaveSnapshot = await getDocs(recordsRef);
-      const duplicateWordTest = beforeSaveSnapshot.docs.some((item) => {
-        const record = item.data();
-        return (
-          item.id !== date &&
-          record.weekId === weekId &&
-          (record.wordTest?.status === "completed" ||
-            record.wordTest?.status === "makeup") &&
-          (wordStatus === "completed" || wordStatus === "makeup")
-        );
-      });
-      if (duplicateWordTest) {
-        setNotice("この週の単語テストはすでに記録されています。");
-        setSaving(false);
-        return;
-      }
-
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw new Error("管理者のログイン情報がありません。");
       const response = await fetch("/api/admin/lesson-records", {

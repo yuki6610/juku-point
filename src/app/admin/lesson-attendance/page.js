@@ -164,19 +164,27 @@ function mergeAttendanceRecord(records, record) {
     records[record.date] = record;
     return records;
   }
-  const statusPriority = { present: 1, makeup: 2, absent: 3 };
-  const keepStatus =
-    (statusPriority[current.status] || 0) > (statusPriority[record.status] || 0)
-      ? current.status
-      : record.status;
+  const timestamp = (value) => {
+    if (!value) return 0;
+    if (typeof value.toMillis === "function") return value.toMillis();
+    if (typeof value.toDate === "function") return value.toDate().getTime();
+    return new Date(value).getTime() || 0;
+  };
+  const sourcePriority = { classAttendance: 1, "lesson-records": 2, adminLessonAttendance: 3 };
+  const currentTime = timestamp(current.updatedAt || current.recordedAt || current.createdAt);
+  const recordTime = timestamp(record.updatedAt || record.recordedAt || record.createdAt);
+  const recordIsNewer = recordTime > currentTime ||
+    (recordTime === currentTime && (sourcePriority[record.source] || 0) >= (sourcePriority[current.source] || 0));
+  const primary = recordIsNewer ? record : current;
+  const secondary = recordIsNewer ? current : record;
   records[record.date] = {
-    ...current,
-    ...record,
-    status: keepStatus,
-    originalDate: record.originalDate || current.originalDate || null,
-    makeupDate: record.makeupDate || current.makeupDate || null,
-    makeupCompleted: Boolean(record.makeupCompleted || current.makeupCompleted),
-    note: record.note || current.note || "",
+    ...secondary,
+    ...primary,
+    status: primary.status,
+    originalDate: primary.originalDate || null,
+    makeupDate: primary.makeupDate || secondary.makeupDate || null,
+    makeupCompleted: Boolean(primary.makeupCompleted || secondary.makeupCompleted),
+    note: primary.note || "",
   };
   return records;
 }

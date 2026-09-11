@@ -28,6 +28,10 @@ function termIdForDate(date, terms, year) {
   return null;
 }
 
+function todayInJapan() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
 export async function POST(request) {
   try {
     const adminUid = await requireAdmin(request);
@@ -46,6 +50,7 @@ export async function POST(request) {
     const isMiddle = student.source === "user" && Number(student.grade) >= 7 && Number(student.grade) <= 9;
     const isHigh = student.source === "user" && Number(student.grade) >= 10 && Number(student.grade) <= 12;
     const termId = termIdForDate(date, terms, Number(year));
+    const currentTermId = termIdForDate(todayInJapan(), terms, Number(year));
     const middleRef = isMiddle && termId ? userRef.collection("lessonTerms").doc(termId).collection("records").doc(date) : null;
     const legacyHighRef = isHigh ? userRef.collection("classAttendance").doc(date) : null;
     const historyRef = isHigh ? userRef.collection("pointHistory").doc(`classAttendance_${date}`) : null;
@@ -94,7 +99,7 @@ export async function POST(request) {
 
       if (isHigh && pointDelta) {
         const data = userSnap.data();
-        transaction.update(userRef, { points: Math.max(0, Number(data.points || 0) + pointDelta), termPoints: Math.max(0, Number(data.termPoints || 0) + pointDelta), totalEarnedPoints: Math.max(0, Number(data.totalEarnedPoints || 0) + pointDelta), classAttendanceCount: Math.max(0, Number(data.classAttendanceCount || 0) + pointDelta / ATTENDANCE_POINT), lastUpdated: now });
+        transaction.update(userRef, { points: Math.max(0, Number(data.points || 0) + pointDelta), ...(termId && termId === currentTermId ? { termPoints: Math.max(0, Number(data.termPoints || 0) + pointDelta) } : {}), totalEarnedPoints: Math.max(0, Number(data.totalEarnedPoints || 0) + pointDelta), classAttendanceCount: Math.max(0, Number(data.classAttendanceCount || 0) + pointDelta / ATTENDANCE_POINT), lastUpdated: now });
       }
       if (isHigh) {
         if (nextPresent) transaction.set(historyRef, { type: "classAttendance", amount: ATTENDANCE_POINT, note: `授業出席 (${date})`, sourceDate: date, termId, createdAt: Timestamp.fromDate(new Date(`${date}T12:00:00+09:00`)), recordedAt: now, updatedBy: adminUid }, { merge: true });

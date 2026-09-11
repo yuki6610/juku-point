@@ -88,10 +88,14 @@ export default function AdminJudgePage(){
   useEffect(()=>{
     if(!selectedStudentId){
       setSelectedStudent(null)
+      setExamScore(null)
+      setInternalScore(null)
       return
     }
 
     setSelectedStudent(students.find(s=>s.uid===selectedStudentId))
+    setExamScore(null)
+    setInternalScore(null)
 
     return onSnapshot(
       collection(db, `users/${selectedStudentId}/scores`),

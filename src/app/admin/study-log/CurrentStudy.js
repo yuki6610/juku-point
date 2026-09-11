@@ -15,7 +15,9 @@ export default function SelfStudyList() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const getTodayId = () => new Date().toISOString().slice(0, 10);
+  const getTodayId = () => new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
 
   useEffect(() => {
     loadSelfStudyStudents();

@@ -309,8 +309,13 @@
 }
 
 .name-editor {
+  display: flex;
+  align-items: end;
+  gap: 8px;
   margin: 18px 0 12px;
 }
+.name-editor label { flex: 1; }
+.name-editor button,.number-control .save-value{min-height:44px;width:auto;padding:0 13px;color:#fff;background:#7066cf;border:0;border-radius:11px;font-size:12px;font-weight:850;cursor:pointer}.name-editor button:disabled{opacity:.5;cursor:wait}
 
 .status-cards {
   display: grid;

@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  serverTimestamp,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 import { getCurrentSeason } from "../utils/season";
 import { resetSeason } from "../utils/resetSeason";
@@ -144,7 +137,7 @@ export default function AdminPage() {
 
   const rebuildTermPoints = async () => {
     if (rebuildingPoints) return;
-    if (!window.confirm("2026年度1学期の学期ポイントを累計ポイントへ同期しますか？")) return;
+    if (!window.confirm(`${termLabel}のポイントを履歴から再集計しますか？`)) return;
     setRebuildingPoints(true);
     try {
       const token = await auth.currentUser?.getIdToken();
@@ -156,29 +149,8 @@ export default function AdminPage() {
       if (!response.ok) throw new Error(result.error || "APIで再集計できませんでした。");
       window.alert(`${result.updated}人分の学期ポイントを再集計しました。`);
     } catch (error) {
-      try {
-        const [usersSnapshot, adminsSnapshot] = await Promise.all([
-          getDocs(collection(db, "users")),
-          getDocs(collection(db, "admins")),
-        ]);
-        const adminIds = new Set(adminsSnapshot.docs.map((item) => item.id));
-        const batch = writeBatch(db);
-        let updated = 0;
-        usersSnapshot.docs.forEach((item) => {
-          if (adminIds.has(item.id)) return;
-          batch.update(item.ref, {
-            totalEarnedPoints: Math.max(0, Number(item.data().termPoints || 0)),
-            termPointsSeason: "2026_1",
-            termPointsRebuiltAt: serverTimestamp(),
-          });
-          updated += 1;
-        });
-        await batch.commit();
-        window.alert(`${updated}人分を直接同期しました。`);
-      } catch (fallbackError) {
-        console.error("学期ポイント同期に失敗しました:", error, fallbackError);
-        window.alert("再集計に失敗しました。管理者権限と通信状態を確認してください。");
-      }
+      console.error("学期ポイント同期に失敗しました:", error);
+      window.alert("再集計に失敗しました。データは変更されていません。");
     } finally {
       setRebuildingPoints(false);
     }

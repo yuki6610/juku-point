@@ -92,37 +92,19 @@ export async function POST(request) {
 
     for (const userDoc of usersSnap.docs) {
       if (adminIds.has(userDoc.id)) continue;
-      const userData = userDoc.data();
-
-      if (season.id === "2026_1") {
-        const termPoints = Math.max(0, Number(userData.termPoints || 0));
-        writer.update(userDoc.ref, {
-          totalEarnedPoints: termPoints,
-          termPointsSeason: season.id,
-          termPointsRebuiltAt: new Date(),
-        });
-        updated += 1;
-        continue;
-      }
-
       const historySnap = await userDoc.ref.collection("pointHistory").get();
       const termPoints = historySnap.docs.reduce((sum, item) => {
         const data = item.data();
-        const date = historyDate(data.createdAt || data.date);
+        const date = typeof data.sourceDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.sourceDate)
+          ? japanDateFromId(data.sourceDate)
+          : historyDate(data.createdAt || data.date);
         if (!date || date < season.start || date >= season.end) return sum;
         if (data.type === "reward" || data.affectsEarnedPoints === false) return sum;
         const amount = Number(data.amount ?? data.point ?? 0);
         return Number.isFinite(amount) ? sum + amount : sum;
       }, 0);
-      const historyTotalEarnedPoints = historySnap.docs.reduce((sum, item) => {
-        const data = item.data();
-        const amount = Number(data.amount ?? data.point ?? 0);
-        if (!Number.isFinite(amount)) return sum;
-        return data.type === "reward" || data.affectsEarnedPoints === false ? sum : sum + amount;
-      }, 0);
       writer.update(userDoc.ref, {
         termPoints,
-        totalEarnedPoints: Math.max(0, historyTotalEarnedPoints),
         termPointsSeason: season.id,
         termPointsRebuiltAt: new Date(),
       });

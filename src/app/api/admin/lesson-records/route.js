@@ -162,6 +162,9 @@ export async function POST(request) {
       const wordCompleted = ["completed", "makeup"].includes(wordStatus);
       const requestedWord = wordCompleted ? wordTestReward(correct, total) : 0;
       const oldWord = oldWordSnap.exists ? oldWordSnap.data() : null;
+      if (oldWord && oldWord.sourceDate !== date && wordCompleted) {
+        throw new ApiError("この週の単語テストはすでに別の日付で記録されています。", 409);
+      }
       if ((!oldWord && wordCompleted) || oldWord?.sourceDate === date) {
         const previous = Number(oldWord?.amount || 0);
         const previousCorrect = Number(oldWord?.correct || 0);
