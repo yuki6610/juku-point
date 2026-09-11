@@ -60,13 +60,6 @@ const menuGroups = [
         tone: "indigo",
       },
       {
-        title: "小学生登録",
-        desc: "アカウントを持たない小学生を登録",
-        icon: "＋",
-        path: "/admin/elementary-students",
-        tone: "sky",
-      },
-      {
         title: "成績・志望校",
         desc: "成績の確認・入力、志望校比較、印刷",
         icon: "△",

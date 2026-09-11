@@ -447,7 +447,7 @@ export default function LessonAttendancePage() {
   }, [selectedKey, visibleStudents]);
 
   useEffect(() => {
-    if (!visibleStudents.length || tab === "calendar" || tab === "students") return;
+    if (!visibleStudents.length || tab === "settings" || tab === "students") return;
     loadRecords(visibleStudents).catch(() => setNotice("出欠記録を読み込めませんでした。"));
   }, [visibleStudents, selectedCalendarYear, month, cutoff, tab, academicRecordStart, academicRecordEnd]);
 
@@ -602,7 +602,7 @@ export default function LessonAttendancePage() {
       });
       setCalendarDirty(false);
       setNotice("年間授業日を保存しました。");
-      if (tab !== "calendar") await loadRecords(visibleStudents);
+      if (tab !== "settings") await loadRecords(visibleStudents);
     } catch (error) {
       console.error(error);
       setNotice("年間授業日を保存できませんでした。管理者権限またはFirestoreルールを確認してください。");
@@ -766,7 +766,7 @@ export default function LessonAttendancePage() {
               <option key={value} value={value}>{value}年度</option>
             )}
           </select>
-          {tab !== "calendar" && <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
+          {tab !== "settings" && <select value={month} onChange={(event) => setMonth(Number(event.target.value))}>
             {Array.from({ length: 12 }, (_, index) => index + 1).map((value) =>
               <option key={value} value={value}>{value}月</option>
             )}
@@ -775,14 +775,14 @@ export default function LessonAttendancePage() {
       </header>
 
       <nav className="attendance-tabs">
-        {[["overview", "照合ダッシュボード"], ["record", "出欠を記録"], ["students", "生徒・曜日設定"], ["calendar", "年間授業日"]].map(([value, label]) =>
+        {[["overview", "照合ダッシュボード"], ["record", "出欠を記録"], ["students", "生徒・曜日設定"], ["settings", "授業設定"]].map(([value, label]) =>
           <button key={value} className={tab === value ? "active" : ""} onClick={() => setTab(value)}>{label}</button>
         )}
       </nav>
 
       {notice && <p className="attendance-notice">{notice}</p>}
 
-      {tab !== "calendar" && (
+      {tab !== "settings" && (
         <div className="attendance-filter-bar" aria-label="学年フィルタ">
           {GRADE_FILTERS.map(([value, label]) => (
             <button
@@ -892,7 +892,7 @@ export default function LessonAttendancePage() {
         <section className="attendance-section">
           <div className="schedule-heading">
             <div><h2>通塾曜日を設定</h2><p>小学生と、既存アカウントを持つ中学生・高校生が自動で表示されます。</p></div>
-            <button onClick={() => router.push("/admin/elementary-students")}>小学生の登録・編集</button>
+            <button onClick={() => router.push("/admin/students")}>生徒管理を開く</button>
           </div>
           <div className="schedule-list">{visibleStudents.map((student) => {
             const current = student.lessonSchedule?.weekdays || student.weekdays || [];
@@ -916,11 +916,11 @@ export default function LessonAttendancePage() {
         </section>
       )}
 
-      {tab === "calendar" && (
+      {tab === "settings" && (
         <section className="attendance-section">
           <div className="term-settings-panel">
             <div className="term-settings-heading">
-              <div><h2>{year}年度 学期設定</h2><p>年度ごとに塾の学期開始日・終了日を設定します。</p></div>
+              <div><h2>{year}年度 授業設定</h2><p>学期期間と年間授業日を続けて設定します。</p></div>
               <button disabled={busy} onClick={saveTermSettings}>学期期間を保存</button>
             </div>
             <div className="term-settings-grid">

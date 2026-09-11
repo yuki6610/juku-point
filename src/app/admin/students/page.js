@@ -17,6 +17,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import GradeTag from '@/components/GradeTag';
 import { getCurrentSeason } from '../../utils/season';
 import './students.css';
+import ElementaryStudentManager from './ElementaryStudentManager';
 
 const GRADES = [
   { value: 'ALL', label: '全員' },
@@ -106,6 +107,7 @@ export default function StudentsPage() {
   const [notice, setNotice] = useState('');
   const [savingField, setSavingField] = useState('');
   const [editValues, setEditValues] = useState({});
+  const [studentType, setStudentType] = useState('accounts');
 
   const auth = getAuth();
   const router = useRouter();
@@ -412,12 +414,21 @@ export default function StudentsPage() {
       </header>
 
       <section className="students-summary">
-        <article><span>登録生徒</span><strong>{stats.total}</strong></article>
+        <article><span>アカウント生徒</span><strong>{stats.total}</strong></article>
         <article><span>中学生</span><strong>{stats.middle}</strong></article>
         <article><span>高校生</span><strong>{stats.high}</strong></article>
         <article className={stats.attention ? 'attention' : ''}><span>要確認</span><strong>{stats.attention}</strong></article>
         <article><span>現在Pt合計</span><strong>{stats.totalCurrentPoints.toLocaleString()}</strong></article>
       </section>
+
+      <nav className="student-type-tabs" aria-label="生徒種別">
+        <button className={studentType === 'accounts' ? 'active' : ''} onClick={() => setStudentType('accounts')}>中学生・高校生</button>
+        <button className={studentType === 'elementary' ? 'active' : ''} onClick={() => setStudentType('elementary')}>小学生の登録・編集</button>
+      </nav>
+
+      {notice && <p className="students-notice">{notice}</p>}
+
+      {studentType === 'elementary' ? <ElementaryStudentManager onNotice={setNotice} /> : <>
 
       <section className="students-toolbar">
         <label className="search-box">
@@ -451,8 +462,6 @@ export default function StudentsPage() {
           </select>
         </label>
       </section>
-
-      {notice && <p className="students-notice">{notice}</p>}
 
       <section className="students-workspace">
         <div className="students-list-panel">
@@ -626,6 +635,7 @@ export default function StudentsPage() {
           )}
         </aside>
       </section>
+      </>}
 
       {courseModalOpen && selectedStudent && (
         <div className="students-modal-overlay" onClick={() => setCourseModalOpen(false)}>

@@ -19,7 +19,6 @@ const groups = [
     label: "生徒・成績",
     items: [
       { path: "/admin/students", icon: "◎", label: "生徒管理" },
-      { path: "/admin/elementary-students", icon: "＋", label: "小学生登録" },
       { path: "/admin/score", icon: "△", label: "成績・志望校" },
     ],
   },
