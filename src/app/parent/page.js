@@ -38,7 +38,7 @@ export default function ParentPage() {
   return <main className="parent-shell">
     <header><div><small>PARENT PORTAL</small><h1>保護者ページ</h1><p>{data?`${data.parent.displayName} 様`:'情報を確認しています…'}</p></div><button onClick={()=>signOut(auth).then(()=>location.href='/parent/login')}>ログアウト</button></header>
     {error&&<p className="parent-alert" role="alert">{error}</p>}
-    {data&&<>{data.children.length===0?<section><p>紐付けられた生徒がいません。教室へお問い合わせください。</p></section>:<>
+    {data&&<>{data.adminPreview&&<p className="parent-alert">管理者プレビューです。小学生・中学生の保護者表示を確認できます。</p>}{data.children.length===0?<section><p>紐付けられた生徒がいません。教室へお問い合わせください。</p></section>:<>
       <nav className="parent-child-switch">{data.children.map(item=><button key={item.key} className={student===item.key?'active':''} onClick={()=>setStudent(item.key)}>{item.name}<small>{item.grade}年</small></button>)}</nav>
       <nav className="parent-tabs"><button className={tab==='lessons'?'active':''} onClick={()=>setTab('lessons')}>授業日の記録</button><button className={tab==='report'?'active':''} onClick={()=>setTab('report')}>学期レポート</button></nav>
       {tab==='lessons'?<LessonRecords child={child} lessons={lessons} busy={busy} more={more}/>:<TermReport child={child} report={report} term={term} setTerm={setTerm} busy={busy}/>} 

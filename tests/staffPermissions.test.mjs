@@ -30,7 +30,7 @@ test('parent reads require an exact parent-child link', () => {
 });
 
 test('parent lesson API checks the link and returns only public projections', () => {
-  assert.match(parentLessons, /linkedChildren\(parent\.uid\)/);
+  assert.match(parentLessons, /linkedChildren\(parent\.uid/);
   assert.match(parentLessons, /collection\('lessonPublic'\)/);
   assert.match(parentLessons, /collection\('homeworkPublic'\)/);
   assert.doesNotMatch(parentLessons, /behaviorNote|homeworkAssignments/);

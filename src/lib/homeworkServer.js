@@ -1,6 +1,6 @@
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
-import { DEFAULT_HOMEWORK_TEMPLATES, homeworkValue, publicAssignment } from './homeworkModel.mjs';
+import { DEFAULT_HOMEWORK_TEMPLATES, aggregateItemResults, homeworkValue, publicAssignment } from './homeworkModel.mjs';
 import { requireStaff } from './staffAccess';
 export async function requireHomeworkUser(request, admin = false) {
   const token = request.headers.get('authorization') || '';
@@ -39,7 +39,10 @@ export async function prepareHomeworkReview(transaction, { key, date, termId, ui
     if (!snapshot.exists) throw new Error('宿題セットが見つかりません。');
     const assignment = snapshot.data();
     if (date < assignment.assignedDate) throw new Error('指示日より前には確認できません。');
-    const status = attendance === 'absent' ? 'absent' : review.status;
+    const itemResults = Object.fromEntries(Object.entries(review.itemResults || {}).filter(([id, status]) => assignment.items.some(item => item.id === id) && ['submitted','partial','missed'].includes(status)));
+    const derivedStatus = aggregateItemResults(assignment.items, itemResults);
+    if (review.itemResults && derivedStatus === 'pending') throw new Error('すべての宿題について提出状況を選択してください。');
+    const status = attendance === 'absent' ? 'absent' : (Object.keys(itemResults).length ? derivedStatus : review.status);
     const value = homeworkValue(status);
     const old = assignment.review;
     if (status === 'laterCompleted') {
@@ -51,7 +54,7 @@ export async function prepareHomeworkReview(transaction, { key, date, termId, ui
     const missingIds = status === 'partial' ? [...new Set(review.missingIds || [])] : [];
     if (missingIds.some(id => !assignment.items.some(item => item.id === id))) throw new Error('未実施の宿題を再選択してください。');
     const previous = status === 'laterCompleted' ? assignment.laterCompletion : assignment.review;
-    const result = { status, text: previous?.status === status && previous?.date === date ? previous.text : templates.results[status], date, missingIds };
+    const result = { status, text: previous?.status === status && previous?.date === date ? previous.text : templates.results[status], date, missingIds, itemResults };
     const next = { ...assignment, ...(status === 'laterCompleted' ? { laterCompletion: result } : { review: result }) };
     payload = { ...refs, assignment, next, value, result };
   }

@@ -55,7 +55,7 @@ export default function AdminNavigation() {
 
   const navigate = (path) => {
     setOpen(false);
-    router.push(path);
+    if (path !== pathname) window.location.assign(path);
   };
 
   const currentTitle =
@@ -101,12 +101,10 @@ export default function AdminNavigation() {
       </nav>
 
       <div className="admin-student-switch">
-        <p>STUDENT VIEW</p>
-        <strong>生徒画面を確認</strong>
-        <small>管理者のままマイページを表示できます</small>
-        <button type="button" onClick={() => navigate("/mypage")}>
-          マイページを開く <span>→</span>
-        </button>
+        <p>PREVIEW</p><strong>利用者画面を確認</strong><small>管理者のまま表示できます</small>
+        <button type="button" onClick={() => navigate("/mypage")}>生徒 <span>→</span></button>
+        <button type="button" onClick={() => navigate("/teacher")}>講師 <span>→</span></button>
+        <button type="button" onClick={() => navigate("/parent")}>保護者 <span>→</span></button>
       </div>
     </aside>
   );

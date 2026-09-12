@@ -1,14 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import './lesson-hub.css';
 const LearningRecordForm = dynamic(() => import('./LearningRecordForm'), { loading: () => <p>学習記録を読み込み中…</p> });
 const Attendance = dynamic(() => import('../lesson-attendance/LessonAttendanceManager'), { loading: () => <p>出欠情報を読み込み中…</p> });
 const HomeworkManager = dynamic(() => import('./HomeworkManager'), { loading: () => <p>宿題を読み込み中…</p> });
 export default function LessonRecordsPage() {
+  const params = useSearchParams();
   const [tab, setTab] = useState('learning');
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
+  useEffect(()=>{ if(params.get('student')&&params.get('date')) setTab('learning'); },[params]);
   const switchTab = next => {
     if (next === tab || busy) return;
     if (dirty && !window.confirm('未保存の入力があります。内容を破棄して切り替えますか？')) return;

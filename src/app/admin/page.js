@@ -177,6 +177,8 @@ export default function AdminPage() {
             <strong>生徒マイページを確認</strong>
             <i>→</i>
           </button>
+          <button type="button" className="student-preview-button" onClick={() => router.push('/teacher')}><span>TEACHER VIEW</span><strong>講師ページを確認</strong><i>→</i></button>
+          <button type="button" className="student-preview-button" onClick={() => router.push('/parent')}><span>PARENT VIEW</span><strong>保護者ページを確認</strong><i>→</i></button>
           <div className="current-term-card">
             <span>現在の学期</span>
             <strong>{termLabel}</strong>

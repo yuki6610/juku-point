@@ -25,10 +25,10 @@ export async function GET(request) {
     const parent = await requireParent(request), params = new URL(request.url).searchParams;
     const studentKey = normalizeStudentKey(params.get('student')), after = params.get('after');
     if (after && !/^\d{4}-\d{2}-\d{2}$/.test(after)) throw new Error('続きを取得する位置が正しくありません。');
-    if (!(await linkedChildren(parent.uid)).includes(studentKey)) return Response.json({ error: 'この生徒の情報を閲覧する権限がありません。' }, { status: 403 });
+    if (!(await linkedChildren(parent.uid, parent.role === 'admin')).includes(studentKey)) return Response.json({ error: 'この生徒の情報を閲覧する権限がありません。' }, { status: 403 });
     const elementary = studentKey.startsWith('elementary_'), id = studentKey.replace(/^(user|elementary)_/, '');
     const student = await adminDb.collection(elementary ? 'adminStudents' : 'users').doc(id).get();
-    if (!student.exists || student.data().active === false || student.data().enrollmentStatus === 'withdrawn') throw new Error('対象生徒を確認できません。');
+    if (!student.exists || student.data().active === false || student.data().enrollmentStatus === 'withdrawn' || Number(student.data().grade)>9) throw new Error('対象生徒を確認できません。');
     const publicRef = adminDb.collection('lessonPublic').doc(studentKey).collection('records');
     const commonRef = adminDb.collection('adminLessonAttendance').doc(studentKey).collection('records');
     const [publicSnap, commonSnap, homeworkSnap] = await Promise.all([

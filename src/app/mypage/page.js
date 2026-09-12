@@ -159,6 +159,8 @@ export default function MyPage() {
   const expNeeded = 100 + (level - 1) * 10;
   const expPercent = Math.min((exp / expNeeded) * 100, 100);
   const avatarRenderUrl = getAvatarDisplayUrl(data.avatarUrl);
+  const examTarget = new Date(`${new Date().getMonth() < 2 ? new Date().getFullYear() : new Date().getFullYear() + 1}-02-10T00:00:00+09:00`);
+  const examDays = Math.max(0, Math.ceil((examTarget.getTime() - Date.now()) / 86400000));
   const menuItems = [
     { icon: "◷", label: "自習を記録", note: "入退室・学習時間", path: "/checkin", tone: "blue" },
     { icon: "◇", label: "景品交換", note: "ポイントを使う", path: "/rewards", tone: "green" },
@@ -249,6 +251,7 @@ export default function MyPage() {
           <p>{data.termSelfStudyCount || 0}回の自習を記録</p>
         </div>
       </section>
+      {Number(data.grade) === 9 && <section className="dashboard-alerts" aria-label="入試までの日数"><div className="dashboard-alert warning"><strong>公立高校入試まで あと{examDays}日</strong><span>今日できることを一つずつ積み重ねよう。</span></div></section>}
 
       <section className="dashboard-stats" aria-label="学習状況">
         <article className="stat-tile">

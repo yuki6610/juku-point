@@ -5,6 +5,7 @@ import HomeworkReview from '@/components/HomeworkReview';
 import { homeworkValue } from '@/lib/homeworkModel.mjs';
 
 import { useEffect, useMemo, useState, useRef } from "react";
+import { useSearchParams } from 'next/navigation';
 import { lessonStudent, isMiddleStudent, studentGradeLabel } from '@/lib/lessonStudents.mjs';
 import {
   collection,
@@ -117,6 +118,7 @@ const calculateSummary = (records, year, term) => {
 };
 
 export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyChange = () => {} }) {
+  const params = useSearchParams();
   const academic = useAcademicContext();
   const currentYear = new Date().getFullYear();
   const [students, setStudents] = useState([]);
@@ -156,8 +158,7 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
 
   useEffect(() => {
     Promise.all([getDocs(collection(db, 'users')), getDocs(collection(db, 'adminStudents'))]).then(([snapshot, elementary]) => {
-      setStudents(
-        [...snapshot.docs.map(item => lessonStudent(item.id, item.data())), ...elementary.docs.map(item => lessonStudent(item.id, item.data(), 'elementary'))].filter(Boolean)
+      const loaded = [...snapshot.docs.map(item => lessonStudent(item.id, item.data())), ...elementary.docs.map(item => lessonStudent(item.id, item.data(), 'elementary'))].filter(Boolean)
           .sort(
             (a, b) =>
               Number(a.grade || 0) - Number(b.grade || 0) ||
@@ -165,10 +166,13 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
                 String(b.realName || b.displayName || ""),
                 "ja"
               )
-          )
-      );
+          );
+      setStudents(loaded);
+      const requested = params.get('student');
+      if (requested && loaded.some(item=>item.uid===requested)) setStudentId(requested);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(params.get('date')||'')) setDate(params.get('date'));
     }).catch(() => setNotice('生徒一覧を取得できませんでした。再読み込みしてください。'));
-  }, []);
+  }, [params]);
 
   useEffect(() => {
     if (attendance === "absent") {
@@ -193,6 +197,10 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
   }, [students, search, grade]);
 
   const selectedStudent = students.find((student) => student.uid === studentId);
+  const selectedGrade = Number(selectedStudent?.grade || 0);
+  const isElementary = selectedGrade >= 1 && selectedGrade <= 6;
+  const isHigh = selectedGrade >= 10 && selectedGrade <= 12;
+  useEffect(() => { if (isHigh) setHomeworkReady(true); }, [isHigh]);
 
   const resetRecordForm = () => {
     setHomeworkReview(null); setCommentIds([]);
@@ -436,7 +444,8 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
                   <input disabled={saving} type="date" value={date} onChange={(e) => { setRecordReady(false); setDate(e.target.value); }} />
                 </label>
               </div>
-              {!isMiddleStudent(selectedStudent) && <p>宿題・単語テストは記録のみです。小学生はポイント付与なし、高校生は既存の通常出席ポイントのみ適用します。</p>}
+              {isElementary && <p>小学生は出欠と宿題を記録します。単語テスト・生活態度・ポイント付与はありません。</p>}
+              {isHigh && <p>高校生は出席状況のみを記録します。宿題・単語テスト・生活態度は表示しません。</p>}
 
               <fieldset>
                 <legend>出席状況</legend>
@@ -468,7 +477,7 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
                 )}
               </fieldset>
 
-              <fieldset className={attendance === "absent" ? "disabled-section" : ""}>
+              {!isHigh && <fieldset className={attendance === "absent" ? "disabled-section" : ""}>
                 <legend>宿題</legend>
                 <HomeworkReview studentKey={selectedStudent.uid} date={date} value={homeworkReview} onChange={value => { setHomeworkReview(value); if (value) setHomework(homeworkValue(value.status)); onDirtyChange(true); }} commentIds={commentIds} onCommentsChange={value => { setCommentIds(value); onDirtyChange(true); }} onReadyChange={setHomeworkReady} />
                 {!homeworkReview?.assignmentId && <>
@@ -489,9 +498,9 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
                   </div>
                 )}
                 </>}
-              </fieldset>
+              </fieldset>}
 
-              <fieldset>
+              {isMiddleStudent(selectedStudent) && <fieldset>
                 <legend>単語テスト（週1回）</legend>
                 <select value={wordStatus} onChange={(e) => setWordStatus(e.target.value)}>
                   {WORD_OPTIONS.map(([value, label]) => (
@@ -508,9 +517,9 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
                 {(wordStatus === "completed" || wordStatus === "makeup") && (
                   <p className="word-total-hint">問題数はこの生徒の次回入力にも引き継がれます。</p>
                 )}
-              </fieldset>
+              </fieldset>}
 
-              <fieldset className={attendance === "absent" ? "disabled-section" : ""}>
+              {isMiddleStudent(selectedStudent) && <fieldset className={attendance === "absent" ? "disabled-section" : ""}>
                 <legend>生活態度</legend>
                 <div className="check-row">
                   <label><input type="checkbox" checked={late} disabled={attendance === "absent"} onChange={(e) => setLate(e.target.checked)} />遅刻</label>
@@ -522,7 +531,7 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
                   value={behaviorNote}
                   onChange={(e) => setBehaviorNote(e.target.value)}
                 />
-              </fieldset>
+              </fieldset>}
 
               {notice && <p className="record-notice" role="status">{notice}</p>}
               <button className="record-save" onClick={saveRecord} disabled={saving || !recordReady || !homeworkReady}>

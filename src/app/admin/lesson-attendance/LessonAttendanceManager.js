@@ -952,7 +952,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
                       <time>{record.date}</time>
                       <strong>{record.status === "present" ? "実施" : record.status === "absent" ? "欠席" : "振替実施"}</strong>
                       <span>{record.makeupDate ? `振替済 ${record.makeupDate}` : record.status === "makeup" && record.originalDate ? `振替元 ${record.originalDate}` : record.status === "absent" ? "振替待ち" : record.note}</span>
-                      <div className="record-row-actions"><button type="button" className="record-edit" disabled={busy} onClick={() => editAttendance(record)}>修正</button><button type="button" className="record-delete" disabled={busy} onClick={() => deleteAttendance(record)}>削除</button></div>
+                      <div className="record-row-actions"><button type="button" className="record-edit" disabled={busy} onClick={() => window.location.assign(`/admin/lesson-records?student=${encodeURIComponent(selectedKey)}&date=${record.date}`)}>登録内容と同じ項目を修正</button><button type="button" className="record-delete" disabled={busy} onClick={() => deleteAttendance(record)}>削除</button></div>
                     </div>
                   ))}
                   {selectedRecordList.length === 0 && <p className="record-history-empty">まだ記録がありません。</p>}

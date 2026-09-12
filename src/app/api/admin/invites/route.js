@@ -8,7 +8,7 @@ export const runtime = 'nodejs'; export const dynamic = 'force-dynamic';
 
 async function activeStudents() {
   const [users, elementary] = await Promise.all([adminDb.collection('users').get(), adminDb.collection('adminStudents').get()]);
-  return new Set([...users.docs.map(doc=>({key:`user_${doc.id}`,...doc.data()})),...elementary.docs.map(doc=>({key:`elementary_${doc.id}`,...doc.data()}))].filter(item=>item.active!==false&&item.enrollmentStatus!=='withdrawn').map(item=>item.key));
+  return new Set([...users.docs.map(doc=>({key:`user_${doc.id}`,...doc.data()})),...elementary.docs.map(doc=>({key:`elementary_${doc.id}`,...doc.data()}))].filter(item=>item.active!==false&&item.enrollmentStatus!=='withdrawn'&&Number(item.grade)<=9).map(item=>item.key));
 }
 
 export async function POST(request) {

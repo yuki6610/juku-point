@@ -4,9 +4,19 @@ export const DEFAULT_HOMEWORK_TEMPLATES = {
   results: { submitted: '今回の宿題はすべて取り組めていました。', partial: '今回の宿題には、未実施の部分がありました。', missed: '今回の宿題は未実施でした。', pending: '今回の宿題は、まだ確認していません。', absent: '欠席のため、次回の授業で確認します。', none: '今回、宿題の指定はありません。', laterCompleted: '前回未実施だった宿題の完了を確認しました。' },
 };
 export const RESULT_LABELS = { submitted: '全部提出', partial: '一部未実施', missed: '全部未実施', pending: '未確認', absent: '欠席で保留', none: '宿題なし', laterCompleted: '後日完了' };
+export const ITEM_RESULT_LABELS = { submitted: '提出', partial: '途中', missed: '未提出' };
+export function aggregateItemResults(items, itemResults = {}) {
+  if (!items?.length) return 'none';
+  const values = items.map(item => itemResults[item.id]).filter(Boolean);
+  if (values.length !== items.length) return 'pending';
+  if (values.includes('missed')) return 'missed';
+  if (values.includes('partial')) return 'partial';
+  return 'submitted';
+}
 export function homeworkValue(status) {
   if (status === 'submitted') return 'submitted';
-  if (status === 'partial' || status === 'missed') return 'missed';
+  if (status === 'missed') return 'missed';
+  if (status === 'partial') return 'notEvaluated';
   if (status === 'none') return 'none';
   if (['pending', 'absent', 'laterCompleted'].includes(status)) return 'notEvaluated';
   throw new Error('宿題の確認結果が正しくありません。');
@@ -35,6 +45,6 @@ export function validateAssignment(input, templates) {
   return { assignedDate: input.assignedDate, dueDate: input.dueDate, items };
 }
 export function publicAssignment(data) {
-  const result = value => value ? { status: value.status, text: value.text, date: value.date, missingIds: value.missingIds || [] } : null;
+  const result = value => value ? { status: value.status, text: value.text, date: value.date, missingIds: value.missingIds || [], itemResults: value.itemResults || {} } : null;
   return { assignedDate: data.assignedDate, dueDate: data.dueDate, items: (data.items || []).map(item => ({ id: item.id, materialId: item.materialId, materialLabel: item.materialLabel, range: item.range })), review: result(data.review), laterCompletion: result(data.laterCompletion) };
 }

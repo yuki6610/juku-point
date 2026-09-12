@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { DEFAULT_HOMEWORK_TEMPLATES as templates, validateAssignment, validateTemplates, homeworkValue, publicAssignment } from '../src/lib/homeworkModel.mjs';
+import { DEFAULT_HOMEWORK_TEMPLATES as templates, aggregateItemResults, validateAssignment, validateTemplates, homeworkValue, publicAssignment } from '../src/lib/homeworkModel.mjs';
 
 const assignment = { assignedDate: '2026-09-12', dueDate: '2026-09-19', items: [{ materialId: 'new_math', range: 'P.20〜23' }, { materialId: 'new_english', range: 'P.10〜12' }] };
 test('multiple tasks form one set with fixed material snapshots', () => {
@@ -13,9 +13,12 @@ test('multiple tasks form one set with fixed material snapshots', () => {
   assert.throws(() => validateAssignment({ ...assignment, dueDate: '2026-09-11' }, templates));
   assert.throws(() => validateAssignment({ ...assignment, items: [{ materialId: 'fake', range: '1' }] }, templates));
 });
-test('partial set maps to missed; pending and later completion are unevaluated', () => {
-  assert.equal(homeworkValue('partial'), 'missed');
+test('individual homework results use all-submitted / any-missed / partial-neutral rules', () => {
+  assert.equal(homeworkValue('partial'), 'notEvaluated');
   assert.equal(homeworkValue('submitted'), 'submitted');
+  assert.equal(aggregateItemResults([{id:'0'},{id:'1'}], {'0':'submitted','1':'submitted'}), 'submitted');
+  assert.equal(aggregateItemResults([{id:'0'},{id:'1'}], {'0':'submitted','1':'missed'}), 'missed');
+  assert.equal(aggregateItemResults([{id:'0'},{id:'1'}], {'0':'submitted','1':'partial'}), 'partial');
   for (const status of ['pending', 'absent', 'laterCompleted']) assert.equal(homeworkValue(status), 'notEvaluated');
   assert.throws(() => homeworkValue('fake'));
 });
@@ -31,7 +34,7 @@ async function prepare(old = {}, input = {}) {
   const writes = [];
   let seq = 0;
   const ref = path => ({ path, collection: part => ref(`${path}/${part}`), doc: part => ref(`${path}/${part || `audit${++seq}`}`) });
-  const context = { FieldValue: { serverTimestamp: () => 123 }, adminDb: { collection: path => ref(path) }, homeworkValue, publicAssignment, DEFAULT_HOMEWORK_TEMPLATES: templates };
+  const context = { FieldValue: { serverTimestamp: () => 123 }, adminDb: { collection: path => ref(path) }, aggregateItemResults, homeworkValue, publicAssignment, DEFAULT_HOMEWORK_TEMPLATES: templates };
   vm.createContext(context);
   vm.runInContext(server.replace(/^import .*\n/gm, '').replaceAll('export ', ''), context);
   const transaction = {
@@ -48,7 +51,7 @@ async function prepare(old = {}, input = {}) {
 }
 test('single review updates private and public records without private memo leakage', async () => {
   const { result, writes } = await prepare({ internalNote: 'PRIVATE' });
-  assert.equal(result.homework, 'missed');
+  assert.equal(result.homework, 'notEvaluated');
   const publication = writes.find(item => item.path.startsWith('homeworkPublic')).value;
   assert.equal(publication.review.status, 'partial');
   assert.equal(JSON.stringify(publication).includes('PRIVATE'), false);
