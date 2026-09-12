@@ -60,6 +60,9 @@ const courseTagLabel = {
   summer_course: '☀ 夏期',
   winter_course: '❄ 冬期',
   past_exam: '📄 公立過去問',
+  exam_private: '🏫 私立入試',
+  exam_recommendation: '⭐ 公立推薦',
+  exam_general: '📝 公立一般',
 };
 
 const gradeLabel = (g) =>
@@ -618,7 +621,7 @@ export default function StudentsPage() {
               </section>
 
               <section className="detail-actions">
-                <h3>規律・講習</h3>
+                <h3>規律・対象タグ</h3>
                 <div className="action-grid">
                   <button onClick={() => addYellowCard(selectedStudent.uid, selectedStudent.yellowCard)}>⚠ 注意 +1</button>
                   <button onClick={() => resetYellowCard(selectedStudent.uid)}>注意リセット</button>
@@ -627,12 +630,12 @@ export default function StudentsPage() {
                   ) : (
                     <button className="danger" onClick={() => banStudent(selectedStudent.uid)}>7日間出禁</button>
                   )}
-                  <button onClick={() => setCourseModalOpen(true)}>講習タグを編集</button>
+                  <button onClick={() => setCourseModalOpen(true)}>講習・入試タグを編集</button>
                 </div>
 
                 <div className="course-tags">
                   {(selectedStudent.courseTags || []).length === 0 ? (
-                    <span>講習タグなし</span>
+                    <span>対象タグなし</span>
                   ) : selectedStudent.courseTags.map((tag) => (
                     <span key={tag}>{courseTagLabel[tag] || tag}</span>
                   ))}
@@ -670,13 +673,14 @@ export default function StudentsPage() {
           <div className="students-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-title">
               <span>{gradeLabel(selectedStudent.grade)}</span>
-              <h2>{displayName(selectedStudent)} の講習タグ</h2>
+              <h2>{displayName(selectedStudent)} の講習・入試タグ</h2>
             </div>
             {Object.keys(courseTagLabel).map((tag) => (
               <button
                 type="button"
                 key={tag}
                 className={(selectedStudent.courseTags || []).includes(tag) ? 'course-tag-btn active' : 'course-tag-btn'}
+                disabled={tag.startsWith('exam_') && Number(selectedStudent.grade) !== 9}
                 onClick={() => toggleCourseTag(tag)}
               >
                 {courseTagLabel[tag]}

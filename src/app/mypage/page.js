@@ -45,6 +45,7 @@ export default function MyPage() {
   const [showAvatar, setShowAvatar] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [gachaAccess, setGachaAccess] = useState({ eligible: false, pendingCount: 0 });
+  const [examDates, setExamDates] = useState({});
 
   const [levelUpVisible, setLevelUpVisible] = useState(false);
 
@@ -103,6 +104,11 @@ export default function MyPage() {
             Number(avatarOverride.avatarVersion || 0) >=
               Number(d.avatarVersion || 0);
           setData(useLocalAvatar ? { ...d, ...avatarOverride } : d);
+          if (Number(d.grade) === 9) {
+            const month = new Date().getMonth() + 1;
+            const academicYear = month <= 3 ? new Date().getFullYear() - 1 : new Date().getFullYear();
+            getDoc(doc(db, 'admin_data', 'examDates')).then(value => setExamDates(value.data()?.years?.[academicYear] || {})).catch(()=>{});
+          }
 
           currentUser.getIdToken().then((token) =>
             fetch("/api/gacha/eligibility", { headers: { Authorization: `Bearer ${token}` } })
@@ -159,8 +165,13 @@ export default function MyPage() {
   const expNeeded = 100 + (level - 1) * 10;
   const expPercent = Math.min((exp / expNeeded) * 100, 100);
   const avatarRenderUrl = getAvatarDisplayUrl(data.avatarUrl);
-  const examTarget = new Date(`${new Date().getMonth() < 2 ? new Date().getFullYear() : new Date().getFullYear() + 1}-02-10T00:00:00+09:00`);
-  const examDays = Math.max(0, Math.ceil((examTarget.getTime() - Date.now()) / 86400000));
+  const examTypes = [
+    ['exam_private','private','私立入試'],
+    ['exam_recommendation','recommendation','公立推薦'],
+    ['exam_general','general','公立一般'],
+  ];
+  const assignedExamTags = examTypes.filter(([tag]) => data.courseTags?.includes(tag));
+  const visibleExams = (assignedExamTags.length ? assignedExamTags : examTypes).filter(([,id])=>examDates[id]).map(([tag,id,label])=>({tag,id,label,date:examDates[id],days:Math.max(0,Math.ceil((new Date(`${examDates[id]}T00:00:00+09:00`).getTime()-Date.now())/86400000))}));
   const menuItems = [
     { icon: "◷", label: "自習を記録", note: "入退室・学習時間", path: "/checkin", tone: "blue" },
     { icon: "◇", label: "景品交換", note: "ポイントを使う", path: "/rewards", tone: "green" },
@@ -251,7 +262,7 @@ export default function MyPage() {
           <p>{data.termSelfStudyCount || 0}回の自習を記録</p>
         </div>
       </section>
-      {Number(data.grade) === 9 && <section className="dashboard-alerts" aria-label="入試までの日数"><div className="dashboard-alert warning"><strong>公立高校入試まで あと{examDays}日</strong><span>今日できることを一つずつ積み重ねよう。</span></div></section>}
+      {Number(data.grade) === 9 && visibleExams.length>0 && <section className="dashboard-alerts" aria-label="入試までの日数">{visibleExams.map(exam=><div key={exam.id} className="dashboard-alert warning"><strong>{exam.label}まで あと{exam.days}日</strong><span>{exam.date.replaceAll('-',' / ')}　今日できることを一つずつ積み重ねよう。</span></div>)}</section>}
 
       <section className="dashboard-stats" aria-label="学習状況">
         <article className="stat-tile">

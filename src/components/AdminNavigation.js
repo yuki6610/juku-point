@@ -4,32 +4,20 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import "./admin-navigation.css";
 
-const groups = [
-  {
-    label: "毎日の業務",
+const groups = [{
+    label: "管理メニュー",
     items: [
       { path: "/admin", icon: "⌂", label: "ダッシュボード", exact: true },
       { path: "/admin/lesson-records", icon: "✓", label: "学習記録・出欠" },
       { path: "/admin/course-lessons", icon: "季", label: "講習授業管理" },
       { path: "/admin/settings", icon: "▦", label: "教室・授業設定" },
       { path: "/admin/study-log", icon: "◷", label: "自習管理" },
-    ],
-  },
-  {
-    label: "生徒・成績",
-    items: [
       { path: "/admin/students", icon: "◎", label: "生徒管理" },
       { path: "/admin/score", icon: "△", label: "成績・志望校" },
-    ],
-  },
-  {
-    label: "ポイント・景品",
-    items: [
       { path: "/admin/point-history", icon: "P", label: "ポイント履歴" },
       { path: "/admin/rewards", icon: "◇", label: "景品・交換管理" },
     ],
-  },
-];
+  }];
 
 const titles = Object.fromEntries(
   groups.flatMap((group) => group.items.map((item) => [item.path, item.label])),

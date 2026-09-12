@@ -91,6 +91,7 @@ const menuGroups = [
     ],
   },
 ];
+const allMenuItems = menuGroups.flatMap(group => group.items).filter((item,index,list)=>list.findIndex(value=>value.path===item.path)===index);
 
 export default function AdminPage() {
   const router = useRouter();
@@ -214,17 +215,16 @@ export default function AdminPage() {
         </div>
       </section>
 
-      {menuGroups.map((group) => (
-        <section className="admin-menu-section" key={group.id}>
+        <section className="admin-menu-section">
           <div className="admin-section-title">
             <div>
-              <span>{group.eyebrow}</span>
-              <h2>{group.title}</h2>
+              <span>ALL TOOLS</span>
+              <h2>管理機能</h2>
             </div>
-            <p>{group.description}</p>
+            <p>ページを細かく分類せず、必要な機能を一覧から選べます。</p>
           </div>
           <div className="admin-menu-grid">
-            {group.items.map((item) => (
+            {allMenuItems.map((item) => (
               <button
                 type="button"
                 key={item.path}
@@ -241,7 +241,6 @@ export default function AdminPage() {
             ))}
           </div>
         </section>
-      ))}
 
       <section className="admin-system-section">
         <div>
