@@ -1,0 +1,15 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { auth } from '@/firebaseConfig';
+const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo'}).format(new Date());
+const blankAnnouncement=()=>({id:crypto.randomUUID(),title:'',body:'',date:today()});
+const blankDocument=()=>({...blankAnnouncement(),url:''});
+export default function ParentPortalSettings(){
+ const [data,setData]=useState({announcements:[],documents:[]}),[notice,setNotice]=useState(''),[saving,setSaving]=useState(false);
+ const api=async(options)=>{const token=await auth.currentUser?.getIdToken();const response=await fetch('/api/admin/parent-portal',{...options,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`}});const result=await response.json();if(!response.ok)throw new Error(result.error);return result};
+ useEffect(()=>{api().then(value=>setData({announcements:value.announcements||[],documents:value.documents||[]})).catch(error=>setNotice(error.message))},[]);
+ const update=(key,id,field,value)=>setData(old=>({...old,[key]:old[key].map(item=>item.id===id?{...item,[field]:value}:item)}));
+ const remove=(key,id)=>setData(old=>({...old,[key]:old[key].filter(item=>item.id!==id)}));
+ const save=async()=>{setSaving(true);try{await api({method:'POST',body:JSON.stringify(data)});setNotice('保護者向け情報を保存しました。')}catch(error){setNotice(error.message)}finally{setSaving(false)}};
+ return <section className="portal-settings"><header><span>PARENT CONTENT</span><h2>保護者向けのお知らせ・資料</h2><p>ここで保存した内容だけが保護者ページへ公開されます。</p></header>{notice&&<p role="status">{notice}</p>}<h3>お知らせ</h3>{data.announcements.map(item=><div className="portal-edit-row" key={item.id}><input type="date" value={item.date} onChange={e=>update('announcements',item.id,'date',e.target.value)}/><input placeholder="タイトル" value={item.title} onChange={e=>update('announcements',item.id,'title',e.target.value)}/><textarea placeholder="お知らせ本文" value={item.body} onChange={e=>update('announcements',item.id,'body',e.target.value)}/><button onClick={()=>remove('announcements',item.id)}>削除</button></div>)}<button onClick={()=>setData(old=>({...old,announcements:[blankAnnouncement(),...old.announcements]}))}>＋ お知らせを追加</button><h3>PDF資料</h3>{data.documents.map(item=><div className="portal-edit-row document" key={item.id}><input type="date" value={item.date} onChange={e=>update('documents',item.id,'date',e.target.value)}/><input placeholder="資料名" value={item.title} onChange={e=>update('documents',item.id,'title',e.target.value)}/><input placeholder="PDFのhttps URL" value={item.url} onChange={e=>update('documents',item.id,'url',e.target.value)}/><textarea placeholder="資料の説明（任意）" value={item.body} onChange={e=>update('documents',item.id,'body',e.target.value)}/><button onClick={()=>remove('documents',item.id)}>削除</button></div>)}<button onClick={()=>setData(old=>({...old,documents:[blankDocument(),...old.documents]}))}>＋ PDF資料を追加</button><button className="portal-save" disabled={saving} onClick={save}>{saving?'保存中…':'保護者向け情報を保存'}</button></section>;
+}
