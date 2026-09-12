@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "../../firebaseConfig";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, getDocFromCache, updateDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import dynamic from "next/dynamic";
 const AvatarCanvas = dynamic(
@@ -85,9 +85,36 @@ export default function MyPage() {
 
       setUser(currentUser);
 
+      const profileRef = doc(db, "users", currentUser.uid);
+      const cacheKey = `student-home:${currentUser.uid}`;
+      const showCachedProfile = (value) => {
+        if (!value) return false;
+        setData(value);
+        setLoading(false);
+        return true;
+      };
+
+      // 前回表示した安全な概要を先に出し、最新値は直後にバックグラウンド更新する。
+      try {
+        const saved = JSON.parse(localStorage.getItem(cacheKey) || "null");
+        showCachedProfile(saved);
+      } catch {
+        localStorage.removeItem(cacheKey);
+      }
+      try {
+        const cachedSnap = await getDocFromCache(profileRef);
+        if (cachedSnap.exists()) showCachedProfile(cachedSnap.data());
+      } catch {}
+
+      currentUser.getIdToken().then((token) =>
+        fetch("/api/gacha/eligibility", { headers: { Authorization: `Bearer ${token}` } })
+      ).then((response) => response.ok ? response.json() : null)
+        .then((result) => result && setGachaAccess(result))
+        .catch(() => {});
+
       try {
           // キャッシュを利用できる端末では先に表示し、弱い回線でもホームを開きやすくする。
-          const snap = await getDoc(doc(db, "users", currentUser.uid));
+          const snap = await getDoc(profileRef);
           if (snap.exists()) {
             const d = snap.data();
           autoUnbanIfExpired(currentUser.uid, d).catch(console.error);
@@ -104,18 +131,17 @@ export default function MyPage() {
             Number(avatarOverride.avatarVersion || 0) >=
               Number(d.avatarVersion || 0);
           setData(useLocalAvatar ? { ...d, ...avatarOverride } : d);
+          localStorage.setItem(cacheKey, JSON.stringify({
+            displayName: d.displayName || '', grade: d.grade || 0, points: d.points || 0,
+            termPoints: d.termPoints || 0, totalEarnedPoints: d.totalEarnedPoints || 0,
+            experience: d.experience || 0, level: d.level || 1, avatarUrl: d.avatarUrl || '',
+            avatarVersion: d.avatarVersion || 0, courseTags: d.courseTags || [],
+          }));
           if (Number(d.grade) === 9) {
             const month = new Date().getMonth() + 1;
             const academicYear = month <= 3 ? new Date().getFullYear() - 1 : new Date().getFullYear();
             getDoc(doc(db, 'admin_data', 'examDates')).then(value => setExamDates(value.data()?.years?.[academicYear] || {})).catch(()=>{});
           }
-
-          currentUser.getIdToken().then((token) =>
-            fetch("/api/gacha/eligibility", { headers: { Authorization: `Bearer ${token}` } })
-          ).then((response) => response.ok ? response.json() : null)
-            .then((result) => result && setGachaAccess(result))
-            .catch(() => {});
-
 
           const lastLevel = parseInt(localStorage.getItem("lastLevel") || "0");
           if ((d.level ?? 1) > lastLevel) {
@@ -220,6 +246,7 @@ export default function MyPage() {
           onClick={async () => {
             await signOut(getAuth());
             localStorage.removeItem("lastLevel");
+            localStorage.removeItem(`student-home:${user.uid}`);
             router.replace("/login");
           }}
         >
