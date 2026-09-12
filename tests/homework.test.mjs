@@ -13,8 +13,8 @@ test('multiple tasks form one set with fixed material snapshots', () => {
   assert.throws(() => validateAssignment({ ...assignment, dueDate: '2026-09-11' }, templates));
   assert.throws(() => validateAssignment({ ...assignment, items: [{ materialId: 'fake', range: '1' }] }, templates));
 });
-test('individual homework results use all-submitted / any-missed / partial-neutral rules', () => {
-  assert.equal(homeworkValue('partial'), 'notEvaluated');
+test('individual homework results use submitted / partial / missed aggregate rules', () => {
+  assert.equal(homeworkValue('partial'), 'partial');
   assert.equal(homeworkValue('submitted'), 'submitted');
   assert.equal(aggregateItemResults([{id:'0'},{id:'1'}], {'0':'submitted','1':'submitted'}), 'submitted');
   assert.equal(aggregateItemResults([{id:'0'},{id:'1'}], {'0':'submitted','1':'missed'}), 'missed');
@@ -51,7 +51,7 @@ async function prepare(old = {}, input = {}) {
 }
 test('single review updates private and public records without private memo leakage', async () => {
   const { result, writes } = await prepare({ internalNote: 'PRIVATE' });
-  assert.equal(result.homework, 'notEvaluated');
+  assert.equal(result.homework, 'partial');
   const publication = writes.find(item => item.path.startsWith('homeworkPublic')).value;
   assert.equal(publication.review.status, 'partial');
   assert.equal(JSON.stringify(publication).includes('PRIVATE'), false);

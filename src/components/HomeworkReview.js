@@ -28,7 +28,7 @@ export default function HomeworkReview({ studentKey, date, value, onChange, comm
     {selected && <><div>{selected.items.map(item => <div key={item.id}><strong>{item.materialLabel}：{item.range}</strong><div className="choice-grid three">{Object.entries(ITEM_RESULT_LABELS).map(([status,label])=><button type="button" key={status} className={value.itemResults?.[item.id]===status?'selected':''} onClick={()=>{const itemResults={...(value.itemResults||{}),[item.id]:status};onChange({...value,itemResults,status:aggregateItemResults(selected.items,itemResults)})}}>{label}</button>)}</div></div>)}</div>
       <p>総合判定：{RESULT_LABELS[aggregateItemResults(selected.items,value.itemResults)]}</p>
       <p>公開される定型文：{data.templates.results[aggregateItemResults(selected.items,value.itemResults)]}</p>
-      <small>すべて提出で加点、1つでも未提出なら減点、途中のみの場合は加点・減点なしです。</small>
+      <small>すべて提出で+50pt、1つでも未提出なら-50pt、未提出がなく途中がある場合は-25ptです。提出回数に週単位の制限はありません。</small>
     </>}
     <h3>生徒・保護者向けコメント（任意）</h3>
     {data.templates.comments.map(item => <label key={item.id} style={{ display: 'block' }}><input type="checkbox" checked={commentIds.includes(item.id)} onChange={event => onCommentsChange(event.target.checked ? [...commentIds, item.id] : commentIds.filter(id => id !== item.id))} />{item.label}</label>)}

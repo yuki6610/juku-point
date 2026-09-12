@@ -26,6 +26,7 @@ function wordTestReward(correct, total) {
 
 function homeworkReward(status) {
   if (status === "submitted") return 50;
+  if (status === "partial") return -25;
   if (status === "missed") return -50;
   return 0;
 }
@@ -76,17 +77,18 @@ export async function POST(request) {
     const userRef = adminDb.collection("users").doc(uid);
     const eventTimestamp = Timestamp.fromDate(new Date(`${date}T12:00:00+09:00`));
     const recordRef = userRef.collection("lessonTerms").doc(termId).collection("records").doc(date);
-    const homeworkRewardRef = userRef.collection("lessonRewards").doc(`${termId}_${weekId}_homework_submitted`);
+    const homeworkRewardRef = userRef.collection("lessonRewards").doc(`${termId}_${date}_homework`);
+    const legacyHomeworkRewardRef = userRef.collection("lessonRewards").doc(`${termId}_${weekId}_homework_submitted`);
     const homeworkMissedRef = userRef.collection("lessonRewards").doc(`${termId}_${date}_homework_missed`);
     const wordRewardRef = userRef.collection("lessonRewards").doc(`${termId}_${weekId}_wordtest`);
-    const homeworkHistoryRef = userRef.collection("pointHistory").doc(`lesson_${termId}_${weekId}_homework_submitted`);
+    const homeworkHistoryRef = userRef.collection("pointHistory").doc(`lesson_${termId}_${date}_homework`);
     const homeworkMissedHistoryRef = userRef.collection("pointHistory").doc(`lesson_${termId}_${date}_homework_missed`);
     const wordHistoryRef = userRef.collection("pointHistory").doc(`lesson_${termId}_${weekId}_wordtest`);
 
     const result = await adminDb.runTransaction(async (transaction) => {
-      const [userSnap, oldRecordSnap, oldHomeworkSnap, oldHomeworkMissedSnap, oldWordSnap] = await Promise.all([
+      const [userSnap, oldRecordSnap, oldHomeworkSnap, legacyHomeworkSnap, oldHomeworkMissedSnap, oldWordSnap] = await Promise.all([
         transaction.get(userRef), transaction.get(recordRef),
-        transaction.get(homeworkRewardRef), transaction.get(homeworkMissedRef),
+        transaction.get(homeworkRewardRef), transaction.get(legacyHomeworkRewardRef), transaction.get(homeworkMissedRef),
         transaction.get(wordRewardRef),
       ]);
       if (!userSnap.exists) throw new ApiError("生徒が見つかりません。", 404);
@@ -123,7 +125,7 @@ export async function POST(request) {
       const rewards = { homework: null, wordTest: null };
 
       const requestedHomework = homeworkReward(savedRecord.homework);
-      const oldHomework = oldHomeworkSnap.exists ? oldHomeworkSnap.data() : null;
+      const oldHomework = oldHomeworkSnap.exists ? oldHomeworkSnap.data() : (legacyHomeworkSnap.exists && legacyHomeworkSnap.data().sourceDate === date ? legacyHomeworkSnap.data() : null);
       if (!oldHomework && requestedHomework === 50) {
         pointDelta += 50;
         expDelta += 50;
@@ -144,6 +146,7 @@ export async function POST(request) {
         earnedDelta -= 50;
         homeworkCountDelta -= 1;
         transaction.delete(homeworkRewardRef);
+        if (legacyHomeworkSnap.exists && legacyHomeworkSnap.data().sourceDate === date) transaction.delete(legacyHomeworkRewardRef);
         transaction.set(homeworkHistoryRef, {
           type: "homework_undo", amount: -50, exp: -50, week: weekId, termId,
           sourceDate: date, message: "宿題提出ボーナス取消", createdAt: eventTimestamp, updatedAt: now,
@@ -151,7 +154,7 @@ export async function POST(request) {
       }
 
       const oldMissed = oldHomeworkMissedSnap.exists ? Number(oldHomeworkMissedSnap.data().amount || 0) : 0;
-      const nextMissed = requestedHomework === -50 ? -50 : 0;
+      const nextMissed = requestedHomework < 0 ? requestedHomework : 0;
       if (oldMissed !== nextMissed) {
         pointDelta += nextMissed - oldMissed;
         expDelta += nextMissed - oldMissed;
@@ -159,11 +162,11 @@ export async function POST(request) {
         if (nextMissed) {
           transaction.set(homeworkMissedRef, {
             type: "homework_missed", termId, weekId, sourceDate: date,
-            amount: -50, exp: -50, createdAt: now, updatedAt: now,
+            amount: nextMissed, exp: nextMissed, status: requestedHomework === -25 ? 'partial' : 'missed', createdAt: now, updatedAt: now,
           }, { merge: true });
           transaction.set(homeworkMissedHistoryRef, {
-            type: "homework_missed", amount: -50, exp: -50, week: weekId,
-            termId, sourceDate: date, message: "宿題未提出", createdAt: eventTimestamp, updatedAt: now,
+            type: requestedHomework === -25 ? "homework_partial" : "homework_missed", amount: nextMissed, exp: nextMissed, week: weekId,
+            termId, sourceDate: date, message: requestedHomework === -25 ? "宿題途中" : "宿題未提出", createdAt: eventTimestamp, updatedAt: now,
           }, { merge: true });
         } else {
           transaction.delete(homeworkMissedRef);

@@ -16,7 +16,7 @@ export function aggregateItemResults(items, itemResults = {}) {
 export function homeworkValue(status) {
   if (status === 'submitted') return 'submitted';
   if (status === 'missed') return 'missed';
-  if (status === 'partial') return 'notEvaluated';
+  if (status === 'partial') return 'partial';
   if (status === 'none') return 'none';
   if (['pending', 'absent', 'laterCompleted'].includes(status)) return 'notEvaluated';
   throw new Error('宿題の確認結果が正しくありません。');
