@@ -31,7 +31,7 @@ export default function HomeworkReview({ studentKey, date, value, onChange, comm
       <small>すべて提出で+50pt、1つでも未提出なら-50pt、未提出がなく途中がある場合は-25ptです。提出回数に週単位の制限はありません。</small>
     </>}
     <h3>生徒・保護者向けコメント（任意）</h3>
-    {data.templates.comments.map(item => <label key={item.id} style={{ display: 'block' }}><input type="checkbox" checked={commentIds.includes(item.id)} onChange={event => onCommentsChange(event.target.checked ? [...commentIds, item.id] : commentIds.filter(id => id !== item.id))} />{item.label}</label>)}
+    {['positive','negative'].map(tone => { const options=data.templates.comments.filter(item=>(item.tone||'positive')===tone), selected=options.find(item=>commentIds.includes(item.id))?.id||''; return <label key={tone}>{tone==='positive'?'プラスのコメント':'改善のコメント'}<select value={selected} onChange={event=>onCommentsChange([...commentIds.filter(id=>!options.some(item=>item.id===id)),...(event.target.value?[event.target.value]:[])])}><option value="">選択しない</option>{options.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label> })}
     <small>未選択の場合、コメントは表示しません。内部メモは公開しません。</small>
   </>;
 }

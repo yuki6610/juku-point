@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react'
 import ScoreManager from './ScoreManager'
 import SchoolJudge from './SchoolJudge'
+import ScoreSubmissions from './ScoreSubmissions'
 import './score-hub.css'
 
 const TABS = [
   { id: 'records', label: '成績確認・入力', note: '保存済み成績と新規入力' },
   { id: 'judge', label: '志望校判定・印刷', note: '比較、コメント、A4レポート' },
+  { id: 'submissions', label: '提出状況', note: 'テスト・通知表の確認' },
 ]
 
 export default function ScoreHubPage() {
@@ -31,6 +33,7 @@ export default function ScoreHubPage() {
     <section className="score-hub-content">
       {tab === 'records' && <ScoreManager />}
       {tab === 'judge' && <SchoolJudge />}
+      {tab === 'submissions' && <ScoreSubmissions />}
     </section>
   </main>
 }

@@ -23,7 +23,7 @@ test('individual homework results use submitted / partial / missed aggregate rul
   assert.throws(() => homeworkValue('fake'));
 });
 test('templates validate IDs and public fields strip internal data recursively', () => {
-  assert.equal(validateTemplates(templates).materials.length, 5);
+  assert.equal(validateTemplates(templates).materials.length, 6);
   assert.throws(() => validateTemplates({ ...templates, materials: [templates.materials[0], templates.materials[0]] }));
   const result = publicAssignment({ ...validateAssignment(assignment, templates), internalNote: 'PRIVATE', items: [{ id: '0', materialId: 'x', materialLabel: '教材', range: '1', internalNote: 'PRIVATE' }], review: { status: 'submitted', text: '公開', date: '2026-09-19', updatedBy: 'PRIVATE' } });
   assert.equal(JSON.stringify(result).includes('PRIVATE'), false);

@@ -187,34 +187,6 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <section className="admin-quick-section">
-        <div className="admin-section-title">
-          <div>
-            <span>QUICK START</span>
-            <h2>まず使う機能</h2>
-          </div>
-          <p>授業日の入力をすぐに始められます。</p>
-        </div>
-        <div className="admin-quick-grid">
-          <button type="button" onClick={() => router.push("/admin/lesson-records")}>
-            <span className="quick-number">01</span>
-            <div>
-              <strong>学習記録を入力</strong>
-              <small>宿題・単語・出欠・生活態度</small>
-            </div>
-            <i>→</i>
-          </button>
-          <button type="button" onClick={() => router.push("/admin/study-log")}>
-            <span className="quick-number">02</span>
-            <div>
-              <strong>自習中の生徒を確認</strong>
-              <small>現在の入室状況</small>
-            </div>
-            <i>→</i>
-          </button>
-        </div>
-      </section>
-
         <section className="admin-menu-section">
           <div className="admin-section-title">
             <div>
