@@ -18,6 +18,8 @@
   margin-bottom: 30px;
 }
 
+.dashboard-header > div { max-width: 720px; }
+
 .dashboard-eyebrow,
 .panel-kicker,
 .section-heading span,
@@ -258,6 +260,11 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .menu-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .menu-section { padding: 28px; }
 }
 
 .menu-tile {

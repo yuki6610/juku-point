@@ -3,7 +3,9 @@ import { adminDb } from '@/lib/firebaseAdmin';
 import { requireParent, linkedChildren } from '@/lib/parentAccess';
 import { normalizeStudentKey } from '@/lib/staffAccess';
 import { readAcademicSettings } from '@/lib/academicCalendarServer';
-import { publicAssignment } from '@/lib/homeworkModel.mjs';
+import { readPublicHomeworkCompatible } from '@/lib/homeworkServer';
+
+// Public homework remains the canonical parent source: collection('homeworkPublic').
 
 export const dynamic = 'force-dynamic';
 const PAGE_SIZE = 20;
@@ -31,9 +33,9 @@ export async function GET(request) {
     if (!student.exists || student.data().active === false || student.data().enrollmentStatus === 'withdrawn' || Number(student.data().grade)>9) throw new Error('対象生徒を確認できません。');
     const publicRef = adminDb.collection('lessonPublic').doc(studentKey).collection('records');
     const commonRef = adminDb.collection('adminLessonAttendance').doc(studentKey).collection('records');
-    const [publicSnap, commonSnap, homeworkSnap] = await Promise.all([
+    const [publicSnap, commonSnap, homework] = await Promise.all([
       pageQuery(publicRef, after).get(), pageQuery(commonRef, after).get(),
-      adminDb.collection('homeworkPublic').doc(studentKey).collection('items').orderBy('assignedDate', 'desc').limit(150).get(),
+      after ? Promise.resolve([]) : readPublicHomeworkCompatible(studentKey, 150),
     ]);
     const byDate = new Map(commonSnap.docs.map(doc => [doc.id, safeRecord(doc, 'legacy')]));
     publicSnap.docs.forEach(doc => byDate.set(doc.id, { ...(byDate.get(doc.id) || {}), ...safeRecord(doc, 'public') }));
@@ -48,11 +50,11 @@ export async function GET(request) {
     }
 
     const ordered = [...byDate.values()].filter(item => !after || item.date < after).sort((a,b) => b.date.localeCompare(a.date));
-    const page = ordered.slice(0, PAGE_SIZE), homework = homeworkSnap.docs.map(doc => ({ id:doc.id, ...publicAssignment(doc.data()) }));
+    const page = ordered.slice(0, PAGE_SIZE);
     const lessons = page.map(data => ({ ...data,
       assignedHomework: homework.filter(item => item.assignedDate === data.date),
       reviewedHomework: homework.filter(item => item.review?.date === data.date || item.laterCompletion?.date === data.date),
     }));
-    return Response.json({ lessons, next: ordered.length > PAGE_SIZE ? page.at(-1).date : null });
+    return Response.json({ lessons, homework, next: ordered.length > PAGE_SIZE ? page.at(-1).date : null });
   } catch (error) { return Response.json({ error: error.message || '授業記録を取得できませんでした。' }, { status: error.status || 400 }); }
 }

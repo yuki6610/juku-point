@@ -13,7 +13,7 @@ export async function GET(request) {
     const [users, elementary] = await Promise.all([adminDb.collection('users').get(), adminDb.collection('adminStudents').get()]);
     const students = [...users.docs.map(doc => ({ key: `user_${doc.id}`, id: doc.id, source: 'user', ...doc.data() })), ...elementary.docs.map(doc => ({ key: `elementary_${doc.id}`, id: doc.id, source: 'elementary', ...doc.data() }))]
       .filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn')
-      .map(data => ({ key: data.key, id: data.id, source: data.source, name: data.realName || data.displayName || '名前未設定', grade: Number(data.grade), wordTestQuestionCount: Number(data.wordTestQuestionCount || (data.grade === 7 ? 20 : data.grade === 8 ? 30 : data.grade === 9 ? 50 : 20)) }))
+      .map(data => ({ key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), wordTestQuestionCount: Number(data.wordTestQuestionCount || (data.grade === 7 ? 20 : data.grade === 8 ? 30 : data.grade === 9 ? 50 : 20)) }))
       .sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, 'ja'));
     const settings = await readAcademicSettings();
     const term = resolveAcademicTerm(settings, date);

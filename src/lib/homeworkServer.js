@@ -18,6 +18,18 @@ export function homeworkRefs(key, id) {
   if (!/^(user|elementary)_[A-Za-z0-9_-]{1,128}$/.test(key) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('生徒または課題IDが正しくありません。');
   return { privateRef: adminDb.collection('homeworkAssignments').doc(key).collection('items').doc(id), publicRef: adminDb.collection('homeworkPublic').doc(key).collection('items').doc(id) };
 }
+// Read the public copy first and safely fill gaps left by records created before
+// homeworkPublic was introduced. Only publicAssignment's allow-listed fields leave here.
+export async function readPublicHomeworkCompatible(key, limit = 150) {
+  const refs = homeworkRefs(key, 'check');
+  const [published, legacy] = await Promise.all([
+    refs.publicRef.parent.limit(limit).get(),
+    refs.privateRef.parent.limit(limit).get(),
+  ]);
+  const byId = new Map(legacy.docs.map(doc => [doc.id, { id: doc.id, ...publicAssignment(doc.data()) }]));
+  published.docs.forEach(doc => byId.set(doc.id, { id: doc.id, ...publicAssignment(doc.data()) }));
+  return [...byId.values()].sort((a, b) => (b.assignedDate || '').localeCompare(a.assignedDate || ''));
+}
 // All reads happen before the caller starts writing its lesson transaction.
 export async function prepareHomeworkReview(transaction, { key, date, termId, uid, review, comments, attendance, learningRecord = {}, templates }) {
   const now = FieldValue.serverTimestamp();
