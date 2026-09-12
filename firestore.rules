@@ -7,7 +7,26 @@ service cloud.firestore {
     function isTeacher() { return signedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.uid)) && get(/databases/$(database)/documents/teachers/$(request.auth.uid)).data.active != false; }
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
     function isOwnStudentKey(key) { return signedIn() && key == 'user_' + request.auth.uid; }
-    function parentLinked(key) { return signedIn() && exists(/databases/$(database)/documents/parentLinks/$(request.auth.uid)/children/$(key)); }
+    function parentLinked(key) { return signedIn()
+      && exists(/databases/$(database)/documents/parentLinks/$(request.auth.uid)/children/$(key))
+      && get(/databases/$(database)/documents/parentLinks/$(request.auth.uid)/children/$(key)).data.active == true; }
+    function safeProfileUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'displayName', 'avatarUrl', 'avatarStoragePath', 'avatarVersion',
+        'avatarUpdatedAt', 'updatedAt'
+      ]);
+    }
+    function safeNewStudent() {
+      return request.resource.data.keys().hasOnly([
+        'realName', 'displayName', 'level', 'experience', 'points',
+        'termPoints', 'totalEarnedPoints', 'createdAt'
+      ])
+      && request.resource.data.level == 1
+      && request.resource.data.experience == 0
+      && request.resource.data.points == 0
+      && request.resource.data.termPoints == 0
+      && request.resource.data.totalEarnedPoints == 0;
+    }
 
     // Admin SDKを使うサーバーAPIはRulesの対象外。講師は専用APIのみを使用する。
     match /admins/{uid} { allow get: if isOwner(uid) || isAdmin(); allow list, write: if isAdmin(); }
@@ -17,10 +36,13 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
-      allow create: if isOwner(uid);
-      allow update: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid) && safeNewStudent();
+      allow update: if isAdmin() || (isOwner(uid) && safeProfileUpdate());
       allow delete: if isAdmin();
-      match /{document=**} { allow read, write: if isOwner(uid) || isAdmin(); }
+      match /checkins/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
+      match /pointHistory/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
+      match /rewardHistory/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
+      match /{document=**} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
     }
 
     // 小学生は管理者登録のみ。講師からの操作はサーバーAPIで検証する。
@@ -46,15 +68,13 @@ service cloud.firestore {
     match /rewards/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /schools/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /universities/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /admin_data/checkin { allow read, write: if isAdmin(); }
     match /admin_data/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /adminTermSettings/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /adminLessonCalendars/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /season/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /hallOfFame/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
-    match /illegal_checkins/{id} {
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
-      allow read, update, delete: if isAdmin();
-    }
+    match /illegal_checkins/{id} { allow read, write: if isAdmin(); }
 
     match /{document=**} { allow read, write: if isAdmin(); }
   }

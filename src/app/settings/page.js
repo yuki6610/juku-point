@@ -272,7 +272,7 @@ export default function SettingsPage() {
               <li>この画面でVRMファイルを選択し、プレビューを確認します。</li>
               <li>問題なければ「このアバターを保存」を押します。</li>
             </ol>
-            <p>※ ファイル形式は <strong>.vrm</strong>、サイズは50MB以下にしてください。</p>
+            <p>※ ファイル形式は <strong>.vrm</strong>、サイズは20MB以下にしてください。</p>
           </div>
 
           <input
@@ -287,8 +287,8 @@ export default function SettingsPage() {
                 e.target.value = "";
                 return;
               }
-              if (file.size > 50 * 1024 * 1024) {
-                alert("ファイルサイズは50MB以下にしてください。");
+              if (file.size > 20 * 1024 * 1024) {
+                alert("ファイルサイズは20MB以下にしてください。");
                 e.target.value = "";
                 return;
               }

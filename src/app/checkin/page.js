@@ -119,7 +119,7 @@ export default function CheckinPage() {
     // ---------------------------------------------------
     // 🔵 メイン処理：PIN 判定（入室 / 退出）
     // ---------------------------------------------------
-    const handleCheck = async () => {
+    const handleCheckLegacy = async () => {
       if (processing) return;
       const user = auth.currentUser;
       if (!user) {
@@ -297,6 +297,36 @@ export default function CheckinPage() {
     // ---------------------------------------------------
     alert("PINが間違っています");
     setProcessing(false);
+  };
+
+  const handleCheck = async () => {
+    if (processing) return;
+    const user = auth.currentUser;
+    if (!user) return alert("ログインしてください");
+    setProcessing(true);
+    try {
+      let location = {};
+      try {
+        const pos = await getCurrentPosition();
+        location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      } catch {
+        if (!sessionActive) throw new Error("位置情報を取得できません。設定で位置情報をONにしてください。");
+      }
+      const response = await fetch('/api/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ action: sessionActive ? 'exit' : 'enter', pin, ...location }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || '処理できませんでした。');
+      alert(result.action === 'enter' ? '自習を開始しました' : `${result.warning ? '教室外または位置情報なしのため不正ログに記録しました。\n' : ''}自習終了（${result.minutes}分）`);
+      setPin("");
+      router.push("/mypage");
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   return (

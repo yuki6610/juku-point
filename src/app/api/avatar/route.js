@@ -29,11 +29,13 @@ export async function GET(request) {
       { status: response.status }
     );
   }
+  const size = Number(response.headers.get('content-length') || 0);
+  if (size > 20 * 1024 * 1024) return NextResponse.json({ error: 'avatar-too-large' }, { status: 413 });
 
   const headers = new Headers();
   headers.set("Content-Type", response.headers.get("content-type") || "model/gltf-binary");
   headers.set("Cache-Control", "private, max-age=300");
-  headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("X-Content-Type-Options", "nosniff");
 
   return new NextResponse(response.body, { headers });
 }

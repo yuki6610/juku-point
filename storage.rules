@@ -6,8 +6,9 @@ service firebase.storage {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create, update: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.size < 50 * 1024 * 1024
-        && fileName.matches('.*\\.(vrm|glb)$');
+        && request.resource.size < 20 * 1024 * 1024
+        && fileName.matches('avatar-[0-9]+\\.(vrm|glb)')
+        && request.resource.contentType.matches('(model/gltf-binary|model/gltf\\+json|application/octet-stream)');
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
   }

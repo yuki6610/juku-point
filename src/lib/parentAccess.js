@@ -7,7 +7,7 @@ export class ParentAccessError extends Error {
 export async function requireParent(request) {
   const token = request.headers.get('authorization') || '';
   if (!token.startsWith('Bearer ')) throw new ParentAccessError('ログインしてください。', 401);
-  const decoded = await adminAuth.verifyIdToken(token.slice(7));
+  const decoded = await adminAuth.verifyIdToken(token.slice(7), true);
   const account = await adminDb.collection('parentAccounts').doc(decoded.uid).get();
   if (!account.exists || account.data().active === false) throw new ParentAccessError('保護者アカウントを確認できません。', 403);
   return { uid: decoded.uid, profile: account.data() };

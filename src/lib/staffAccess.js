@@ -7,7 +7,7 @@ export class StaffAccessError extends Error {
 export async function requireStaff(request) {
   const authorization = request.headers.get('authorization') || '';
   if (!authorization.startsWith('Bearer ')) throw new StaffAccessError('ログイン情報がありません。', 401);
-  const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+  const decoded = await adminAuth.verifyIdToken(authorization.slice(7), true);
   const [admin, teacher] = await Promise.all([
     adminDb.collection('admins').doc(decoded.uid).get(),
     adminDb.collection('teachers').doc(decoded.uid).get(),
