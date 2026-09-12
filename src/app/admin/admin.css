@@ -52,12 +52,12 @@
 }
 
 .student-preview-button {
-  min-height: 106px;
+  min-height: 58px;
   position: relative;
   display: grid;
   align-content: center;
   gap: 5px;
-  padding: 20px 48px 20px 20px;
+  padding: 10px 40px 10px 15px;
   color: #fff;
   text-align: left;
   background: linear-gradient(135deg, #7d73e2, #637dd7);
@@ -68,21 +68,21 @@
 }
 
 .student-preview-button > span {
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 900;
   letter-spacing: 0.15em;
   opacity: 0.75;
 }
 
 .student-preview-button > strong {
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .student-preview-button > i {
   position: absolute;
   top: 50%;
-  right: 20px;
-  font-size: 22px;
+  right: 14px;
+  font-size: 17px;
   font-style: normal;
   transform: translateY(-50%);
 }

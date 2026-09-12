@@ -7,6 +7,14 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { useRouter } from 'next/navigation'
 import '../illegal/illegal.css'
 
+const gradeLabel = (value) => {
+  const grade = Number(value)
+  if (grade >= 1 && grade <= 6) return `小${grade}`
+  if (grade >= 7 && grade <= 9) return `中${grade - 6}`
+  if (grade >= 10 && grade <= 12) return `高${grade - 9}`
+  return '未設定'
+}
+
 export default function IllegalListPage() {
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
@@ -79,7 +87,7 @@ export default function IllegalListPage() {
           {records.map((r) => (
             <tr key={r.id}>
               <td>{r.name}</td>
-              <td>{r.grade || '-'}</td>
+              <td>{gradeLabel(r.grade)}</td>
 
               {/* 種別（改善） */}
               <td style={{

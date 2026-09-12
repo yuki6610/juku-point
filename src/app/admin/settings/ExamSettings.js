@@ -17,10 +17,10 @@ export default function ExamSettings() {
   useEffect(()=>{ getDoc(doc(db,'admin_data','examDates')).then(snap=>{const value=snap.data()?.years||{};setYears(value);const selected=year||String(academic.current?.year||'');setDates(value[selected]||{});}).catch(()=>setNotice('入試日を読み込めませんでした。')); },[]);
   useEffect(()=>{ if(year)setDates(years[year]||{}); },[year,years]);
   const save=async()=>{if(!year||EXAMS.some(([id])=>!dates[id]))return setNotice('3種類の入試日を入力してください。');setSaving(true);try{const next={...years,[year]:dates};await setDoc(doc(db,'admin_data','examDates'),{years:next,updatedAt:serverTimestamp(),updatedBy:auth.currentUser?.uid||null},{merge:true});setYears(next);setNotice(`${year}年度の入試日を保存しました。`);}catch{setNotice('入試日を保存できませんでした。');}finally{setSaving(false)}};
-  return <section className="homework-template-panel"><h2>中学3年生の入試日</h2><p>生徒管理で入試タグを設定すると、対象の日程だけが生徒のホームに表示されます。タグがない中3生には3種類すべて表示します。</p>
+  return <section className="exam-settings-panel"><header><span>EXAM COUNTDOWN</span><h2>中学3年生の入試日</h2><p>年度ごとに3つの日程を設定します。タグがない中3生には、すべてのカウントダウンを表示します。</p></header>
     {notice&&<p role="status">{notice}</p>}
-    <label>対象年度<select value={year} onChange={e=>setYear(e.target.value)}>{[...new Set([...(academic.settings||[]).map(item=>String(item.year)),year].filter(Boolean))].sort().map(value=><option key={value} value={value}>{value}年度</option>)}</select></label>
-    {EXAMS.map(([id,label])=><label key={id}>{label}<input type="date" value={dates[id]||''} onChange={e=>setDates(old=>({...old,[id]:e.target.value}))}/></label>)}
-    <button type="button" disabled={saving} onClick={save}>{saving?'保存中…':'入試日を保存'}</button>
+    <label className="exam-year">対象年度<select value={year} onChange={e=>setYear(e.target.value)}>{[...new Set([...(academic.settings||[]).map(item=>String(item.year)),year].filter(Boolean))].sort().map(value=><option key={value} value={value}>{value}年度</option>)}</select></label>
+    <div className="exam-date-grid">{EXAMS.map(([id,label],index)=><label key={id}><span><i>{index+1}</i>{label}</span><input type="date" value={dates[id]||''} onChange={e=>setDates(old=>({...old,[id]:e.target.value}))}/></label>)}</div>
+    <div className="exam-save-row"><small>変更は保存後、生徒のマイページに反映されます。</small><button type="button" disabled={saving} onClick={save}>{saving?'保存中…':'3つの入試日を保存'}</button></div>
   </section>;
 }

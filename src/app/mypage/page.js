@@ -262,7 +262,7 @@ export default function MyPage() {
           <p>{data.termSelfStudyCount || 0}回の自習を記録</p>
         </div>
       </section>
-      {Number(data.grade) === 9 && visibleExams.length>0 && <section className="dashboard-alerts" aria-label="入試までの日数">{visibleExams.map(exam=><div key={exam.id} className="dashboard-alert warning"><strong>{exam.label}まで あと{exam.days}日</strong><span>{exam.date.replaceAll('-',' / ')}　今日できることを一つずつ積み重ねよう。</span></div>)}</section>}
+      {Number(data.grade) === 9 && visibleExams.length>0 && <section className="dashboard-alerts" aria-label="入試までの日数">{visibleExams.map(exam=><div key={exam.id} className="dashboard-alert warning"><strong>{exam.label}まで あと{exam.days}日</strong></div>)}</section>}
 
       <section className="dashboard-stats" aria-label="学習状況">
         <article className="stat-tile">
