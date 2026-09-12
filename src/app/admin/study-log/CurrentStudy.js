@@ -3,19 +3,19 @@
 import { useState, useEffect } from "react";
 import { db } from "../../../firebaseConfig";
 import {
-  collectionGroup,
+  collection,
   doc,
   getDoc,
   getDocs,
-  query,
-  updateDoc,
-  where,
+  runTransaction,
 } from "firebase/firestore";
+import { historyMillis, mapInBatches } from '@/lib/historyCompatibility.mjs';
 import "../qr/selfstudy.css";
 
 export default function SelfStudyList() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const getTodayId = () => new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit",
@@ -26,77 +26,68 @@ export default function SelfStudyList() {
   }, []);
 
   async function loadSelfStudyStudents() {
+    setLoading(true);
+    setError('');
+    try {
     const todayId = getTodayId();
-    const activeSnap = await getDocs(query(
-      collectionGroup(db, "checkins"),
-      where("currentSessionActive", "==", true)
-    ));
-    const todayDocs = activeSnap.docs.filter((item) => item.id === todayId);
-    const list = await Promise.all(todayDocs.map(async (checkSnap) => {
-      const uid = checkSnap.ref.parent.parent?.id;
+    const users = await getDocs(collection(db, 'users'));
+    const list = await mapInBatches(users.docs, async (student) => {
+      const uid = student.id;
+      const checkSnap = await getDoc(doc(db, 'users', uid, 'checkins', todayId));
+      if (!checkSnap.exists()) return null;
       const c = checkSnap.data();
-      let userData = { realName: c.userName, grade: c.grade };
-      if (!c.userName || !c.grade) {
-        const userSnap = await getDoc(doc(db, "users", uid));
-        userData = userSnap.exists() ? userSnap.data() : userData;
-      }
-        const enterAt = c.enterAt || c.lastEnterAt;
-        if (!enterAt) return null;
+      if (c.currentSessionActive !== true) return null;
+      const userData = student.data();
+        const enterAt = historyMillis(c.enterAt || c.lastEnterAt);
 
-        const enterTimeText = new Date(enterAt).toLocaleTimeString("ja-JP", {
+        const enterTimeText = enterAt ? new Date(enterAt).toLocaleTimeString("ja-JP", {
+          timeZone: 'Asia/Tokyo',
           hour: "2-digit",
           minute: "2-digit",
-        });
+        }) : '時刻不明';
 
         return {
           uid,
+          date: todayId,
           name: userData.realName || userData.displayName || "名前未登録",
           grade: userData.grade ?? "ー",
           enterTime: enterTimeText,
         };
-    }));
+    });
 
     setStudents(list.filter(Boolean));
+    } catch (error) {
+      console.error('自習中一覧の取得エラー:', error);
+      setError(`自習中の生徒を取得できませんでした。再読み込みしてください。（${error.code || '通信エラー'}）`);
+    } finally {
     setLoading(false);
+    }
   }
 
   // ⭐ 強制退出（ポイント・経験値は付与しない）
-  async function forceExit(uid) {
-    const todayId = getTodayId();
-    const ref = doc(db, `users/${uid}/checkins/${todayId}`);
-    const snap = await getDoc(ref);
-
-    if (!snap.exists()) {
-      alert("入室記録がありません");
-      return;
+  async function forceExit(uid, date) {
+    setError('');
+    try {
+      const ref = doc(db, 'users', uid, 'checkins', date);
+      await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(ref);
+        if (!snap.exists() || snap.data().currentSessionActive !== true) {
+          throw new Error('既に退出済みか、入室記録がありません。再読み込みしてください。');
+        }
+        const data = snap.data();
+        const enterAt = historyMillis(data.enterAt || data.lastEnterAt);
+        if (!enterAt) throw new Error('入室時刻が取得できません。記録を確認してください。');
+        const now = Date.now();
+        transaction.update(ref, {
+          currentSessionActive: false,
+          sessions: [...(Array.isArray(data.sessions) ? data.sessions : []), { enterAt, exitAt: now, forced: true, minutes: 0 }],
+        });
+      });
+      alert('強制退出しました（ポイントは付与されません）');
+      await loadSelfStudyStudents();
+    } catch (error) {
+      setError(error.message || '強制退出に失敗しました。再読み込みしてください。');
     }
-
-    const data = snap.data();
-    const now = Date.now();
-
-    const sessions = Array.isArray(data.sessions) ? [...data.sessions] : [];
-
-    const enterAt = data.enterAt || data.lastEnterAt;
-    if (!enterAt) {
-      alert("入室時刻が取得できません");
-      return;
-    }
-
-    // ❗ minutes は 0 固定（ポイント付与防止）
-    sessions.push({
-      enterAt,
-      exitAt: now,
-      forced: true,
-      minutes: 0,
-    });
-
-    await updateDoc(ref, {
-      currentSessionActive: false,
-      sessions,
-    });
-
-    alert("強制退出しました（ポイントは付与されません）");
-    loadSelfStudyStudents();
   }
 
   if (loading) {
@@ -106,8 +97,9 @@ export default function SelfStudyList() {
   return (
     <div className="ss-container">
       <h1 className="ss-title">📚 自習中の生徒一覧</h1>
+      {error && <p role="alert">{error}</p>}
 
-      {students.length === 0 ? (
+      {error ? null : students.length === 0 ? (
         <p className="ss-empty">現在自習している生徒はいません。</p>
       ) : (
         <table className="ss-table">
@@ -129,7 +121,7 @@ export default function SelfStudyList() {
                 <td>
                   <button
                     className="ss-exit-btn"
-                    onClick={() => forceExit(s.uid)}
+                    onClick={() => forceExit(s.uid, s.date)}
                   >
                     強制退出
                   </button>

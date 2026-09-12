@@ -1,57 +1,13 @@
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { getAcademicTerm } from '@/lib/academicCalendarServer';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function fallbackSeason() {
-  const now = new Date();
-  const japanNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const month = japanNow.getUTCMonth() + 1;
-  const calendarYear = japanNow.getUTCFullYear();
-  const year = month <= 3 ? calendarYear - 1 : calendarYear;
-  const term = month >= 4 && month <= 8 ? 1 : month >= 9 ? 2 : 3;
-  const start =
-    term === 1 ? japanMidnight(year, 3, 1) :
-    term === 2 ? japanMidnight(year, 8, 1) :
-    japanMidnight(year + 1, 0, 1);
-  const end =
-    term === 1 ? japanMidnight(year, 8, 1) :
-    term === 2 ? japanMidnight(year + 1, 0, 1) :
-    japanMidnight(year + 1, 3, 1);
-  return { id: `${year}_${term}`, start, end };
-}
-
 async function currentSeason() {
-  const now = new Date();
-  const japanNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-  const today = `${japanNow.getUTCFullYear()}-${String(japanNow.getUTCMonth() + 1).padStart(2, "0")}-${String(japanNow.getUTCDate()).padStart(2, "0")}`;
-  const candidates = [japanNow.getUTCFullYear(), japanNow.getUTCFullYear() - 1];
-
-  for (const year of candidates) {
-    const snapshot = await adminDb.collection("adminTermSettings").doc(String(year)).get();
-    const terms = snapshot.exists
-      ? snapshot.data().terms || {}
-      : year === 2026
-        ? {
-            1: { start: "2026-03-30", end: "2026-09-02" },
-            2: { start: "2026-09-03", end: "2026-12-26" },
-            3: { start: "2026-12-28", end: "2027-03-27" },
-          }
-        : {};
-    for (const term of [1, 2, 3]) {
-      const setting = terms[String(term)] || terms[term];
-      if (setting?.start && setting?.end && today >= setting.start && today <= setting.end) {
-        return {
-          id: `${year}_${term}`,
-          start: japanDateFromId(setting.start),
-          end: new Date(japanDateFromId(setting.end).getTime() + 24 * 60 * 60 * 1000),
-        };
-      }
-    }
-  }
-  return fallbackSeason();
+  const term = await getAcademicTerm();
+  return { id: term.id, start: japanDateFromId(term.start), end: new Date(japanDateFromId(term.end).getTime() + 86400000) };
 }
-
 function japanDateFromId(id) {
   const [year, month, day] = id.split("-").map(Number);
   return japanMidnight(year, month - 1, day);

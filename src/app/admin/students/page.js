@@ -15,7 +15,7 @@ import {
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 import GradeTag from '@/components/GradeTag';
-import { getCurrentSeason } from '../../utils/season';
+import { useAcademicContext } from '@/lib/useAcademicContext';
 import './students.css';
 import './enrollment.css';
 import ElementaryStudentManager from './ElementaryStudentManager';
@@ -99,6 +99,7 @@ const sortStudents = (students, sortKey) => {
 };
 
 export default function StudentsPage() {
+  const academic = useAcademicContext();
   const [students, setStudents] = useState([]);
   const [filterGrade, setFilterGrade] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('active');
@@ -218,6 +219,7 @@ export default function StudentsPage() {
   };
 
   const updateUserValue = async (uid, field, value) => {
+    if (['points', 'termPoints'].includes(field) && !academic.current) return setNotice(academic.error || '学期設定を読み込み中です。');
     const safe = Math.max(0, Number(value || 0));
     const target = students.find((s) => s.uid === uid);
     const update = { [field]: safe, updatedAt: serverTimestamp() };
@@ -233,7 +235,7 @@ export default function StudentsPage() {
             amount: difference,
             note: '管理者による現在ポイント調整',
             affectsEarnedPoints: false,
-            seasonId: getCurrentSeason().id,
+            seasonId: academic.current.id,
             createdAt: serverTimestamp(),
           });
           await batch.commit();
@@ -337,6 +339,7 @@ export default function StudentsPage() {
     const termPoints = Number(student.termPoints || 0);
     const totalEarnedPoints = Number(student.totalEarnedPoints || 0);
     const targetAmount = Math.max(currentPoints, termPoints, totalEarnedPoints);
+    if (!academic.current) return setNotice(academic.error || '学期設定を読み込み中です。');
 
     if (targetAmount <= 0) {
       return setNotice(`${name} は没収対象のポイントがありません。`);
@@ -370,7 +373,7 @@ export default function StudentsPage() {
         amount: -targetAmount,
         note: `不正による全ポイント没収（現在${currentPoints} / 学期${termPoints} / 累計${totalEarnedPoints}）`,
         affectsEarnedPoints: true,
-        seasonId: getCurrentSeason().id,
+        seasonId: academic.current.id,
         createdAt: serverTimestamp(),
         createdBy: adminUid,
       });

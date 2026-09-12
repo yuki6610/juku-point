@@ -15,6 +15,7 @@ const primaryItems = [
 ];
 
 const moreItems = [
+  { path: "/homework", label: "宿題", note: "出された課題と確認結果" },
   { path: "/ranking", label: "ランキング", note: "みんなの学習成果" },
   { path: "/student/scores", label: "成績・志望校", note: "成績入力と高校比較", middleOnly: true },
   { path: "/behavior", label: "生活態度", note: "学期の記録", middleOnly: true },
@@ -68,7 +69,10 @@ export default function StudentNavigation() {
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/signup" ||
-    pathname.startsWith("/admin");
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/teacher") ||
+    pathname.startsWith("/parent") ||
+    pathname.startsWith("/invite");
   if (hidden) return null;
 
   const navigate = (path) => {

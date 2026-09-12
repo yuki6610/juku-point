@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { db } from '../../../firebaseConfig'
-import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, runTransaction, updateDoc } from 'firebase/firestore'
+import { historyMillis, mapInBatches, mergeRewardHistory } from '@/lib/historyCompatibility.mjs'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import '../rewardHistory/rewardHistory.css'
 
@@ -12,6 +13,8 @@ export default function AdminRewardHistory() {
   const [filteredHistory, setFilteredHistory] = useState([])
   const [filterMode, setFilterMode] = useState('all') // all | unverified
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [visibleCount, setVisibleCount] = useState(50)
 
   useEffect(() => {
     const auth = getAuth()
@@ -28,26 +31,28 @@ export default function AdminRewardHistory() {
 
   // 🔹 新形式のサブコレクションを優先し、旧配列形式も互換表示
   const fetchAllHistories = async () => {
+    setLoading(true)
+    setError('')
     try {
-      const historySnap = await getDocs(query(collectionGroup(db, 'rewardHistory'), orderBy('date', 'desc'), limit(200)))
-      const userIds = [...new Set(historySnap.docs.map((item) => item.ref.parent.parent?.id).filter(Boolean))]
-      const userEntries = await Promise.all(userIds.map(async (uid) => {
-        const snapshot = await getDoc(doc(db, 'users', uid))
-        const data = snapshot.exists() ? snapshot.data() : {}
-        return [uid, data.realName || data.displayName || '未登録']
-      }))
-      const names = Object.fromEntries(userEntries)
-      const all = historySnap.docs.map((historyDoc) => {
-        const userId = historyDoc.ref.parent.parent?.id
-        return { userId, userName: names[userId] || '未登録', historyId: historyDoc.id, ...historyDoc.data() }
+      const users = await getDocs(collection(db, 'users'))
+      const lists = await mapInBatches(users.docs, async (student) => {
+        const data = student.data()
+        const identity = { userId: student.id, userName: data.realName || data.displayName || '未登録' }
+        // No orderBy: historical records without a date field must remain visible.
+        const snapshot = await getDocs(collection(db, 'users', student.id, 'rewardHistory'))
+        const modern = snapshot.docs.map((item) => ({ ...item.data(), ...identity, historyId: item.id, legacy: false }))
+        const legacy = (Array.isArray(data.rewardHistory) ? data.rewardHistory : []).map((item, index) => ({ ...item, ...identity, index, legacy: true }))
+        return mergeRewardHistory(modern, legacy)
       })
+      const all = lists.flat()
 
       // 日付順にソート（新しい順）
-      all.sort((a, b) => toMillis(b.date) - toMillis(a.date))
+      all.sort((a, b) => toMillis(b.date || b.createdAt) - toMillis(a.date || a.createdAt))
       setHistory(all)
       applyFilter(filterMode, all)
     } catch (error) {
       console.error('履歴読み込みエラー:', error)
+      setError(`交換履歴を取得できませんでした。再読み込みしてください。（${error.code || '通信エラー'}）`)
     } finally {
       setLoading(false)
     }
@@ -66,21 +71,24 @@ export default function AdminRewardHistory() {
         return
       }
 
-      const usersRef = collection(db, 'users')
-      const userSnap = await getDocs(usersRef)
-      const userDocData = userSnap.docs.find((userDoc) => userDoc.id === item.userId)
-      if (!userDocData) return
-      const userData = userDocData.data()
-      const newHistory = userData.rewardHistory || []
-      newHistory[item.index].verified = true
-
       const userRef = doc(db, 'users', item.userId)
-      await updateDoc(userRef, { rewardHistory: newHistory })
+      await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(userRef)
+        const list = snapshot.data()?.rewardHistory
+        const original = list?.[item.index]
+        if (!original || original.name !== item.name || Number(original.cost) !== Number(item.cost) || historyMillis(original.date) !== historyMillis(item.date)) {
+          throw new Error('履歴が変更されています。再読み込みしてください。')
+        }
+        const next = [...list]
+        next[item.index] = { ...original, verified: true, verifiedAt: new Date() }
+        transaction.update(userRef, { rewardHistory: next })
+      })
 
       alert('確認済みにしました ✅')
       fetchAllHistories()
     } catch (error) {
       console.error('確認処理エラー:', error)
+      setError(error.message || '確認状態を保存できませんでした。')
     }
   }
 
@@ -103,6 +111,7 @@ export default function AdminRewardHistory() {
 
   // 🔹 フィルタボタン切り替え
   const handleFilterChange = (mode) => {
+    setVisibleCount(50)
     setFilterMode(mode)
     applyFilter(mode)
   }
@@ -112,7 +121,9 @@ export default function AdminRewardHistory() {
   return (
     <div className="admin-history-container">
       <h1 className="admin-history-title">🎁 交換履歴管理</h1>
-      <p className="history-range-note">全生徒の直近200件を表示しています。</p>
+      <p className="history-range-note">旧形式を含む履歴を確認できます。表示は50件ずつです。</p>
+      {error && <p role="alert">{error}</p>}
+      <button onClick={fetchAllHistories}>再読み込み</button>
 
       {/* 🔘 フィルタボタン */}
       <div className="filter-buttons">
@@ -130,7 +141,7 @@ export default function AdminRewardHistory() {
         </button>
       </div>
 
-      {filteredHistory.length === 0 ? (
+      {error ? null : filteredHistory.length === 0 ? (
         <p className="no-history">該当する履歴がありません。</p>
       ) : (
         <table className="admin-history-table">
@@ -145,14 +156,14 @@ export default function AdminRewardHistory() {
             </tr>
           </thead>
           <tbody>
-            {filteredHistory.map((item, i) => (
+            {filteredHistory.slice(0, visibleCount).map((item, i) => (
               <tr key={i}>
                 <td>{item.userName}</td>
                 <td>{item.name}</td>
                 <td>{item.cost} pt</td>
                 <td>
-                  {item.date
-                    ? new Date(toMillis(item.date)).toLocaleDateString('ja-JP', {
+                  {item.date || item.createdAt
+                    ? new Date(toMillis(item.date || item.createdAt)).toLocaleDateString('ja-JP', {
                         year: 'numeric',
                         month: '2-digit',
                         day: '2-digit',
@@ -177,6 +188,8 @@ export default function AdminRewardHistory() {
           </tbody>
         </table>
       )}
+
+      {!error && filteredHistory.length > visibleCount && <button onClick={() => setVisibleCount((count) => count + 50)}>さらに50件表示</button>}
 
       {/* 🔙 戻るボタン */}
       <div className="bottom-buttons">

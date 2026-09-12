@@ -1,4 +1,5 @@
 'use client'
+import { getBehaviorSummary } from '@/lib/termCompatibility'
 
 import { useEffect, useState } from 'react'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
@@ -47,6 +48,7 @@ export default function StudentBehaviorPage() {
   const [term, setTerm] = useState('1学期')
 
   const [summary, setSummary] = useState(null)
+  const [summaryError, setSummaryError] = useState('')
 
   /* =====================
      認証
@@ -64,17 +66,13 @@ export default function StudentBehaviorPage() {
   ===================== */
   useEffect(() => {
     if (!user) return
+    let cancelled = false
+    setSummary(null)
+    setSummaryError('')
 
     const load = async () => {
-      const snap = await getDoc(
-        doc(
-          db,
-          'users',
-          user.uid,
-          'behaviorSummary',
-          `${year}_${term}`
-        )
-      )
+      const snap = await getBehaviorSummary(db, user.uid, year, term)
+      if (cancelled) return
 
       if (snap.exists()) {
         setSummary(snap.data())
@@ -83,11 +81,13 @@ export default function StudentBehaviorPage() {
       }
     }
 
-    load()
+    load().catch(() => { if (!cancelled) setSummaryError('生活態度を取得できませんでした。再読み込みしてください。') })
+    return () => { cancelled = true }
   }, [user, year, term])
 
   if (loading) return <p>読み込み中...</p>
   if (!user) return <p>ログインしてください</p>
+  if (summaryError) return <p role="alert">{summaryError}</p>
 
   const homeworkData = summary
     ? {

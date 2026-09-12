@@ -1,5 +1,9 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { adminDb } from "@/lib/firebaseAdmin";
+import { requireStaff, assertAssigned } from '@/lib/staffAccess';
+import { readAcademicSettings } from '@/lib/academicCalendarServer';
+import { japanDateId, resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
+import { homeworkTemplates, prepareHomeworkReview } from '@/lib/homeworkServer';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,17 +13,6 @@ class ApiError extends Error {
     super(message);
     this.status = status;
   }
-}
-
-async function requireAdmin(request) {
-  const authorization = request.headers.get("authorization") || "";
-  if (!authorization.startsWith("Bearer ")) {
-    throw new ApiError("ログイン情報がありません。", 401);
-  }
-  const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
-  const adminSnap = await adminDb.collection("admins").doc(decoded.uid).get();
-  if (!adminSnap.exists) throw new ApiError("管理者権限がありません。", 403);
-  return decoded.uid;
 }
 
 function wordTestReward(correct, total) {
@@ -51,9 +44,20 @@ function applyExperience(user, delta) {
 
 export async function POST(request) {
   try {
-    const adminUid = await requireAdmin(request);
+    const staff = await requireStaff(request);
+    const adminUid = staff.uid;
     const body = await request.json();
     const { uid, date, termId, weekId, record } = body;
+    assertAssigned(staff, `user_${uid}`, date);
+    const templates = body.homeworkReview || Array.isArray(body.commentIds) ? await homeworkTemplates() : null;
+    const settings = await readAcademicSettings();
+    let selectedTerm;
+    let currentTerm;
+    try {
+      selectedTerm = resolveAcademicTerm(settings, date);
+      currentTerm = resolveAcademicTerm(settings, japanDateId());
+    } catch (error) { throw new ApiError(error.message, 400); }
+    if (selectedTerm.id !== termId) throw new ApiError('授業日と学期が一致しません。画面を再読み込みしてください。', 409);
 
     if (!/^[A-Za-z0-9_-]{6,128}$/.test(uid || "")) throw new ApiError("生徒IDが正しくありません。", 400);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) throw new ApiError("授業日が正しくありません。", 400);
@@ -86,11 +90,21 @@ export async function POST(request) {
         transaction.get(wordRewardRef),
       ]);
       if (!userSnap.exists) throw new ApiError("生徒が見つかりません。", 404);
+      const studentData = userSnap.data();
+      if (Number(studentData.grade) < 7 || Number(studentData.grade) > 9 || !Number.isInteger(Number(studentData.grade))) throw new ApiError('この報酬付き学習記録は中学生専用です。', 400);
 
       const oldRecord = oldRecordSnap.exists ? oldRecordSnap.data() : {};
+      if (oldRecord.homeworkReview?.assignmentId && oldRecord.homeworkReview.assignmentId !== body.homeworkReview?.assignmentId) throw new ApiError('この日の確認対象の宿題セットは変更できません。元のセットを選択してください。', 409);
+      let publication = null;
+      if (templates) {
+        try { publication = await prepareHomeworkReview(transaction, { key: `user_${uid}`, date, termId, uid: adminUid, review: body.homeworkReview, comments: body.commentIds, attendance: record.attendance, learningRecord: record, templates }); }
+        catch (error) { throw new ApiError(error.message, 400); }
+      }
       const now = FieldValue.serverTimestamp();
       const savedRecord = {
         ...record,
+        ...(templates ? { homeworkReview: body.homeworkReview || null, commentIds: body.commentIds || [] } : {}),
+        ...(publication?.homework ? { homework: publication.homework } : {}),
         date, termId, weekId,
         createdBy: oldRecord.createdBy || adminUid,
         updatedBy: adminUid,
@@ -98,6 +112,7 @@ export async function POST(request) {
         updatedAt: now,
       };
       transaction.set(recordRef, savedRecord, { merge: true });
+      publication?.commit();
 
       let pointDelta = 0;
       let expDelta = 0;
@@ -194,7 +209,7 @@ export async function POST(request) {
       const nextExp = applyExperience(user, expDelta);
       transaction.update(userRef, {
         points: Number(user.points || 0) + pointDelta,
-        termPoints: Number(user.termPoints || 0) + pointDelta,
+        ...(selectedTerm.id === currentTerm.id ? { termPoints: Number(user.termPoints || 0) + pointDelta } : {}),
         totalEarnedPoints: Math.max(0, Number(user.totalEarnedPoints || 0) + earnedDelta),
         experience: nextExp.experience,
         level: nextExp.level,
@@ -212,7 +227,7 @@ export async function POST(request) {
     if (!(error instanceof ApiError)) console.error("学習記録保存APIエラー:", error);
     return Response.json(
       { error: error instanceof ApiError ? error.message : "学習記録を保存できませんでした。" },
-      { status: error instanceof ApiError ? error.status : 500 }
+      { status: error.status || (error instanceof ApiError ? error.status : 500) }
     );
   }
 }

@@ -198,6 +198,7 @@
   margin: 6px 0;
   background: #e2e8f0;
 }
+.auth-role-links{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}.auth-role-links button{min-height:39px;padding:7px;color:#526078;background:#f4f6fa;border:1px solid #e0e5ee;border-radius:9px;font-size:11px;font-weight:750;cursor:pointer}.auth-teacher .brand-mark{background:linear-gradient(135deg,#5572d9,#39a9a0)}.auth-parent .brand-mark{background:linear-gradient(135deg,#7764d8,#d183a5)}
 
 @media (max-width: 480px) {
   .auth-shell {

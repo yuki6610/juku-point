@@ -1,4 +1,5 @@
 'use client'
+import { useAcademicContext } from '@/lib/useAcademicContext'
 import { useEffect,useState } from 'react'
 import { getAuth,onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/../firebaseConfig'
@@ -20,7 +21,6 @@ import BehaviorSummary from '@/components/BehaviorSummary'
 ===================== */
 const GRADE_OPTIONS = ['全学年','中1','中2','中3']
 const TERMS = ['1学期','2学期','3学期']
-const YEARS = ['2026','2027','2028']
 
 const gradeLabel = g => g>=7 && g<=9 ? `中${g-6}` : '不明'
 
@@ -49,7 +49,14 @@ export default function AdminJudgePage(){
   const [selectedStudentId,setSelectedStudentId]=useState('')
   const [selectedStudent,setSelectedStudent]=useState(null)
 
-  const [year,setYear]=useState('2026')
+  const [year,setYear]=useState('')
+  const academic = useAcademicContext()
+  const YEARS = [...new Set(academic.settings.map(item => String(item.year)))].sort()
+  useEffect(() => {
+    if (!academic.current) return
+    setYear(String(academic.current.year))
+    setTerm(`${academic.current.term}学期`)
+  }, [academic.current])
   const [term,setTerm]=useState('1学期')
 
   const [scores,setScores]=useState([])
@@ -134,7 +141,8 @@ export default function AdminJudgePage(){
       loadComment()
     },[selectedStudentId,year,term])
     
-  if(loading) return <p>読み込み中...</p>
+  if(loading || academic.loading) return <p>読み込み中...</p>
+  if(academic.error) return <p role="alert">{academic.error} <a href="/admin/settings">授業設定を確認</a></p>
   if(!admin) return <p>管理者ログインが必要です</p>
 
   const filteredStudents = students.filter(s=>{

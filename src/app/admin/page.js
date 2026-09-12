@@ -1,10 +1,10 @@
 "use client";
+import { useAcademicContext } from '@/lib/useAcademicContext';
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
-import { getCurrentSeason } from "../utils/season";
 import { resetSeason } from "../utils/resetSeason";
 import "./admin.css";
 
@@ -39,10 +39,10 @@ const menuGroups = [
     description: "生徒情報、成績、志望校判定を管理します。",
     items: [
       {
-        title: "授業・出欠・振替管理",
-        desc: "小中高の出欠・振替・授業回数・高校生ポイントを一括管理",
+        title: "教室・授業設定",
+        desc: "通塾曜日・開始日・学期期間・年間授業日を設定",
         icon: "▦",
-        path: "/admin/lesson-attendance",
+        path: "/admin/settings",
         tone: "violet",
       },
       {
@@ -96,10 +96,12 @@ export default function AdminPage() {
   const router = useRouter();
   const [switchingSeason, setSwitchingSeason] = useState(false);
   const [rebuildingPoints, setRebuildingPoints] = useState(false);
-  const currentSeason = getCurrentSeason();
-  const termLabel = `${currentSeason.year}年度 ${currentSeason.term}学期`;
+  const academic = useAcademicContext();
+  const currentSeason = academic.current;
+  const termLabel = currentSeason ? `${currentSeason.year}年度 ${currentSeason.term}学期` : '学期未設定';
 
   const startNewSeason = async () => {
+    if (!currentSeason) return window.alert(academic.error || '学期設定を読み込み中です。');
     if (switchingSeason) return;
     if (
       !window.confirm(
@@ -136,6 +138,7 @@ export default function AdminPage() {
   };
 
   const rebuildTermPoints = async () => {
+    if (!currentSeason) return window.alert(academic.error || '学期設定を読み込み中です。');
     if (rebuildingPoints) return;
     if (!window.confirm(`${termLabel}のポイントを履歴から再集計しますか？`)) return;
     setRebuildingPoints(true);

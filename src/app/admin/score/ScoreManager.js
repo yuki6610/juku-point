@@ -1,4 +1,5 @@
 'use client'
+import { useAcademicContext } from '@/lib/useAcademicContext'
 
 import { useEffect, useState } from 'react'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
@@ -21,7 +22,6 @@ import {
 import './score.css'
 
 const GRADES=['中1','中2','中3']
-const SCHOOL_YEARS=['2025','2026','2027','2028']
 const TERMS=['1学期','2学期','3学期']
 
 const BASE_TEST_TYPES=[
@@ -63,7 +63,15 @@ export default function ScoreManager() {
   const [grade,setGrade]=useState('中1')
   const [term,setTerm]=useState('1学期')
   const [testType,setTestType]=useState('中間')
-  const [schoolYear,setSchoolYear]=useState('2026')
+  const [schoolYear,setSchoolYear]=useState('')
+  const academic = useAcademicContext()
+  const SCHOOL_YEARS = [...new Set([...academic.settings.map(item => String(item.year)), ...saved.map(item => String(item.year)), schoolYear].filter(Boolean))].sort()
+  useEffect(() => {
+    if (!academic.current) return
+    setSchoolYear(String(academic.current.year))
+    setTerm(`${academic.current.term}学期`)
+    setInternalTerm(`${academic.current.term}学期`)
+  }, [academic.current])
 
   const [internalGrade,setInternalGrade]=useState('中1')
   const [internalTerm,setInternalTerm]=useState('1学期')
@@ -261,6 +269,8 @@ export default function ScoreManager() {
     alert('削除しました')
   }
 
+  if (academic.loading) return <p>年度・学期を確認中です…</p>
+  if (academic.error) return <p role="alert">{academic.error} <a href="/admin/settings">授業設定を確認</a></p>
   return (
     <div className="admin-score-page">
       <h1>成績確認・入力</h1>

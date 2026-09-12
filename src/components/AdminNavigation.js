@@ -9,9 +9,9 @@ const groups = [
     label: "毎日の業務",
     items: [
       { path: "/admin", icon: "⌂", label: "ダッシュボード", exact: true },
-      { path: "/admin/lesson-records", icon: "✓", label: "学習記録" },
+      { path: "/admin/lesson-records", icon: "✓", label: "学習記録・出欠" },
       { path: "/admin/course-lessons", icon: "季", label: "講習授業管理" },
-      { path: "/admin/lesson-attendance", icon: "▦", label: "授業・出欠・振替" },
+      { path: "/admin/settings", icon: "▦", label: "教室・授業設定" },
       { path: "/admin/study-log", icon: "◷", label: "自習管理" },
     ],
   },

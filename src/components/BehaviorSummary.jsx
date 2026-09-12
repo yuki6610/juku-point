@@ -2,18 +2,23 @@
 import { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/../firebaseConfig'
+import { getBehaviorSummary } from '@/lib/termCompatibility'
 
 export default function BehaviorSummary({ uid, year, term }) {
   const [summary, setSummary] = useState(null)
   const [averageWordTestScore, setAverageWordTestScore] = useState(0)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!uid || !year || !term) return
+    let cancelled = false
+    setSummary(null)
+    setAverageWordTestScore(0)
+    setError('')
 
     const load = async () => {
-      const snap = await getDoc(
-        doc(db, 'users', uid, 'behaviorSummary', `${year}_${term}`)
-      )
+      const snap = await getBehaviorSummary(db, uid, year, term)
+      if (cancelled) return
 
       if (!snap.exists()) {
         setSummary(null)
@@ -28,6 +33,7 @@ export default function BehaviorSummary({ uid, year, term }) {
       }
 
      const userSnap = await getDoc(doc(db, 'users', uid))
+     if (cancelled) return
 
 if (userSnap.exists()) {
   const data = userSnap.data()
@@ -41,9 +47,11 @@ if (userSnap.exists()) {
 }
     }
 
-    load()
+    load().catch(() => { if (!cancelled) setError('生活態度を取得できませんでした。再読み込みしてください。') })
+    return () => { cancelled = true }
   }, [uid, year, term])
 
+  if (error) return <p role="alert">{error}</p>
   if (!summary) {
     return <p className="empty">この学期の生活態度データはありません</p>
   }

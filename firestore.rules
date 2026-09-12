@@ -2,91 +2,60 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function isTeacher() { return signedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.uid)) && get(/databases/$(database)/documents/teachers/$(request.auth.uid)).data.active != false; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function isOwnStudentKey(key) { return signedIn() && key == 'user_' + request.auth.uid; }
+    function parentLinked(key) { return signedIn() && exists(/databases/$(database)/documents/parentLinks/$(request.auth.uid)/children/$(key)); }
+
+    // Admin SDKを使うサーバーAPIはRulesの対象外。講師は専用APIのみを使用する。
+    match /admins/{uid} { allow get: if isOwner(uid) || isAdmin(); allow list, write: if isAdmin(); }
+    match /teachers/{uid} { allow get: if isOwner(uid) || isAdmin(); allow list, write: if isAdmin(); }
+    match /parentAccounts/{uid} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
+    match /parentLinks/{parentUid}/children/{studentKey} { allow read: if isOwner(parentUid) || isAdmin(); allow write: if isAdmin(); }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid) || isAdmin();
+      allow delete: if isAdmin();
+      match /{document=**} { allow read, write: if isOwner(uid) || isAdmin(); }
     }
 
-    function isOwner(userId) {
-      return signedIn() && request.auth.uid == userId;
-    }
+    // 小学生は管理者登録のみ。講師からの操作はサーバーAPIで検証する。
+    match /adminStudents/{id} { allow read, write: if isAdmin(); }
+    match /adminLessonAttendance/{studentKey}/{document=**} { allow read, write: if isAdmin(); }
+    match /homeworkAssignments/{studentKey}/{document=**} { allow read, write: if isAdmin(); }
 
-    function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    // 生徒・将来の保護者へ公開してよい項目だけを置く投影データ。
+    match /homeworkPublic/{studentKey}/{document=**} {
+      allow read: if isAdmin() || isOwnStudentKey(studentKey) || parentLinked(studentKey);
+      allow write: if isAdmin();
     }
-
-    // The app's ranking and admin checks currently require signed-in users to
-    // read these collections. Only an existing admin can change admin records.
-    match /admins/{adminId} {
-      allow read: if signedIn();
+    match /lessonPublic/{studentKey}/{document=**} {
+      allow read: if isAdmin() || isOwnStudentKey(studentKey) || parentLinked(studentKey);
+      allow write: if isAdmin();
+    }
+    match /parentPublic/{studentKey}/{document=**} {
+      allow read: if isAdmin() || isOwnStudentKey(studentKey) || parentLinked(studentKey);
       allow write: if isAdmin();
     }
 
-    match /users/{userId} {
-      allow read: if signedIn();
-      allow create: if isOwner(userId) || isAdmin();
-      allow update, delete: if isOwner(userId) || isAdmin();
-
-      match /{document=**} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-    }
-
-    match /rewards/{rewardId} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
-    }
-
-    match /admin_data/{documentId} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
-    }
-
-    match /adminStudents/{studentId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /adminLessonCalendars/{yearId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /adminTermSettings/{yearId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /adminLessonAttendance/{studentKey}/records/{recordId} {
-      allow read, write: if isAdmin();
-    }
-
-    match /hallOfFame/{seasonId} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
-    }
-
-    match /illegal_checkins/{recordId} {
-      allow create: if signedIn()
-        && request.resource.data.uid == request.auth.uid;
+    // 既存の生徒画面で参照する共有マスタ。更新は管理者だけ。
+    match /rewards/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /schools/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /universities/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /admin_data/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /adminTermSettings/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /adminLessonCalendars/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /season/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /hallOfFame/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /illegal_checkins/{id} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
       allow read, update, delete: if isAdmin();
     }
 
-    match /schools/{schoolId} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
-    }
-
-    match /universities/{universityId} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
-
-      match /admissions/{admissionId} {
-        allow read: if signedIn();
-        allow write: if isAdmin();
-      }
-    }
-
-    // Everything not explicitly listed above stays private.
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /{document=**} { allow read, write: if isAdmin(); }
   }
 }
