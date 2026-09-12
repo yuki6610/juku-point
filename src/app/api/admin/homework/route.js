@@ -38,6 +38,10 @@ export async function POST(request) {
     const key = body.student;
     assertAssigned(staff, key, assignment.assignedDate);
     const refs = homeworkRefs(key, body.id);
+    const sameDay = await refs.privateRef.parent.where('assignedDate','==',assignment.assignedDate).limit(20).get();
+    const signature = JSON.stringify(assignment.items.map(item=>[item.materialId,item.range]));
+    const duplicate = sameDay.docs.find(doc=>doc.id!==body.id&&JSON.stringify((doc.data().items||[]).map(item=>[item.materialId,item.range]))===signature);
+    if (duplicate) throw new Error('同じ教材・範囲の宿題がこの日に登録済みです。重複登録を確認してください。');
     const source = key.startsWith('elementary_') ? 'adminStudents' : 'users';
     const id = key.slice(key.indexOf('_') + 1);
     await adminDb.runTransaction(async transaction => {

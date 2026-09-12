@@ -27,7 +27,12 @@ export async function readPublicHomeworkCompatible(key, limit = 150) {
     refs.privateRef.parent.limit(limit).get(),
   ]);
   const byId = new Map(legacy.docs.map(doc => [doc.id, { id: doc.id, ...publicAssignment(doc.data()) }]));
-  published.docs.forEach(doc => byId.set(doc.id, { id: doc.id, ...publicAssignment(doc.data()) }));
+  published.docs.forEach(doc => {
+    const current = publicAssignment(doc.data()), old = byId.get(doc.id);
+    // 初期の公開コピーには、後から入力した提出結果が反映されていない場合がある。
+    // 公開側の基本情報を優先しつつ、欠けている結果だけ旧保存先から安全に補う。
+    byId.set(doc.id, { id: doc.id, ...old, ...current, review: current.review || old?.review || null, laterCompletion: current.laterCompletion || old?.laterCompletion || null });
+  });
   return [...byId.values()].sort((a, b) => (b.assignedDate || '').localeCompare(a.assignedDate || ''));
 }
 // All reads happen before the caller starts writing its lesson transaction.

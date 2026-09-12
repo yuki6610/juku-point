@@ -543,6 +543,8 @@ export default function StudentsPage() {
                 />
               </div>
 
+              <nav className="student-record-links" aria-label="生徒カルテ"><button onClick={()=>router.push(`/admin/lesson-records?student=user_${selectedStudent.uid}`)}>学習・出欠</button><button onClick={()=>router.push(`/admin/score?student=${selectedStudent.uid}`)}>成績</button><button onClick={()=>router.push(`/admin/point-history?student=${selectedStudent.uid}`)}>ポイント履歴</button><button onClick={()=>router.push(`/parent?student=user_${selectedStudent.uid}`)}>保護者表示</button></nav>
+
               <div className="name-editor">
                 <label>
                   名前

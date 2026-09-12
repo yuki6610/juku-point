@@ -114,6 +114,7 @@ export async function POST(request) {
         updatedAt: now,
       };
       transaction.set(recordRef, savedRecord, { merge: true });
+      transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(`user_${uid}`),{ studentKey:`user_${uid}`,date,grade:Number(studentData.grade),updatedBy:adminUid,updatedAt:now },{ merge:true });
       publication?.commit();
 
       let pointDelta = 0;

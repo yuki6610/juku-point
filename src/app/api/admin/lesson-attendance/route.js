@@ -123,6 +123,7 @@ export async function POST(request) {
         if (middleRef) transaction.set(middleRef, { attendance: null, originalLessonDate: null, updatedBy: adminUid, updatedAt: now }, { merge: true });
         if (legacyHighRef) transaction.delete(legacyHighRef);
       } else {
+        transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key),{ studentKey:key,date,grade,updatedBy:adminUid,updatedAt:now },{ merge:true });
         if (learningRecord) transaction.set(commonRef, { learningRecord: { ...learningRecord, date, termId, createdBy: old.learningRecord?.createdBy || adminUid, createdAt: old.learningRecord?.createdAt || now, updatedBy: adminUid, updatedAt: now } }, { merge: true });
         transaction.set(commonRef, { date, status, attendance: null, originalLessonDate: null, originalDate: status === "makeup" ? originalDate : null, ...(status !== 'absent' ? { makeupDate: null, makeupCompleted: false } : {}), note: String(note).trim(), studentId: student.id, studentSource: student.source, updatedBy: adminUid, updatedAt: now }, { merge: true });
         if (middleRef) transaction.set(middleRef, { date, termId, attendance: status, originalLessonDate: status === "makeup" ? originalDate : FieldValue.delete(), behaviorNote: String(note).trim() || FieldValue.delete(), updatedBy: adminUid, updatedAt: now }, { merge: true });

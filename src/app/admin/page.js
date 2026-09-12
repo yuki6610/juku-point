@@ -1,7 +1,7 @@
 "use client";
 import { useAcademicContext } from '@/lib/useAcademicContext';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
@@ -97,9 +97,11 @@ export default function AdminPage() {
   const router = useRouter();
   const [switchingSeason, setSwitchingSeason] = useState(false);
   const [rebuildingPoints, setRebuildingPoints] = useState(false);
+  const [daily,setDaily]=useState(null);
   const academic = useAcademicContext();
   const currentSeason = academic.current;
   const termLabel = currentSeason ? `${currentSeason.year}年度 ${currentSeason.term}学期` : '学期未設定';
+  useEffect(()=>{if(!currentSeason||!auth.currentUser)return;const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo'}).format(new Date());auth.currentUser.getIdToken().then(token=>Promise.all([fetch(`/api/teacher/context?date=${date}`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()),fetch(`/api/admin/score-submissions?term=${currentSeason.id}`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()),fetch('/api/admin/parent-portal',{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json())])).then(([lesson,submission,portal])=>{const scheduled=(lesson.students||[]).filter(item=>item.scheduled),done=scheduled.filter(item=>lesson.inputStatus?.[item.key]).length;setDaily({scheduled:scheduled.length,done,missingInput:Math.max(0,scheduled.length-done),missingScores:(submission.students||[]).filter(item=>!item.examReceived||!item.internalReceived).length,announcements:(portal.announcements||[]).length})}).catch(()=>{})},[currentSeason?.id]);
 
   const startNewSeason = async () => {
     if (!currentSeason) return window.alert(academic.error || '学期設定を読み込み中です。');
@@ -186,6 +188,8 @@ export default function AdminPage() {
           </div>
         </div>
       </header>
+
+      <section className="admin-today-section"><div className="admin-section-title"><div><span>TODAY</span><h2>今日の業務</h2></div><p>未対応の項目から確認できます。</p></div><div className="admin-today-grid"><button onClick={()=>router.push('/admin/lesson-records')}><span>本日の授業予定</span><strong>{daily?.scheduled??'—'}<small>人</small></strong></button><button onClick={()=>router.push('/admin/lesson-records')} className={daily?.missingInput?'needs-action':''}><span>学習記録の未入力</span><strong>{daily?.missingInput??'—'}<small>人</small></strong><small>入力済み {daily?.done??'—'}人</small></button><button onClick={()=>router.push('/admin/score?tab=submissions')} className={daily?.missingScores?'needs-action':''}><span>成績資料の未提出</span><strong>{daily?.missingScores??'—'}<small>人</small></strong></button><button onClick={()=>router.push('/admin/settings')}><span>公開中のお知らせ</span><strong>{daily?.announcements??'—'}<small>件</small></strong></button></div></section>
 
         <section className="admin-menu-section">
           <div className="admin-section-title">
