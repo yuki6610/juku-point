@@ -401,8 +401,8 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
 
       <section className="lesson-layout">
         <aside className="student-picker">
-          <h2>生徒を選択</h2>
-          <input
+          <div className="picker-heading"><div><span>STEP 1</span><h2>授業日と生徒を選択</h2></div><label>授業日<input disabled={saving} type="date" value={date} onChange={(e) => { setRecordReady(false); setDate(e.target.value); }} /></label></div>
+          <div className="picker-filters"><input
             type="search"
             placeholder="名前で検索"
             value={search}
@@ -413,7 +413,7 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
             {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
               <option key={value} value={value}>{gradeLabel(value)}</option>
             ))}
-          </select>
+          </select></div>
           <div className="student-list">
             {filteredStudents.map((student) => (
               <button
@@ -436,13 +436,10 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
             <>
               <div className="record-title">
                 <div>
-                  <span>{gradeLabel(selectedStudent.grade)}</span>
+                  <span>STEP 2　{gradeLabel(selectedStudent.grade)}</span>
                   <h2>{selectedStudent.realName || selectedStudent.displayName}</h2>
                 </div>
-                <label>
-                  授業日
-                  <input disabled={saving} type="date" value={date} onChange={(e) => { setRecordReady(false); setDate(e.target.value); }} />
-                </label>
+                <strong className="selected-date">{date}</strong>
               </div>
               {isElementary && <p>小学生は出欠と宿題を記録します。単語テスト・生活態度・ポイント付与はありません。</p>}
               {isHigh && <p>高校生は出席状況のみを記録します。宿題・単語テスト・生活態度は表示しません。</p>}

@@ -1,0 +1,4 @@
+import { adminStorage } from '@/lib/firebaseAdmin';
+import { requireAdmin } from '@/lib/staffAccess';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+export async function POST(request){try{await requireAdmin(request);const form=await request.formData(),file=form.get('file');if(!file||file.type!=='application/pdf'||file.size>10*1024*1024)throw new Error('10MB以下のPDFファイルを選択してください。');const id=crypto.randomUUID(),path=`parentDocuments/${id}.pdf`,buffer=Buffer.from(await file.arrayBuffer());await adminStorage.bucket().file(path).save(buffer,{contentType:'application/pdf',resumable:false,metadata:{cacheControl:'private,max-age=300'}});return Response.json({storagePath:path,fileName:String(file.name||'資料.pdf').slice(0,120)});}catch(error){return Response.json({error:error.message},{status:error.status||400})}}

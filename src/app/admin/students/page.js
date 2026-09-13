@@ -432,9 +432,7 @@ export default function StudentsPage() {
           <h1>生徒管理</h1>
           <p>検索、状態確認、ポイント調整、講習タグ設定をこの画面でまとめて行います。</p>
         </div>
-        <button className="refresh-button" onClick={loadStudents}>
-          最新に更新
-        </button>
+        <div className="students-head-actions"><button className="refresh-button" onClick={()=>router.push('/admin/student-notes')}>表形式の生徒メモ</button><button className="refresh-button" onClick={loadStudents}>最新に更新</button></div>
       </header>
 
       <section className="students-summary">

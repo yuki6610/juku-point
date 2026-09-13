@@ -125,6 +125,11 @@ export async function POST(request) {
       } else {
         transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key),{ studentKey:key,date,grade,updatedBy:adminUid,updatedAt:now },{ merge:true });
         if (learningRecord) transaction.set(commonRef, { learningRecord: { ...learningRecord, date, termId, createdBy: old.learningRecord?.createdBy || adminUid, createdAt: old.learningRecord?.createdAt || now, updatedBy: adminUid, updatedAt: now } }, { merge: true });
+        const teacherMemo = String(learningRecord?.behaviorNote || note || '').trim();
+        if (teacherMemo) transaction.set(adminDb.collection('studentProfiles').doc(key), {
+          teacherMemo:teacherMemo.slice(0,5000), teacherMemoDate:date,
+          teacherMemoBy:adminUid, teacherMemoUpdatedAt:now,
+        }, { merge:true });
         transaction.set(commonRef, { date, status, attendance: null, originalLessonDate: null, originalDate: status === "makeup" ? originalDate : null, ...(status !== 'absent' ? { makeupDate: null, makeupCompleted: false } : {}), note: String(note).trim(), studentId: student.id, studentSource: student.source, updatedBy: adminUid, updatedAt: now }, { merge: true });
         if (middleRef) transaction.set(middleRef, { date, termId, attendance: status, originalLessonDate: status === "makeup" ? originalDate : FieldValue.delete(), behaviorNote: String(note).trim() || FieldValue.delete(), updatedBy: adminUid, updatedAt: now }, { merge: true });
         if (legacyHighRef) {

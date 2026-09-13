@@ -11,26 +11,25 @@
 .record-panel input,
 .record-panel select,
 .record-panel textarea { min-height: 46px; padding: 10px 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 11px; }
-.lesson-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; }
+.lesson-layout { display: grid; grid-template-columns: 1fr; gap: 14px; }
 .student-picker,
 .record-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 22px; box-shadow: 0 10px 28px rgba(15,23,42,.055); }
-.student-picker { padding: 18px; }
-.student-picker h2 { margin: 0 0 14px; font-size: 18px; }
-.student-picker > input,
-.student-picker > select { width: 100%; margin-bottom: 9px; }
-.student-list { max-height: 620px; display: grid; gap: 7px; overflow-y: auto; }
-.student-list button { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 52px; padding: 10px 12px; color: #334155; background: #f8fafc; border: 1px solid transparent; border-radius: 11px; cursor: pointer; text-align: left; }
+.student-picker { padding: 16px 18px; }
+.picker-heading{display:flex;align-items:end;justify-content:space-between;gap:16px}.picker-heading span{color:#6366f1;font-size:10px;font-weight:900;letter-spacing:.14em}.picker-heading h2 { margin: 3px 0 0; font-size: 18px; }.picker-heading label{display:grid;gap:4px;color:#64748b;font-size:11px;font-weight:800}.picker-filters{display:grid;grid-template-columns:minmax(240px,1fr) 180px;gap:8px;margin-top:13px}.picker-filters>*{width:100%}
+.student-list { display: flex; gap: 7px; margin-top:10px; padding-bottom:3px; overflow-x: auto; }
+.student-list button { flex:0 0 170px;display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 9px 11px; color: #334155; background: #f8fafc; border: 1px solid transparent; border-radius: 11px; cursor: pointer; text-align: left; }
 .student-list button span { color: #94a3b8; font-size: 12px; }
 .student-list button.active { color: #3730a3; background: #eef2ff; border-color: #c7d2fe; }
-.record-panel { padding: 24px; }
+.record-panel { padding: 20px; }
 .record-empty { min-height: 420px; display: grid; place-items: center; color: #94a3b8; }
 .record-title { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 18px; }
 .record-title span { color: #6366f1; font-size: 12px; font-weight: 800; }
 .record-title h2 { margin: 4px 0 0; }
+.selected-date{padding:8px 12px;color:#475569;background:#f1f5f9;border-radius:10px;font-size:14px}
 .record-title label,
 .inline-field,
 .score-inputs label { display: grid; gap: 5px; color: #64748b; font-size: 12px; }
-.record-panel fieldset { margin: 0 0 14px; padding: 18px; border: 1px solid #e2e8f0; border-radius: 16px; }
+.record-panel fieldset { margin: 0 0 11px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 14px; }
 .record-panel legend { padding: 0 7px; font-weight: 800; }
 .choice-grid { display: grid; gap: 8px; }
 .choice-grid.three { grid-template-columns: repeat(3, 1fr); }
@@ -53,7 +52,7 @@
 @media (max-width: 820px) {
   .lesson-header { align-items: stretch; flex-direction: column; }
   .lesson-layout { grid-template-columns: 1fr; }
-  .student-list { max-height: 250px; }
+  .student-list { max-height:none; }
 }
 
 @media (max-width: 560px) {
@@ -61,5 +60,6 @@
   .term-controls { display: grid; grid-template-columns: 1fr 1fr; }
   .record-panel { padding: 16px 12px; }
   .record-title { align-items: stretch; flex-direction: column; }
+  .picker-heading{align-items:stretch;flex-direction:column}.picker-filters{grid-template-columns:1fr 120px}.student-list button{flex-basis:145px}
   .choice-grid.four { grid-template-columns: repeat(2, 1fr); }
 }

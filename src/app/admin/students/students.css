@@ -18,14 +18,15 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  padding: 34px 38px;
+  padding: 24px 28px;
   background:
     radial-gradient(circle at top left, rgba(255, 213, 122, 0.35), transparent 32%),
     linear-gradient(135deg, #f0f9ff, #f8f4ff 58%, #fff8ed);
   border: 1px solid #e1e8f2;
-  border-radius: 30px;
+  border-radius: 22px;
   box-shadow: 0 20px 50px rgba(51, 65, 85, 0.08);
 }
+.students-head-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 
 .students-hero span,
 .modal-title span,
@@ -70,13 +71,13 @@
 
 .students-summary {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
   margin: 18px 0;
 }
 
 .students-summary article {
-  padding: 18px 20px;
+  padding: 13px 16px;
   background: #fff;
   border: 1px solid #e1e8f1;
   border-radius: 20px;
@@ -143,7 +144,7 @@
 
 .students-workspace {
   display: grid;
-  grid-template-columns: minmax(520px, 1fr) 430px;
+  grid-template-columns: minmax(480px, .9fr) minmax(480px, 1.1fr);
   gap: 16px;
   margin-top: 16px;
   align-items: start;
@@ -151,6 +152,8 @@
 
 .students-list-panel,
 .student-detail-panel {
+  position:sticky;top:18px;
+  max-height:calc(100dvh - 36px);overflow:auto;
   background: #fff;
   border: 1px solid #e1e8f1;
   border-radius: 24px;

@@ -114,6 +114,10 @@ export async function POST(request) {
         updatedAt: now,
       };
       transaction.set(recordRef, savedRecord, { merge: true });
+      if (String(savedRecord.behaviorNote || '').trim()) transaction.set(adminDb.collection('studentProfiles').doc(`user_${uid}`), {
+        teacherMemo:String(savedRecord.behaviorNote).trim().slice(0,5000), teacherMemoDate:date,
+        teacherMemoBy:adminUid, teacherMemoUpdatedAt:now,
+      }, { merge:true });
       transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(`user_${uid}`),{ studentKey:`user_${uid}`,date,grade:Number(studentData.grade),updatedBy:adminUid,updatedAt:now },{ merge:true });
       publication?.commit();
 

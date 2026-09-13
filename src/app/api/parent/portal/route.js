@@ -10,6 +10,7 @@ const cleanItems = (items, pdf = false) => (Array.isArray(items) ? items : []).s
   priority: ['important','request','normal'].includes(item.priority) ? item.priority : 'normal',
   startDate: String(item.startDate || '').slice(0,10), endDate: String(item.endDate || '').slice(0,10),
   targetType: ['all','elementary','middle','grade','student'].includes(item.targetType) ? item.targetType : 'all', targetValue:String(item.targetValue || '').slice(0,140),
+  ...(pdf && /^parentDocuments\/[A-Za-z0-9-]+\.pdf$/.test(item.storagePath || '') ? { localFile: true, fileName: String(item.fileName || '資料.pdf').slice(0,120) } : {}),
   ...(pdf && /^https:\/\//.test(item.url || '') ? { url: item.url } : {}),
 })).filter(item => item.title);
 

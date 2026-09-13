@@ -13,6 +13,7 @@ const groups = [{
       { path: "/admin/settings", icon: "▦", label: "教室・授業設定" },
       { path: "/admin/study-log", icon: "◷", label: "自習管理" },
       { path: "/admin/students", icon: "◎", label: "生徒管理" },
+      { path: "/admin/student-notes", icon: "表", label: "生徒メモ" },
       { path: "/admin/score", icon: "△", label: "成績・志望校" },
       { path: "/admin/point-history", icon: "P", label: "ポイント履歴" },
       { path: "/admin/rewards", icon: "◇", label: "景品・交換管理" },

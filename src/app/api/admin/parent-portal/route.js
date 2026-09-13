@@ -9,7 +9,13 @@ function validate(items, documents = false) {
     const value = { id: String(item.id || crypto.randomUUID()), title: String(item.title || '').trim().slice(0,120), body: String(item.body || '').trim().slice(0,1000), date: String(item.date || '').slice(0,10), priority: ['important','request','normal'].includes(item.priority) ? item.priority : 'normal', startDate:String(item.startDate||'').slice(0,10),endDate:String(item.endDate||'').slice(0,10),targetType:['all','elementary','middle','grade','student'].includes(item.targetType)?item.targetType:'all',targetValue:String(item.targetValue||'').trim().slice(0,140) };
     if (!value.title || !/^\d{4}-\d{2}-\d{2}$/.test(value.date)) throw new Error('タイトルと日付を入力してください。');
     if ((value.startDate&&!/^\d{4}-\d{2}-\d{2}$/.test(value.startDate))||(value.endDate&&!/^\d{4}-\d{2}-\d{2}$/.test(value.endDate))||(value.startDate&&value.endDate&&value.endDate<value.startDate)) throw new Error('公開期間を確認してください。');
-    if (documents) { if (!/^https:\/\//.test(item.url || '')) throw new Error('PDFはhttpsで始まるURLを入力してください。'); value.url = item.url.slice(0,1000); }
+    if (documents) {
+      const storagePath = String(item.storagePath || '');
+      const legacyUrl = String(item.url || '');
+      if (!/^parentDocuments\/[A-Za-z0-9-]+\.pdf$/.test(storagePath) && !/^https:\/\//.test(legacyUrl)) throw new Error('PDFファイルを選択してください。');
+      if (storagePath) { value.storagePath = storagePath; value.fileName = String(item.fileName || '資料.pdf').slice(0,120); }
+      else value.url = legacyUrl.slice(0,1000);
+    }
     return value;
   });
 }
