@@ -1,4 +1,5 @@
 'use client'
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges'
 import { useAcademicContext } from '@/lib/useAcademicContext'
 
 import { useEffect, useState } from 'react'
@@ -50,6 +51,8 @@ const formatSavedAt=value=>{
 }
 
 export default function ScoreManager() {
+  const edits=useUnsavedChanges('.admin-score-page');
+  const [saving,setSaving]=useState(false),[saveNotice,setSaveNotice]=useState('')
   const [admin,setAdmin]=useState(null)
   const [checkingAuth,setCheckingAuth]=useState(true)
 
@@ -129,6 +132,11 @@ export default function ScoreManager() {
       return
     }
 
+    setSaved([])
+    setExam(Object.fromEntries(MAIN.map(subject=>[subject,''])))
+    setEditingScoreId(null)
+    const selected=students.find(item=>item.uid===selectedStudentId)
+    if(selected){setGrade(`中${Number(selected.grade)-6}`);setInternalGrade(`中${Number(selected.grade)-6}`)}
     setSelectedStudent(
       students.find(s=>s.uid===selectedStudentId)
     )
@@ -190,7 +198,11 @@ export default function ScoreManager() {
       : students.filter(s=>Number(s.grade)===Number(gradeFilter))
 
   const saveExam=async()=>{
+    if(saving)return
+    if(editingScoreId&&saved.find(item=>item.id===editingScoreId)?.type!=='exam')return alert('編集中の成績と同じ種類の保存ボタンを使ってください。')
+    setSaving(true);setSaveNotice('');try{
     if(!selectedStudentId) return alert('生徒を選択してください')
+    if(Object.values(exam).some(value=>String(value).trim()===''||!Number.isInteger(Number(value))||Number(value)<0||Number(value)>100))return alert('全教科を0〜100の整数で入力してください')
     if(!confirm('この内容で保存しますか？')) return
     if(isDuplicateExam()) return alert('同じテストデータがあります')
 
@@ -222,9 +234,14 @@ export default function ScoreManager() {
 
     alert('保存しました')
     setEditingScoreId(null)
+    edits.markSaved()
+    }catch(error){setSaveNotice(error.message||'保存できませんでした。再度お試しください。')}finally{setSaving(false)}
   }
 
   const saveInternal=async()=>{
+    if(saving)return
+    if(editingScoreId&&saved.find(item=>item.id===editingScoreId)?.type!=='internal')return alert('編集中の成績と同じ種類の保存ボタンを使ってください。')
+    setSaving(true);setSaveNotice('');try{
     if(!selectedStudentId) return alert('生徒を選択してください')
     if(!confirm('この内容で保存しますか？')) return
     if(isDuplicateInternal()) return alert('同じ内申データがあります')
@@ -256,6 +273,8 @@ export default function ScoreManager() {
 
     alert('保存しました')
     setEditingScoreId(null)
+    edits.markSaved()
+    }catch(error){setSaveNotice(error.message||'保存できませんでした。再度お試しください。')}finally{setSaving(false)}
   }
 
   const deleteScore=async(scoreId)=>{
@@ -272,7 +291,7 @@ export default function ScoreManager() {
   if (academic.loading) return <p>年度・学期を確認中です…</p>
   if (academic.error) return <p role="alert">{academic.error} <a href="/admin/settings">授業設定を確認</a></p>
   return (
-    <div className="admin-score-page">
+    <div className="admin-score-page"><fieldset disabled={saving} style={{border:0,padding:0,minWidth:0}}>{saveNotice&&<p role="alert">{saveNotice}</p>}{editingScoreId&&<p>既存の成績を編集中です。<button onClick={()=>setEditingScoreId(null)}>編集を終了</button></p>}
       <h1>成績確認・入力</h1>
 
       <div className="student-select-box">
@@ -430,7 +449,7 @@ export default function ScoreManager() {
               <div>
                 <div className="saved-tags">
                   <span className={`score-source ${s.submittedBy === 'admin' || s.approved === true ? 'admin' : 'student'}`}>
-                    {s.submittedBy === 'admin' || s.approved === true ? '管理者入力' : '生徒入力'}
+                    {s.submittedBy === 'admin' || s.approved === true ? '管理者入力' : s.submittedBy === 'parent' ? '保護者入力' : '生徒入力'}
                   </span>
                   <span className={`score-kind ${s.type}`}>{s.type==='exam'?'五教科テスト':'内申点'}</span>
                 </div>
@@ -469,11 +488,12 @@ export default function ScoreManager() {
             </details>
 
             <div className="saved-actions">
+              <button onClick={()=>{setEditingScoreId(s.id);setSchoolYear(String(s.year));if(s.type==='exam'){setExam(s.exam);setTerm(s.term);setGrade(gradeLabel(s.grade));setTestType(s.testType)}else{setInternalMain(s.internalMain);setInternalSub(s.internalSub);setInternalTerm(s.term);setInternalGrade(gradeLabel(s.grade))}window.scrollTo({top:0,behavior:'smooth'})}}>この成績を編集</button>
               <button onClick={()=>deleteScore(s.id)} className="delete-btn">この成績を削除</button>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </fieldset></div>
   )
 }

@@ -8,7 +8,12 @@ export async function GET(request) {
     const parent = await requireParent(request); const keys = await linkedChildren(parent.uid, parent.role === 'admin');
     const children = (await Promise.all(keys.map(async key => { const elementary = key.startsWith('elementary_'); const id = key.replace(/^(user|elementary)_/, ''); const doc = await adminDb.collection(elementary ? 'adminStudents' : 'users').doc(id).get(); if (!doc.exists || doc.data().active === false || doc.data().enrollmentStatus === 'withdrawn' || Number(doc.data().grade)>9) return null; const data = doc.data(); return { key, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade || 0) }; }))).filter(Boolean);
     let currentTermId=null, submissionStatus={};
-    try { currentTermId=resolveAcademicTerm(await readAcademicSettings(),japanDateId()).id; const snapshot=await adminDb.collection('scoreSubmissionTerms').doc(currentTermId).collection('students').get(); submissionStatus=Object.fromEntries(snapshot.docs.map(doc=>[doc.id,{examReceived:doc.data().examReceived===true,internalReceived:doc.data().internalReceived===true}])); } catch {}
+    try {
+      currentTermId=resolveAcademicTerm(await readAcademicSettings(),japanDateId()).id;
+      const ids=children.filter(child=>child.key.startsWith('user_')&&child.grade>=7&&child.grade<=9).map(child=>child.key.slice(5));
+      const snapshots=await Promise.all(ids.map(id=>adminDb.collection('scoreSubmissionTerms').doc(currentTermId).collection('students').doc(id).get()));
+      submissionStatus=Object.fromEntries(snapshots.map((doc,index)=>[ids[index],{examReceived:doc.data()?.examReceived===true,internalReceived:doc.data()?.internalReceived===true}]));
+    } catch {}
     return Response.json({ parent: { displayName: parent.profile.displayName }, adminPreview: parent.role === 'admin', children, currentTermId, submissionStatus });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 500 }); }
 }

@@ -4,6 +4,7 @@ import { requireStaff, assertAssigned } from '@/lib/staffAccess';
 import { readAcademicSettings } from '@/lib/academicCalendarServer';
 import { japanDateId, resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
 import { homeworkTemplates, prepareHomeworkReview } from '@/lib/homeworkServer';
+import { calculateSummary } from '@/lib/behaviorSummary.mjs';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,7 +71,7 @@ export async function POST(request) {
     const correct = Number(record?.wordTest?.correct);
     const total = Number(record?.wordTest?.total);
     if (["completed", "makeup"].includes(wordStatus) &&
-        (!Number.isFinite(correct) || !Number.isFinite(total) || correct < 0 || total <= 0 || correct > total)) {
+        (!Number.isInteger(correct) || !Number.isInteger(total) || correct < 0 || total <= 0 || correct > total)) {
       throw new ApiError("単語テストの点数が正しくありません。", 400);
     }
 
@@ -86,13 +87,15 @@ export async function POST(request) {
     const wordHistoryRef = userRef.collection("pointHistory").doc(`lesson_${termId}_${weekId}_wordtest`);
 
     const result = await adminDb.runTransaction(async (transaction) => {
-      const [userSnap, oldRecordSnap, oldHomeworkSnap, legacyHomeworkSnap, oldHomeworkMissedSnap, oldWordSnap] = await Promise.all([
+      const [userSnap, oldRecordSnap, oldHomeworkSnap, legacyHomeworkSnap, oldHomeworkMissedSnap, oldWordSnap, termRecords] = await Promise.all([
         transaction.get(userRef), transaction.get(recordRef),
         transaction.get(homeworkRewardRef), transaction.get(legacyHomeworkRewardRef), transaction.get(homeworkMissedRef),
         transaction.get(wordRewardRef),
+        transaction.get(recordRef.parent),
       ]);
       if (!userSnap.exists) throw new ApiError("生徒が見つかりません。", 404);
       const studentData = userSnap.data();
+      if(studentData.active===false||studentData.enrollmentStatus==='withdrawn')throw new ApiError('退塾した生徒には新規記録できません。',403);
       if (Number(studentData.grade) < 7 || Number(studentData.grade) > 9 || !Number.isInteger(Number(studentData.grade))) throw new ApiError('この報酬付き学習記録は中学生専用です。', 400);
 
       const oldRecord = oldRecordSnap.exists ? oldRecordSnap.data() : {};
@@ -102,6 +105,8 @@ export async function POST(request) {
         try { publication = await prepareHomeworkReview(transaction, { key: `user_${uid}`, date, termId, uid: adminUid, review: body.homeworkReview, comments: body.commentIds, attendance: record.attendance, learningRecord: record, templates }); }
         catch (error) { throw new ApiError(error.message, 400); }
       }
+      const memoRef=adminDb.collection('studentProfiles').doc(`user_${uid}`);
+      const memoProfile=await transaction.get(memoRef);
       const now = FieldValue.serverTimestamp();
       const savedRecord = {
         ...record,
@@ -114,8 +119,12 @@ export async function POST(request) {
         updatedAt: now,
       };
       transaction.set(recordRef, savedRecord, { merge: true });
-      if (String(savedRecord.behaviorNote || '').trim()) transaction.set(adminDb.collection('studentProfiles').doc(`user_${uid}`), {
-        teacherMemo:String(savedRecord.behaviorNote).trim().slice(0,5000), teacherMemoDate:date,
+      const records=termRecords.docs.filter(item=>item.id!==date).map(item=>item.data());
+      const [summaryYear,summaryTerm]=termId.split('_');
+      transaction.set(userRef.collection('behaviorSummary').doc(termId),{...calculateSummary([...records,savedRecord],summaryYear,summaryTerm),updatedAt:now},{merge:true});
+      transaction.set(memoRef.collection('teacherNotes').doc(date),{date,note:String(savedRecord.behaviorNote||'').trim(),updatedBy:adminUid,updatedAt:now},{merge:true});
+      if (date>=String(memoProfile.data()?.teacherMemoDate||'')) transaction.set(adminDb.collection('studentProfiles').doc(`user_${uid}`), {
+        teacherMemo:String(savedRecord.behaviorNote||'').trim().slice(0,5000), teacherMemoDate:date,
         teacherMemoBy:adminUid, teacherMemoUpdatedAt:now,
       }, { merge:true });
       transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(`user_${uid}`),{ studentKey:`user_${uid}`,date,grade:Number(studentData.grade),updatedBy:adminUid,updatedAt:now },{ merge:true });
@@ -153,7 +162,7 @@ export async function POST(request) {
         transaction.delete(homeworkRewardRef);
         if (legacyHomeworkSnap.exists && legacyHomeworkSnap.data().sourceDate === date) transaction.delete(legacyHomeworkRewardRef);
         transaction.set(homeworkHistoryRef, {
-          type: "homework_undo", amount: -50, exp: -50, week: weekId, termId,
+          type: "homework_undo", amount: 0, exp: 0, week: weekId, termId,
           sourceDate: date, message: "宿題提出ボーナス取消", createdAt: eventTimestamp, updatedAt: now,
         }, { merge: true });
       }
@@ -176,8 +185,8 @@ export async function POST(request) {
         } else {
           transaction.delete(homeworkMissedRef);
           transaction.set(homeworkMissedHistoryRef, {
-            type: "homework_undo", amount: 50, exp: 50, week: weekId,
-            termId, sourceDate: date, message: "宿題未提出の取消", createdAt: eventTimestamp, updatedAt: now,
+            type: "homework_undo", amount: 0, exp: 0, week: weekId,
+            termId, sourceDate: date, message: "宿題判定の取消（有効ポイント0）", createdAt: eventTimestamp, updatedAt: now,
           }, { merge: true });
         }
       }
@@ -224,6 +233,7 @@ export async function POST(request) {
         homeworkCount: Math.max(0, Number(user.homeworkCount || 0) + homeworkCountDelta),
         wordTestCount: Math.max(0, Number(user.wordTestCount || 0) + wordTestCountDelta),
         totalWordTestScore: Math.max(0, Number(user.totalWordTestScore || 0) + wordScoreDelta),
+        ...(selectedTerm.id===currentTerm.id?{termWordScore:Math.max(0,Number(user.termWordScore||0)+wordScoreDelta),termHomeworkCount:Math.max(0,Number(user.termHomeworkCount||0)+homeworkCountDelta),termWordTestCount:Math.max(0,Number(user.termWordTestCount||0)+wordTestCountDelta)}:{}),
         ...(wordCompleted ? { wordTestQuestionCount: total } : {}),
         lastUpdated: now,
       });

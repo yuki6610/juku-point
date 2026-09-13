@@ -5,7 +5,7 @@ import { normalizeStudentKey } from '@/lib/staffAccess';
 
 const MAIN=['国語','社会','数学','理科','英語'], SUB=['音楽','美術','保体','技家'];
 const validTerm=value=>['1学期','2学期','3学期'].includes(value);
-const numbers=(value,subjects,min,max)=>Object.fromEntries(subjects.map(subject=>{const number=Number(value?.[subject]);if(!Number.isFinite(number)||number<min||number>max)throw new Error(`${subject}の値を確認してください。`);return[subject,number]}));
+const numbers=(value,subjects,min,max)=>Object.fromEntries(subjects.map(subject=>{const raw=value?.[subject],number=Number(raw);if(raw===null||raw===undefined||String(raw).trim()===''||!Number.isInteger(number)||number<min||number>max)throw new Error(`${subject}の値を確認してください。`);return[subject,number]}));
 
 export async function POST(request) {
   try {
@@ -16,7 +16,9 @@ export async function POST(request) {
     if (!student.exists||grade<7||grade>9||student.data().active===false||student.data().enrollmentStatus==='withdrawn') throw new Error('対象の中学生を確認できません。');
     const year=String(body.year||''), term=String(body.term||'');
     if(!/^20\d{2}$/.test(year)||!validTerm(term))throw new Error('年度・学期を確認してください。');
-    const ref=adminDb.collection('users').doc(uid).collection('scores'), existing=await ref.where('year','==',year).where('term','==',term).get();
+    const ref=adminDb.collection('users').doc(uid).collection('scores');
+    await adminDb.runTransaction(async transaction=>{
+    const existing=await transaction.get(ref.where('year','==',year).where('term','==',term));
     let data;
     if(body.type==='exam'){
       const testType=String(body.testType||'').trim().slice(0,60);if(!testType)throw new Error('テスト名を入力してください。');
@@ -29,7 +31,8 @@ export async function POST(request) {
       const internalTotal=Object.values(internalMain).reduce((sum,value)=>sum+value,0)*4+Object.values(internalSub).reduce((sum,value)=>sum+value,0)*7.5;
       data={type:'internal',year,grade,term,internalMain,internalSub,internalTotal};
     }else throw new Error('成績の種類が正しくありません。');
-    await ref.add({...data,submittedBy:'parent',submittedByUid:parent.uid,createdAt:FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()});
+    transaction.set(ref.doc(),{...data,submittedBy:'parent',submittedByUid:parent.uid,createdAt:FieldValue.serverTimestamp(),updatedAt:FieldValue.serverTimestamp()});
+    });
     return Response.json({saved:true});
   } catch(error){return Response.json({error:error.message||'成績を保存できませんでした。'},{status:error.status||400});}
 }

@@ -15,6 +15,7 @@ export default function GachaPage() {
   const router = useRouter();
   const [state, setState] = useState(null);
   const [error, setError] = useState("");
+  const [moreBusy,setMoreBusy]=useState(false);
   const [drawing, setDrawing] = useState(false);
   const [result, setResult] = useState(null);
   const [showCount, setShowCount] = useState(10);
@@ -37,6 +38,7 @@ export default function GachaPage() {
     catch (e) { setError(e.message); }
   }), [router]);
 
+  const loadMore=async()=>{if(moreBusy||!state?.next)return;setMoreBusy(true);try{const next=await request('/api/gacha?after='+encodeURIComponent(state.next));setState(old=>({...old,history:[...new Map([...old.history,...next.history].map(item=>[item.id,item])).values()],next:next.next,pendingCount:next.pendingCount}));setShowCount(value=>value+50)}catch(error){setError(error.message)}finally{setMoreBusy(false)}};
   const playTone = (frequency, start, duration, volume = 0.08, type = "sine") => {
     if (!soundEnabled) return;
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -141,6 +143,7 @@ export default function GachaPage() {
             <b className={`status-${item.status}`}>{item.status === "delivered" ? "受取済み" : item.status === "canceled" ? "取消" : "受取待ち"}</b>
           </article>
         ))}
+        {state.next&&showCount>=state.history.length&&<button disabled={moreBusy} onClick={loadMore}>{moreBusy?"読み込み中…":"以前の当選履歴を表示"}</button>}
         {!state.history?.length && <p className="empty-gacha">まだ抽選履歴はありません。</p>}
         {showCount < state.history?.length && <button className="more-button" onClick={() => setShowCount((value) => value + 10)}>さらに表示</button>}
       </section>

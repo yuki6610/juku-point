@@ -8,6 +8,8 @@ service cloud.firestore {
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
     function isOwnStudentKey(key) { return signedIn() && key == 'user_' + request.auth.uid; }
     function parentLinked(key) { return signedIn()
+      && exists(/databases/$(database)/documents/parentAccounts/$(request.auth.uid))
+      && get(/databases/$(database)/documents/parentAccounts/$(request.auth.uid)).data.get('active', true) == true
       && exists(/databases/$(database)/documents/parentLinks/$(request.auth.uid)/children/$(key))
       && get(/databases/$(database)/documents/parentLinks/$(request.auth.uid)/children/$(key)).data.active == true; }
     function safeProfileUpdate() {
@@ -42,7 +44,7 @@ service cloud.firestore {
       match /checkins/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
       match /pointHistory/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
       match /rewardHistory/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
-      match /{document=**} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
+      match /{collectionName}/{document=**} { allow read: if isAdmin() || (isOwner(uid) && collectionName != 'lessonTerms'); allow write: if isAdmin(); }
     }
 
     // 小学生は管理者登録のみ。講師からの操作はサーバーAPIで検証する。
@@ -69,7 +71,7 @@ service cloud.firestore {
     match /schools/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /universities/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /admin_data/checkin { allow read, write: if isAdmin(); }
-    match /admin_data/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /admin_data/{id} { allow read: if isAdmin() || (signedIn() && !(id in ['parentPortal', 'checkin'])); allow write: if isAdmin(); }
     match /adminTermSettings/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /adminLessonCalendars/{id} { allow read: if signedIn(); allow write: if isAdmin(); }
     match /season/{id} { allow read: if signedIn(); allow write: if isAdmin(); }

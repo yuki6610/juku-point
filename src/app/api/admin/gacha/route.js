@@ -23,11 +23,14 @@ const iso = (value) => value?.toDate ? value.toDate().toISOString() : value || n
 export async function GET(request) {
   try {
     await requireAdmin(request);
+    const after=new URL(request.url).searchParams.get("after");let historyQuery=adminDb.collection("gachaDraws").orderBy("createdAt","desc").limit(101);if(after){if(!/^[A-Za-z0-9_-]{1,128}$/.test(after))throw new ApiError("取得位置を確認してください。");const cursor=await adminDb.collection("gachaDraws").doc(after).get();if(!cursor.exists)throw new ApiError("履歴がありません。");historyQuery=historyQuery.startAfter(cursor)}
+    const pendingSnapshot=await adminDb.collection("gachaDraws").where("status","==","pending").get();
     const [snapshot, rewardsSnapshot] = await Promise.all([
-      adminDb.collection("gachaDraws").orderBy("createdAt", "desc").limit(500).get(),
+      historyQuery.get(),
       adminDb.collection("rewards").get(),
     ]);
-    const draws = snapshot.docs.map((doc) => {
+    const page=snapshot.docs.slice(0,100);
+    const draws = [...new Map([...page,...pendingSnapshot.docs].map(doc=>[doc.id,doc])).values()].map((doc) => {
       const data = doc.data();
       return { id: doc.id, ...data, createdAt: iso(data.createdAt), deliveredAt: iso(data.deliveredAt), canceledAt: iso(data.canceledAt) };
     });
@@ -36,10 +39,12 @@ export async function GET(request) {
     const today = japanDate(new Date());
     return Response.json({
       draws,
+      next:snapshot.docs.length>100?page.at(-1).id:null,
+      summaryScope:"表示中の履歴（未引き渡しは全件）",
       inventory: buildGachaPool(rewardsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))).map(serializeGachaReward),
       summary: {
         today: active.filter((item) => item.createdAt && japanDate(item.createdAt) === today).length,
-        pending: active.filter((item) => item.status === "pending").length,
+        pending: pendingSnapshot.size,
         delivered: active.filter((item) => item.status === "delivered").length,
         pointsUsed: active.reduce((sum, item) => sum + Number(item.pointsUsed || 0), 0),
         mealCount: active.filter((item) => item.rewardKind === "meal").length,

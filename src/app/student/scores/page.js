@@ -14,11 +14,12 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/../firebaseConfig";
+import { useAcademicContext } from "@/lib/useAcademicContext";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import "./scores.css";
 
 const GRADES = ["中1", "中2", "中3"];
-const SCHOOL_YEARS = ["2025", "2026", "2027", "2028"];
+
 const TERMS = ["1学期", "2学期", "3学期"];
 const BASE_TEST_TYPES = [
   "中間",
@@ -50,7 +51,10 @@ export default function StudentScoresPage() {
   const [profile, setProfile] = useState(null);
   const [activeView, setActiveView] = useState("record");
   const [recordType, setRecordType] = useState("exam");
-  const [schoolYear, setSchoolYear] = useState("2026");
+  const academic=useAcademicContext();
+  const SCHOOL_YEARS=academic.settings.map(item=>String(item.year));
+  useEffect(()=>{if(academic.current){setSchoolYear(String(academic.current.year));setTerm(`${academic.current.term}学期`);setInternalTerm(`${academic.current.term}学期`)}},[academic.current]);
+  const [schoolYear, setSchoolYear] = useState("");
   const [grade, setGrade] = useState("中1");
   const [term, setTerm] = useState("1学期");
   const [testType, setTestType] = useState("中間");
@@ -150,6 +154,7 @@ export default function StudentScoresPage() {
     window.setTimeout(() => setNotice(null), 3500);
   };
 
+  const saveScore=async payload=>{const response=await fetch('/api/student/scores',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${await user.getIdToken()}`},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)throw new Error(result.error);};
   const saveExam = async () => {
     if (saving) return;
     const values = Object.values(exam);
@@ -177,7 +182,7 @@ export default function StudentScoresPage() {
 
     setSaving(true);
     try {
-      await addDoc(collection(db, `users/${user.uid}/scores`), {
+      await saveScore({
         type: "exam",
         year: schoolYear,
         grade: gradeNumber(grade),
@@ -187,8 +192,7 @@ export default function StudentScoresPage() {
         examTotal,
         examConverted,
         submittedBy: "student",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+
       });
       setExam(emptyExam());
       showNotice("success", "テスト成績を保存しました。");
@@ -217,7 +221,7 @@ export default function StudentScoresPage() {
 
     setSaving(true);
     try {
-      await addDoc(collection(db, `users/${user.uid}/scores`), {
+      await saveScore({
         type: "internal",
         year: schoolYear,
         grade: gradeNumber(internalGrade),
@@ -226,8 +230,7 @@ export default function StudentScoresPage() {
         internalSub,
         internalTotal,
         submittedBy: "student",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+
       });
       showNotice("success", "内申点を保存しました。");
     } catch (error) {
@@ -238,7 +241,8 @@ export default function StudentScoresPage() {
     }
   };
 
-  if (checkingAuth) {
+  if(academic.error)return <main><p role="alert">{academic.error}</p><a href="/mypage">マイページへ戻る</a></main>;
+  if (checkingAuth || academic.loading) {
     return <main className="scores-state">成績データを確認しています…</main>;
   }
   if (!user) {

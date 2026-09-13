@@ -12,12 +12,15 @@ import {
   query,
   startAfter,
 } from 'firebase/firestore'
+import { mergeRewardHistory,historyMillis } from '@/lib/historyCompatibility.mjs'
 import './history.css'
 
 const PAGE_SIZE = 30
 
 export default function RewardHistory() {
+  const [undatedLoaded,setUndatedLoaded]=useState(false)
   const [history, setHistory] = useState([])
+  const [legacy,setLegacy]=useState([]),[modern,setModern]=useState([]),[visibleCount,setVisibleCount]=useState(PAGE_SIZE)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [filter, setFilter] = useState('all')
@@ -53,30 +56,11 @@ export default function RewardHistory() {
 
   const fetchHistory = async (targetUid) => {
     try {
-      const page = await fetchHistoryPage(targetUid)
-      if (page.list.length > 0) {
-        setHistory(page.list)
-        setLastDoc(page.last)
-        setHasMore(page.hasNext)
-        setUsingLegacyHistory(false)
-        return
-      }
-
-      // 旧データ互換：以前の配列形式しかない場合だけ読み込む
-      const userRef = doc(db, 'users', targetUid)
-      const snap = await getDoc(userRef)
-      if (!snap.exists()) {
-        setHistory([])
-        return
-      }
-      const data = snap.data()
-      const list = [...(data.rewardHistory || [])].sort(
-        (a, b) => toDate(b.date) - toDate(a.date)
-      ).slice(0, PAGE_SIZE)
-      setHistory(list)
-      setLastDoc(null)
-      setHasMore(false)
-      setUsingLegacyHistory(Array.isArray(data.rewardHistory) && data.rewardHistory.length > PAGE_SIZE)
+      const [page,user]=await Promise.all([fetchHistoryPage(targetUid),getDoc(doc(db,'users',targetUid))]);
+      const old=(user.data()?.rewardHistory||[]).map((item,index)=>({...item,id:`legacy_${index}`}));
+      setLegacy(old);setModern(page.list);setHistory(mergeRewardHistory(page.list,old));
+      setLastDoc(page.last);setHasMore(page.hasNext);setUsingLegacyHistory(false);
+      setVisibleCount(PAGE_SIZE);
     } catch (error) {
       console.error('履歴取得エラー:', error)
       setError('交換履歴を取得できませんでした。')
@@ -86,11 +70,12 @@ export default function RewardHistory() {
   }
 
   const loadMore = async () => {
-    if (!uid || !lastDoc || loadingMore) return
+    if (!uid || loadingMore) return
+    if(!hasMore){setVisibleCount(value=>value+PAGE_SIZE);return}
     setLoadingMore(true)
     try {
       const page = await fetchHistoryPage(uid, lastDoc)
-      setHistory((current) => [...current, ...page.list])
+      const combined=[...modern,...page.list];setModern(combined);setHistory(mergeRewardHistory(combined,legacy));setVisibleCount(value=>value+PAGE_SIZE)
       setLastDoc(page.last)
       setHasMore(page.hasNext)
     } catch (error) {
@@ -101,10 +86,11 @@ export default function RewardHistory() {
     }
   }
 
+  const loadUndated=async()=>{if(loadingMore)return;setLoadingMore(true);try{const user=getAuth().currentUser;const response=await fetch('/api/rewards/undated-history',{headers:{Authorization:`Bearer ${await user.getIdToken()}`}});const data=await response.json();if(!response.ok)throw new Error(data.error);const updated=[...new Map([...modern,...data.items].map(item=>[item.id,item])).values()];setModern(updated);setHistory(mergeRewardHistory(updated,legacy));setUndatedLoaded(true);setVisibleCount(value=>value+PAGE_SIZE)}catch(error){setError(error.message)}finally{setLoadingMore(false)}};
   const toDate = (value) => {
     if (!value) return new Date(0)
     if (typeof value.toDate === 'function') return value.toDate()
-    const date = new Date(value)
+    const date = new Date(historyMillis(value))
     return Number.isNaN(date.getTime()) ? new Date(0) : date
   }
 
@@ -120,7 +106,7 @@ export default function RewardHistory() {
 
   if (loading) return <p className="loading-text">読み込み中...</p>
 
-  const filteredHistory = history.filter((item) => {
+  const filteredHistory = history.slice(0,visibleCount).filter((item) => {
     if (filter === 'verified') return item.verified
     if (filter === 'pending') return !item.verified
     return true
@@ -187,7 +173,8 @@ export default function RewardHistory() {
         <p className="history-note">古い形式の交換履歴は最新{PAGE_SIZE}件のみ表示しています。今後の交換履歴は軽量な形式で保存されます。</p>
       )}
 
-      {hasMore && (
+      {!undatedLoaded&&<button disabled={loadingMore} onClick={loadUndated}>日時がない旧履歴も確認</button>}
+      {(hasMore||visibleCount<history.length) && (
         <button type="button" className="history-load-more" onClick={loadMore} disabled={loadingMore}>
           {loadingMore ? '読み込み中...' : 'もっと見る'}
         </button>

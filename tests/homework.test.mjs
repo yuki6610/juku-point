@@ -74,6 +74,20 @@ test('confirmed sets cannot be reassessed on another date or completed premature
   await assert.rejects(prepare({ review: { status: 'missed', date: '2026-09-18' } }));
   await assert.rejects(prepare({}, { review: { assignmentId: 'set1', status: 'laterCompleted' } }));
 });
+test('absence does not require individual submission decisions and gives no reward', async () => {
+  const {result,writes}=await prepare({}, {attendance:'absent',review:{assignmentId:'set1',status:'pending',itemResults:{}}});
+  assert.equal(result.homework,'notEvaluated');
+  assert.equal(writes.find(item=>item.path.startsWith('homeworkPublic')).value.review.status,'absent');
+});
+test('word test ranges are published but never count as homework submission', async () => {
+  const items=validateAssignment({...assignment,items:[{materialId:'new_math',range:'10〜12'},{materialId:'words',range:'No.1〜20'}]},templates).items;
+  assert.equal(aggregateItemResults(items,{'0':'submitted'}),'submitted');
+  const {result,writes}=await prepare({items},{review:{assignmentId:'set1',itemResults:{'0':'submitted'}}});
+  assert.equal(result.homework,'submitted');
+  assert.equal(writes.find(item=>item.path.startsWith('homeworkPublic')).value.items[1].rangeType,'number');
+  assert.equal(aggregateItemResults([items[1]],{}),'none');
+  assert.throws(()=>validateAssignment({...assignment,items:[{materialId:'words',range:'No.20〜1'}]},templates));
+});
 test('homework administration rejects unauthenticated and non-admin callers', async () => {
   const context = { adminAuth: { verifyIdToken: async () => ({ uid: 'student' }) }, adminDb: { collection: () => ({ doc: () => ({ get: async () => ({ exists: false }) }) }) } };
   vm.createContext(context);
@@ -85,7 +99,7 @@ test('student API ignores forged student ID and reads only verified UID', async 
   const paths = [];
   const ref = path => ({ collection: part => ref(`${path}/${part}`), doc: part => ref(`${path}/${part}`), orderBy: () => ref(path), limit: () => ref(path), get: async () => { paths.push(path); return { docs: [] }; } });
   const api = fs.readFileSync(new URL('../src/app/api/homework/route.js', import.meta.url), 'utf8');
-  const context = { URL, Response, requireHomeworkUser: async () => 'alice', homeworkRefs: key => ({ publicRef: { parent: ref(`homeworkPublic/${key}/items`) } }), adminDb: { collection: path => ref(path) }, publicAssignment };
+  const context = { FieldPath:{documentId:()=> '__name__'}, URL, Response, requireHomeworkUser: async () => 'alice', homeworkRefs: key => ({ publicRef: { parent: ref(`homeworkPublic/${key}/items`) }, privateRef:{parent:ref(`homeworkAssignments/${key}/items`)} }), adminDb: { collection: path => ref(path) }, publicAssignment };
   vm.createContext(context);
   vm.runInContext(api.replace(/^import .*\n/gm, '').replaceAll('export ', ''), context);
   const result = await context.GET({ url: 'https://example.test/api/homework?student=user_bob&uid=bob' });

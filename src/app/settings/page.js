@@ -149,6 +149,7 @@ export default function SettingsPage() {
       setSavingAvatar(true);
       setAvatarStatus("アバターをアップロードしています…");
       let uploadedAvatarRef = null;
+      let profileCommitted = false;
       try {
         const extension = avatarFile.name.toLowerCase().endsWith(".vrm")
           ? "vrm"
@@ -170,6 +171,7 @@ export default function SettingsPage() {
         const avatarVersion = Date.now();
 
         const userRef = doc(db, "users", user.uid);
+        profileCommitted = true; // Never remove a possibly committed file after an ambiguous network error.
         await setDoc(userRef, {
           avatarUrl: downloadURL,
           avatarStoragePath: storageRef.fullPath,
@@ -178,6 +180,7 @@ export default function SettingsPage() {
           updatedAt: new Date(),
         }, { merge: true });
 
+        profileCommitted = true;
         const savedSnapshot = await getDocFromServer(userRef);
         const savedData = savedSnapshot.data();
         if (
@@ -187,7 +190,7 @@ export default function SettingsPage() {
           throw new Error("プロフィールへの保存を確認できませんでした。");
         }
 
-        localStorage.setItem(
+        try { localStorage.setItem(
           `avatar:${user.uid}`,
           JSON.stringify({
             avatarUrl: downloadURL,
@@ -195,6 +198,7 @@ export default function SettingsPage() {
             avatarVersion,
           })
         );
+        } catch { /* Device cache is optional. */ }
         setAvatarUrl(downloadURL);
         setAvatarStoragePath(storageRef.fullPath);
         setAvatarFile(null);
@@ -211,7 +215,7 @@ export default function SettingsPage() {
         alert("アバターを更新しました！");
       } catch (e) {
         console.error(e);
-        if (uploadedAvatarRef) {
+        if (uploadedAvatarRef && !profileCommitted) {
           deleteObject(uploadedAvatarRef).catch(() => {});
         }
         setAvatarStatus(`更新に失敗しました：${e.message || "原因不明のエラー"}`);

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { auth } from '../../../firebaseConfig'
 import { onAuthStateChanged } from 'firebase/auth'
 import { useRouter } from 'next/navigation'
@@ -10,7 +10,9 @@ export default function StudyHistory() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [students, setStudents] = useState([])
   const [selectedStudent, setSelectedStudent] = useState(null)
+  const requestVersion=useRef(0)
   const [logs, setLogs] = useState([])
+  const [next,setNext]=useState(null)
   const [loading, setLoading] = useState(true)
   const [logsLoading, setLogsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -45,24 +47,26 @@ export default function StudyHistory() {
   }, [router])
 
   // 📘 自習ログ取得
-  const loadLogs = async (uid) => {
+  const loadLogs = async (uid,before=null) => {
+    const version=++requestVersion.current
     setSelectedStudent(uid)
-    setLogs([])
+    if(!before)setLogs([])
     setLogsLoading(true)
     setError('')
     try {
       const token = await auth.currentUser?.getIdToken()
       if (!token) throw new Error('ログイン情報を確認できません。')
-      const response = await fetch(`/api/admin/study-logs?uid=${encodeURIComponent(uid)}`, {
+      const response = await fetch(`/api/admin/study-logs?uid=${encodeURIComponent(uid)}${before?`&before=${encodeURIComponent(before)}`:""}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error)
-      setLogs(result.logs || [])
+      if(version!==requestVersion.current)return
+      setLogs(old=>before?[...old,...(result.logs||[])]:result.logs||[]);setNext(result.next)
     } catch (e) {
-      setError(e.message || '自習ログを取得できませんでした。')
+      if(version===requestVersion.current)setError(e.message || '自習ログを取得できませんでした。')
     } finally {
-      setLogsLoading(false)
+      if(version===requestVersion.current)setLogsLoading(false)
     }
   }
 
@@ -72,6 +76,7 @@ export default function StudyHistory() {
   return (
     <div className="studylog-container">
       
+      {next&&<button disabled={logsLoading} onClick={()=>loadLogs(selectedStudent,next)}>以前の自習履歴を表示</button>}
       <h1 className="studylog-title">📘 自習履歴（チェックインログ）</h1>
       {error && <p className="studylog-error" role="alert">{error}</p>}
 

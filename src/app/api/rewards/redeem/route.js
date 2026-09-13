@@ -1,4 +1,5 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getAcademicTerm } from "@/lib/academicCalendarServer";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
@@ -28,6 +29,7 @@ export async function POST(request) {
     const userRef = adminDb.collection("users").doc(decodedToken.uid);
     const rewardRef = adminDb.collection("rewards").doc(rewardId);
 
+    const season=await getAcademicTerm();
     const result = await adminDb.runTransaction(async (transaction) => {
       const [userSnap, rewardSnap] = await Promise.all([
         transaction.get(userRef),
@@ -38,6 +40,7 @@ export async function POST(request) {
       if (!rewardSnap.exists) throw new RedeemError("景品が見つかりません。", 404);
 
       const userData = userSnap.data();
+      if(userData.active===false||userData.enrollmentStatus==="withdrawn")throw new RedeemError("退塾したアカウントでは交換できません。",403);
       const rewardData = rewardSnap.data();
       const currentPoints = Number(userData.points || 0);
       const cost = Number(rewardData.cost || 0);
@@ -107,7 +110,7 @@ export async function POST(request) {
         rewardId,
         description: `${rewardData.name}と交換`,
         amount: -cost,
-        seasonId: getSeasonId(redeemedAt.toDate()),
+        seasonId: season.id,
         createdAt: redeemedAt,
       });
       transaction.set(userRef.collection("rewardHistory").doc(), {
@@ -136,17 +139,4 @@ export async function POST(request) {
       error instanceof RedeemError ? error.message : "景品交換に失敗しました。";
     return Response.json({ error: message }, { status });
   }
-}
-
-function getSeasonId(date) {
-  const japanDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  const month = japanDate.getUTCMonth() + 1;
-  const calendarYear = japanDate.getUTCFullYear();
-  const dateId = `${calendarYear}-${String(month).padStart(2, "0")}-${String(japanDate.getUTCDate()).padStart(2, "0")}`;
-  if (dateId >= "2026-03-30" && dateId <= "2026-09-02") return "2026_1";
-  if (dateId >= "2026-09-03" && dateId <= "2026-12-26") return "2026_2";
-  if (dateId >= "2026-12-28" && dateId <= "2027-03-27") return "2026_3";
-  const year = month <= 3 ? calendarYear - 1 : calendarYear;
-  const term = month >= 4 && month <= 8 ? 1 : month >= 9 ? 2 : 3;
-  return `${year}_${term}`;
 }

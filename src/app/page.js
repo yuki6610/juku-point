@@ -11,9 +11,9 @@ export default function Home() {
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        router.replace("/mypage");
+        try { const response=await fetch('/api/auth/role',{headers:{Authorization:`Bearer ${await user.getIdToken()}`}});if(!response.ok)throw new Error();const {role}=await response.json();router.replace(({admin:'/admin',teacher:'/teacher',parent:'/parent',student:'/mypage'})[role]||'/login'); } catch { setCheckingAuth(false); }
         return;
       }
 

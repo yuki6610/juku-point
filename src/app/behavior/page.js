@@ -1,4 +1,5 @@
 'use client'
+import { useAcademicContext } from '@/lib/useAcademicContext'
 import { getBehaviorSummary } from '@/lib/termCompatibility'
 
 import { useEffect, useState } from 'react'
@@ -7,7 +8,7 @@ import { db } from '@/../firebaseConfig'
 import { doc, getDoc } from 'firebase/firestore'
 import './behavior.css'
 
-const YEARS = ['2024', '2025', '2026']
+
 const TERMS = ['1学期', '2学期', '3学期']
 
 /* =====================
@@ -44,7 +45,10 @@ export default function StudentBehaviorPage() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const [year, setYear] = useState('2026')
+  const academic=useAcademicContext();
+  const YEARS=academic.settings.map(item=>String(item.year));
+  const [year, setYear] = useState('')
+  useEffect(()=>{if(academic.current){setYear(String(academic.current.year));setTerm(`${academic.current.term}学期`)}},[academic.current])
   const [term, setTerm] = useState('1学期')
 
   const [summary, setSummary] = useState(null)
@@ -65,7 +69,7 @@ export default function StudentBehaviorPage() {
      behaviorSummary 直読み
   ===================== */
   useEffect(() => {
-    if (!user) return
+    if (!user || !year) return
     let cancelled = false
     setSummary(null)
     setSummaryError('')
@@ -85,7 +89,8 @@ export default function StudentBehaviorPage() {
     return () => { cancelled = true }
   }, [user, year, term])
 
-  if (loading) return <p>読み込み中...</p>
+  if (academic.error) return <p role="alert">{academic.error}</p>
+  if (loading || academic.loading) return <p>読み込み中...</p>
   if (!user) return <p>ログインしてください</p>
   if (summaryError) return <p role="alert">{summaryError}</p>
 

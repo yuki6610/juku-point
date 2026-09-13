@@ -1,4 +1,5 @@
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { summarizeTermHistory } from '@/lib/termLedger.mjs';
 import { getAcademicTerm } from '@/lib/academicCalendarServer';
 
 export const runtime = "nodejs";
@@ -6,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 async function currentSeason() {
   const term = await getAcademicTerm();
-  return { id: term.id, start: japanDateFromId(term.start), end: new Date(japanDateFromId(term.end).getTime() + 86400000) };
+  return { period:term, id: term.id, start: japanDateFromId(term.start), end: new Date(japanDateFromId(term.end).getTime() + 86400000) };
 }
 function japanDateFromId(id) {
   const [year, month, day] = id.split("-").map(Number);
@@ -56,10 +57,13 @@ export async function POST(request) {
           : historyDate(data.createdAt || data.date);
         if (!date || date < season.start || date >= season.end) return sum;
         if (data.type === "reward" || data.affectsEarnedPoints === false) return sum;
+        // Old corrections replaced the original row: they represent zero effective reward.
+        if (data.type === "homework_undo") return sum;
         const amount = Number(data.amount ?? data.point ?? 0);
         return Number.isFinite(amount) ? sum + amount : sum;
       }, 0);
       writer.update(userDoc.ref, {
+        ...summarizeTermHistory(historySnap.docs.map(item=>item.data()),season.period),
         termPoints,
         termPointsSeason: season.id,
         termPointsRebuiltAt: new Date(),

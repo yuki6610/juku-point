@@ -5,7 +5,9 @@ export const DEFAULT_HOMEWORK_TEMPLATES = {
 };
 export const RESULT_LABELS = { submitted: '全部提出', partial: '一部未実施', missed: '全部未実施', pending: '未確認', absent: '欠席で保留', none: '宿題なし', laterCompleted: '後日完了' };
 export const ITEM_RESULT_LABELS = { submitted: '提出', partial: '途中', missed: '未提出' };
+export const reviewableHomeworkItems = items => (items || []).filter(item => item.rangeType !== 'number' && item.materialId !== 'words');
 export function aggregateItemResults(items, itemResults = {}) {
+  items = reviewableHomeworkItems(items);
   if (!items?.length) return 'none';
   const values = items.map(item => itemResults[item.id]).filter(Boolean);
   if (values.length !== items.length) return 'pending';
@@ -41,11 +43,12 @@ export function validateAssignment(input, templates) {
     const material = templates.materials.find(option => option.id === item.materialId);
     if (!material || !String(item.range || '').trim() || item.range.length > 300) throw new Error('教材とページ・範囲を指定してください。');
     if (material.rangeType === 'number' && !/^No\.\d+〜\d+$/.test(item.range)) throw new Error('単語テストは開始番号と終了番号を入力してください。');
-    return { id: String(index), materialId: material.id, materialLabel: material.label, range: item.range.trim() };
+    if (material.rangeType === 'number') { const [start,end]=item.range.match(/\d+/g).map(Number); if(start<1||end<start)throw new Error('単語テストの開始・終了番号を確認してください。'); }
+    return { id: String(index), materialId: material.id, materialLabel: material.label, ...(material.rangeType ? { rangeType:material.rangeType } : {}), range: item.range.trim() };
   });
   return { assignedDate: input.assignedDate, dueDate: input.dueDate, items };
 }
 export function publicAssignment(data) {
   const result = value => value ? { status: value.status, text: value.text, date: value.date, missingIds: value.missingIds || [], itemResults: value.itemResults || {} } : null;
-  return { assignedDate: data.assignedDate, dueDate: data.dueDate, items: (data.items || []).map(item => ({ id: item.id, materialId: item.materialId, materialLabel: item.materialLabel, range: item.range })), review: result(data.review), laterCompletion: result(data.laterCompletion) };
+  return { assignedDate: data.assignedDate, dueDate: data.dueDate, items: (data.items || []).map(item => ({ id: item.id, materialId: item.materialId, materialLabel: item.materialLabel, ...(item.rangeType ? { rangeType:item.rangeType } : {}), range: item.range })), review: result(data.review), laterCompletion: result(data.laterCompletion) };
 }

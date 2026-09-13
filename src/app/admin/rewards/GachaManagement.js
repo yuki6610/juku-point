@@ -17,15 +17,16 @@ export default function AdminGachaPage() {
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({ status: "pending", search: "", grade: "", kind: "", program: "", date: "" });
 
-  const api = async (options) => {
+  const api = async (options,after=null) => {
     const user = auth.currentUser;
     if (!user) throw new Error("ログインしてください。");
     const token = await user.getIdToken();
-    const response = await fetch("/api/admin/gacha", { ...options, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } });
+    const response = await fetch("/api/admin/gacha"+(after?"?after="+encodeURIComponent(after):""), { ...options, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || "通信に失敗しました。");
     return body;
   };
+  const more=async()=>{if(loading||!data.next)return;setLoading(true);try{const page=await api(undefined,data.next);setData(old=>{const draws=[...new Map([...old.draws,...page.draws].map(item=>[item.id,item])).values()],active=draws.filter(item=>item.status!=='canceled');return {...old,draws,next:page.next,summary:{...old.summary,delivered:active.filter(item=>item.status==='delivered').length,pointsUsed:active.reduce((sum,item)=>sum+Number(item.pointsUsed||0),0),mealCount:active.filter(item=>item.rewardKind==='meal').length,mealPoints:active.reduce((sum,item)=>sum+Number(item.mealPoint||0),0)}}})}catch(e){setError(e.message)}finally{setLoading(false)}};
   const load = async () => {
     setError("");
     try { setData(await api()); } catch (e) { setError(e.message); } finally { setLoading(false); }
@@ -64,6 +65,7 @@ export default function AdminGachaPage() {
   };
 
   return <main className="gacha-admin-page">
+    {data.next&&<button disabled={loading} onClick={more}>以前の抽選結果を表示</button>}<p>{data.summaryScope}</p>
     <header className="gacha-admin-heading"><div><span>GACHA OPERATIONS</span><h1>ガチャ管理</h1><p>抽選結果と景品の引き渡しを確認します。</p></div><button onClick={load}>再読み込み</button></header>
     {error && <div className="gacha-admin-error">{error}</div>}
     <section className="gacha-summary">

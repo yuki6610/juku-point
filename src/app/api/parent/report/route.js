@@ -6,6 +6,7 @@ import { readAcademicSettings } from '@/lib/academicCalendarServer';
 import { japanDateId, resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
 import { buildParentTermSummary, publicScore } from '@/lib/parentReport.mjs';
 import { readPublicHomeworkCompatible } from '@/lib/homeworkServer';
+import { mergeParentLessons } from '@/lib/parentLessonCompatibility.mjs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
@@ -25,9 +26,14 @@ export async function GET(request) {
     let legacyLessons;
     if (!elementary && Number(student.data().grade) >= 7 && Number(student.data().grade) <= 9) legacyLessons = await adminDb.collection('users').doc(id).collection('lessonTerms').doc(termId).collection('records').limit(300).get();
     else legacyLessons = await adminDb.collection('adminLessonAttendance').doc(studentKey).collection('records').where(FieldPath.documentId(), '>=', selected.start).where(FieldPath.documentId(), '<=', selected.end).limit(300).get();
-    const byDate = new Map(legacyLessons.docs.map(doc => { const data = doc.data(); const learning = data.learningRecord || data; return [doc.id, { date: doc.id, attendance: data.status || data.attendance, late: learning.late === true, forgot: learning.forgot === true, wordTest: learning.wordTest || null }]; }));
-    publicLessons.docs.forEach(doc => byDate.set(doc.id, { ...(byDate.get(doc.id) || {}), ...doc.data(), date: doc.id }));
-    const assignments = (await readPublicHomeworkCompatible(studentKey, 300)).filter(item => item.review?.date >= selected.start && item.review?.date <= selected.end);
+    const common=await adminDb.collection('adminLessonAttendance').doc(studentKey).collection('records').where(FieldPath.documentId(),'>=',selected.start).where(FieldPath.documentId(),'<=',selected.end).limit(300).get();
+    const byDate=mergeParentLessons([
+      ...legacyLessons.docs.map(doc=>({id:doc.id,data:doc.data(),source:'legacy'})),
+      ...common.docs.map(doc=>({id:doc.id,data:doc.data(),source:'common'})),
+      ...publicLessons.docs.map(doc=>({id:doc.id,data:doc.data(),source:'public'})),
+    ]);
+    const through=new Date(`${selected.end}T00:00:00Z`);through.setUTCDate(through.getUTCDate()+1);
+    const assignments = (await readPublicHomeworkCompatible(studentKey, 300, through.toISOString().slice(0,10))).filter(item => item.review?.date >= selected.start && item.review?.date <= selected.end);
     let scores = [], submissionStatus = null;
     if (!elementary) { const snapshot = await adminDb.collection('users').doc(id).collection('scores').get(); scores = snapshot.docs.map(doc => publicScore(doc.data(), doc.id)).filter(item => item && item.year === String(selected.year) && item.term === `${selected.term}学期`); }
     if (!elementary && Number(student.data().grade) >= 7) { const status = await adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(id).get(); submissionStatus = { examReceived: status.data()?.examReceived === true, internalReceived: status.data()?.internalReceived === true }; }

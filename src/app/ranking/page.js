@@ -53,7 +53,7 @@ export default function RankingPage() {
       setError("");
       try {
         
-        const currentSeason = getCurrentSeason();
+        const contextResponse=await fetch("/api/admin/academic-context",{headers:{Authorization:`Bearer ${await currentUser.getIdToken()}`}});const context=await contextResponse.json();if(!contextResponse.ok||!context.current)throw new Error(context.error||"学期を確認できません。");const currentSeason=context.current;
       // ----------------------------
       // 前学期TOP3取得
       // ----------------------------

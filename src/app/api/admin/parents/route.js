@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 async function studentList() {
   const [users, elementary] = await Promise.all([adminDb.collection('users').get(), adminDb.collection('adminStudents').get()]);
   return [...users.docs.map(doc => ({ key: `user_${doc.id}`, ...doc.data() })), ...elementary.docs.map(doc => ({ key: `elementary_${doc.id}`, ...doc.data() }))]
-    .filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn')
+    .filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn' && Number(item.grade)>=1 && Number(item.grade)<=9)
     .map(item => ({ key: item.key, name: item.realName || item.name || item.displayName || '名前未設定', grade: Number(item.grade || 0) }))
     .sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, 'ja'));
 }
@@ -35,7 +35,7 @@ export async function PATCH(request) {
     old.docs.forEach(doc => { if (!childKeys.includes(doc.id)) batch.set(doc.ref, { active: false, updatedBy: admin.uid, updatedAt: now }, { merge: true }); });
     childKeys.forEach(key => batch.set(links.doc(key), { active: true, studentKey: key, updatedBy: admin.uid, updatedAt: now }, { merge: true }));
     batch.set(adminDb.collection('parentAccounts').doc(body.uid), { active: body.active !== false, updatedBy: admin.uid, updatedAt: now }, { merge: true });
-    await batch.commit(); await adminAuth.updateUser(body.uid, { disabled: body.active === false });
+    await batch.commit(); try{await adminAuth.updateUser(body.uid, { disabled: body.active === false });}catch{throw new Error('子どもの紐付けは保存済みですが、ログイン状態の更新に失敗しました。同じ状態でもう一度保存してください。')}
     return Response.json({ saved: true });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }
 }

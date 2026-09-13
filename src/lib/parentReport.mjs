@@ -11,6 +11,8 @@ export function buildParentTermSummary(records = [], assignments = []) {
     if (word && ['completed','makeup'].includes(word.status) && Number(word.total) > 0) { summary.wordTest.count += 1; summary.wordTest.correct += Number(word.correct || 0); summary.wordTest.total += Number(word.total); }
   });
   assignments.forEach(item => { const status = item.review?.status; if (['submitted','partial','missed','absent'].includes(status)) summary.homework[status] += 1; });
+  const reviewedDates=new Set(assignments.map(item=>item.review?.date).filter(Boolean));
+  records.forEach(record=>{if(!reviewedDates.has(record.date)&&['submitted','partial','missed'].includes(record.homework))summary.homework[record.homework]+=1});
   summary.homework.total = summary.homework.submitted + summary.homework.partial + summary.homework.missed;
   summary.homework.rate = summary.homework.total ? Math.round(summary.homework.submitted / summary.homework.total * 100) : null;
   summary.wordTest.rate = summary.wordTest.total ? Math.round(summary.wordTest.correct / summary.wordTest.total * 1000) / 10 : null;

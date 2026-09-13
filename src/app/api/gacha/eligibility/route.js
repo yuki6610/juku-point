@@ -15,14 +15,14 @@ export async function GET(request) {
       adminDb.collection("users").doc(decoded.uid).get(),
     ]);
     const isAdmin = adminSnapshot.exists;
-    const isEligibleStudent = !snapshot.empty && Number(userSnapshot.data()?.grade) === 9;
+    const isEligibleStudent = !snapshot.empty && Number(userSnapshot.data()?.grade) === 9 && userSnapshot.data()?.active!==false && userSnapshot.data()?.enrollmentStatus!=="withdrawn";
     if (!isEligibleStudent && !isAdmin) return Response.json({ eligible: false, pendingCount: 0 });
     const draws = await adminDb.collection("gachaDraws")
-      .where("userId", "==", decoded.uid).limit(50).get();
+      .where("userId", "==", decoded.uid).where("status","==","pending").count().get();
     return Response.json({
       eligible: true,
       adminPreview: isAdmin,
-      pendingCount: draws.docs.filter((doc) => doc.data().status === "pending").length,
+      pendingCount: draws.data().count,
     });
   } catch (error) {
     console.error("ガチャ参加判定エラー:", error);

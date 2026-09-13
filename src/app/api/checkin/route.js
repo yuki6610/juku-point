@@ -1,4 +1,5 @@
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAcademicTerm } from '@/lib/academicCalendarServer';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 
 export const runtime = 'nodejs';
@@ -50,7 +51,10 @@ export async function POST(request) {
     if (pin !== expected) throw Object.assign(new Error('PINが間違っています。'), { status: 403 });
 
     const userRef = adminDb.collection('users').doc(user.uid);
-    const checkRef = userRef.collection('checkins').doc(todayJst());
+    const active=await userRef.collection('checkins').where('currentSessionActive','==',true).limit(1).get();
+    const checkRef = active.empty?userRef.collection('checkins').doc(todayJst()):active.docs[0].ref;
+    let season=null;try{season=await getAcademicTerm()}catch{}
+
     const now = Timestamp.now();
     if (action === 'enter') {
       if (!locationValid || distance > LIMIT_M) {
@@ -59,6 +63,7 @@ export async function POST(request) {
       }
       await adminDb.runTransaction(async tx => {
         const [profile, check] = await Promise.all([tx.get(userRef), tx.get(checkRef)]);
+        if(profile.data()?.active===false||profile.data()?.enrollmentStatus==='withdrawn')throw new Error('退塾したアカウントでは自習を開始できません。');
         if (!profile.exists) throw Object.assign(new Error('生徒情報がありません。'), { status: 404 });
         if (check.data()?.currentSessionActive) throw new Error('すでに自習を開始しています。');
         tx.set(checkRef, { currentSessionActive: true, enterAt: now.toMillis(), lastEnterAt: now.toMillis(), sessions: check.data()?.sessions || [], userName: profile.data().realName || profile.data().displayName || '名前未登録', grade: Number(profile.data().grade || 0), updatedAt: now }, { merge: true });
@@ -75,11 +80,12 @@ export async function POST(request) {
       const warning = !locationValid || distance > LIMIT_M;
       const location = locationValid ? { lat, lng, distanceM: distance } : null;
       tx.update(checkRef, { sessions: [...(check.data().sessions || []), { enterAt: check.data().lastEnterAt, exitAt: now.toMillis(), minutes, exitLocation: location }], currentSessionActive: false, exitAt: now.toMillis(), lastExitLocation: location, updatedAt: now });
-      tx.update(userRef, { selfStudyCount: FieldValue.increment(1), totalStudyMinutes: FieldValue.increment(minutes), termSelfStudyCount: FieldValue.increment(1), termStudyMinutes: FieldValue.increment(minutes), experience: next.experience, level: next.level, points: FieldValue.increment(gain), termPoints: FieldValue.increment(gain), totalEarnedPoints: FieldValue.increment(gain), lastUpdated: now });
-      tx.set(userRef.collection('pointHistory').doc(), { type: 'selfstudy', amount: gain, note: `自習 ${minutes} 分`, affectsEarnedPoints: true, date: todayJst(), createdAt: now });
+      tx.update(userRef, { selfStudyCount: FieldValue.increment(1), totalStudyMinutes: FieldValue.increment(minutes), ...(season?{termSelfStudyCount: FieldValue.increment(1), termStudyMinutes: FieldValue.increment(minutes)}:{}), experience: next.experience, level: next.level, points: FieldValue.increment(gain), ...(season?{termPoints: FieldValue.increment(gain)}:{}), totalEarnedPoints: FieldValue.increment(gain), lastUpdated: now });
+      tx.set(userRef.collection('pointHistory').doc(), { type: 'selfstudy', amount: gain, note: `自習 ${minutes} 分`, affectsEarnedPoints: true, minutes, ...(season?{termId:season.id}:{}), date: todayJst(), createdAt: now });
+      if(warning)tx.set(adminDb.collection('illegal_checkins').doc(),{uid:user.uid,type:locationValid?'exit':'gps_error_exit',lat:locationValid?lat:null,lng:locationValid?lng:null,distanceM:distance,time:now});
       return { minutes, warning };
     });
-    if (result.warning) await adminDb.collection('illegal_checkins').add({ uid: user.uid, type: locationValid ? 'exit' : 'gps_error_exit', lat: locationValid ? lat : null, lng: locationValid ? lng : null, distanceM: distance, time: now });
+
     return Response.json({ ok: true, action, ...result });
   } catch (error) {
     return Response.json({ error: error.message || '処理できませんでした。' }, { status: error.status || 400, headers: { 'Cache-Control': 'no-store' } });

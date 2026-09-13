@@ -1,4 +1,6 @@
 'use client'
+import { useReportPrintFit } from '@/lib/useReportPrintFit'
+import { useUnsavedChanges } from '@/lib/useUnsavedChanges'
 import { useAcademicContext } from '@/lib/useAcademicContext'
 import { useEffect,useState } from 'react'
 import { getAuth,onAuthStateChanged } from 'firebase/auth'
@@ -41,6 +43,8 @@ const judgeResult = (my,min)=>{
 }
 
 export default function AdminJudgePage(){
+  useReportPrintFit();
+  const edits=useUnsavedChanges('.comment-box');
   const [admin,setAdmin]=useState(null)
   const [loading,setLoading]=useState(true)
 
@@ -100,6 +104,7 @@ export default function AdminJudgePage(){
       return
     }
 
+    setScores([])
     setSelectedStudent(students.find(s=>s.uid===selectedStudentId))
     setExamScore(null)
     setInternalScore(null)
@@ -119,7 +124,8 @@ export default function AdminJudgePage(){
     
     useEffect(()=>{
       if(!selectedStudentId) return
-
+      let active=true
+      setComment('')
       const loadComment = async ()=>{
         const snap = await getDoc(
           doc(
@@ -131,6 +137,7 @@ export default function AdminJudgePage(){
           )
         )
 
+        if(!active)return
         if(snap.exists()){
           setComment(snap.data().comment || '')
         }else{
@@ -138,7 +145,8 @@ export default function AdminJudgePage(){
         }
       }
 
-      loadComment()
+      loadComment().catch(()=>{if(active)setComment('')})
+      return()=>{active=false}
     },[selectedStudentId,year,term])
     
   if(loading || academic.loading) return <p>読み込み中...</p>
@@ -172,7 +180,7 @@ export default function AdminJudgePage(){
           }
         )
 
-        alert('コメントを保存しました')
+        edits.markSaved();alert('コメントを保存しました')
       }
 
   const sortedSchools=[...schools].sort((a,b)=>b.minScore-a.minScore)

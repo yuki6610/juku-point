@@ -320,7 +320,7 @@ export default function ImportSchoolsPage(){
 
     if(running) return
 
-    if(!confirm('高校データを一括登録しますか？')) return
+    if(!confirm('同名の高校データは上書きされます。最新の入力済みデータを控えたうえで、一括登録しますか？')) return
 
     setRunning(true)
 

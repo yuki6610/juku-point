@@ -1,5 +1,5 @@
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { adminDb, adminStorage } from '@/lib/firebaseAdmin';
 import { requireAdmin } from '@/lib/staffAccess';
 
 export const dynamic = 'force-dynamic';
@@ -19,5 +19,9 @@ function validate(items, documents = false) {
     return value;
   });
 }
-export async function GET(request) { try { await requireAdmin(request); const doc = await adminDb.collection('admin_data').doc('parentPortal').get(); return Response.json(doc.data() || { announcements:[], documents:[] }); } catch(error) { return Response.json({error:error.message},{status:error.status||400}); } }
-export async function POST(request) { try { const admin = await requireAdmin(request), body = await request.json(); const data = { announcements:validate(body.announcements), documents:validate(body.documents,true), updatedBy:admin.uid, updatedAt:FieldValue.serverTimestamp() }; await adminDb.collection('admin_data').doc('parentPortal').set(data); return Response.json({saved:true}); } catch(error) { return Response.json({error:error.message},{status:error.status||400}); } }
+export async function GET(request) { try { await requireAdmin(request); const doc = await adminDb.collection('admin_data').doc('parentPortal').get(); return Response.json({version:0,...(doc.data() || { announcements:[], documents:[] })}); } catch(error) { return Response.json({error:error.message},{status:error.status||400}); } }
+export async function POST(request) { try { const admin = await requireAdmin(request), body = await request.json(); const data = { announcements:validate(body.announcements), documents:validate(body.documents,true), updatedBy:admin.uid, updatedAt:FieldValue.serverTimestamp() }; const ref=adminDb.collection('admin_data').doc('parentPortal');
+const result=await adminDb.runTransaction(async tx=>{const old=await tx.get(ref),version=Number(old.data()?.version||0);if(Number(body.version||0)!==version)throw new Error('別の画面で公開情報が更新されました。内容を控えて再読み込みしてください。');tx.set(ref,{...data,version:version+1});return {version:version+1,oldPaths:(old.data()?.documents||[]).map(item=>item.storagePath).filter(Boolean)};});
+let cleanupWarning=false;
+try{const current=await ref.get(),keep=new Set((current.data()?.documents||[]).map(item=>item.storagePath));const [files]=await adminStorage.bucket().getFiles({prefix:'parentDocuments/'});for(const file of files){if(keep.has(file.name))continue;const old=result.oldPaths.includes(file.name);const age=Date.now()-Date.parse(file.metadata?.timeCreated||'');if(old||age>86400000)await file.delete({ignoreNotFound:true});}}catch{cleanupWarning=true;}
+return Response.json({saved:true,version:result.version,cleanupWarning}); } catch(error) { return Response.json({error:error.message},{status:error.status||400}); } }

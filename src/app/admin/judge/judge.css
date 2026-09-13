@@ -778,3 +778,5 @@
     page-break-inside: avoid;
   }
 }
+
+@media print{html,body{width:198mm!important}.report-sheet{zoom:var(--report-print-scale,1)}.judge-page{padding:0!important}.report-sheet .behavior-summary,.report-sheet .pie-row{height:auto!important;min-height:0!important;overflow:visible!important}}

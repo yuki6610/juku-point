@@ -19,8 +19,7 @@ export async function PATCH(request) {
     const body = await request.json();
     if (!body.uid) throw new Error('講師を選択してください。');
     await adminDb.collection('teachers').doc(body.uid).set({ active: body.active !== false, updatedBy: admin.uid, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    if (body.active === false) await adminAuth.updateUser(body.uid, { disabled: true });
-    else await adminAuth.updateUser(body.uid, { disabled: false });
+    try{await adminAuth.updateUser(body.uid, { disabled: body.active===false });}catch{throw new Error('教室側の設定は保存済みですが、ログイン状態の更新に失敗しました。同じ状態でもう一度保存してください。')}
     return Response.json({ saved: true });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }
 }

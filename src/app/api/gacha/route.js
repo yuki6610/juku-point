@@ -32,13 +32,16 @@ function iso(value) {
   return new Date(value).toISOString();
 }
 
-async function stateFor(uid) {
+async function stateFor(uid,after=null) {
+  let historyQuery=adminDb.collection('gachaDraws').where('userId','==',uid).orderBy('createdAt','desc').limit(51);
+  if(after){if(!/^[A-Za-z0-9_-]{1,128}$/.test(after))throw new GachaError('取得位置を確認してください。');const cursor=await adminDb.collection('gachaDraws').doc(after).get();if(!cursor.exists||cursor.data().userId!==uid)throw new GachaError('履歴が見つかりません。',403);historyQuery=historyQuery.startAfter(cursor)}
+  const pending=await adminDb.collection('gachaDraws').where('userId','==',uid).where('status','==','pending').count().get();
   const [user, program, isAdmin, rewards, history] = await Promise.all([
     adminDb.collection("users").doc(uid).get(),
     participation(uid),
     adminAccess(uid),
     adminDb.collection("rewards").get(),
-    adminDb.collection("gachaDraws").where("userId", "==", uid).limit(50).get(),
+    historyQuery.get(),
   ]);
   if (!user.exists) throw new GachaError("ユーザーが見つかりません。", 404);
   const pool = buildGachaPool(rewards.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
@@ -47,21 +50,22 @@ async function stateFor(uid) {
     .slice(0, 50)
     .map((item) => ({ ...item, createdAt: iso(item.createdAt), deliveredAt: iso(item.deliveredAt), canceledAt: iso(item.canceledAt) }));
   return {
-    eligible: isAdmin || (Boolean(program) && Number(user.data().grade) === 9),
+    eligible: isAdmin || (Boolean(program) && Number(user.data().grade) === 9 && user.data().active!==false && user.data().enrollmentStatus!=="withdrawn"),
     adminPreview: isAdmin,
     program: program ? { id: program.id, name: program.name || "講習" } : isAdmin ? { id: "admin-preview", name: "管理者確認" } : null,
     points: Number(user.data().points || 0),
     cost: GACHA_COST,
     rewards: pool.map(serializeGachaReward),
     history: histories,
-    pendingCount: histories.filter((item) => item.status === "pending").length,
+    pendingCount: pending.data().count,
+    next:history.docs.length>50?histories.at(-1).id:null,
   };
 }
 
 export async function GET(request) {
   try {
     const decoded = await currentUser(request);
-    return Response.json(await stateFor(decoded.uid));
+    return Response.json(await stateFor(decoded.uid,new URL(request.url).searchParams.get('after')));
   } catch (error) {
     if (!(error instanceof GachaError)) console.error("ガチャ取得エラー:", error);
     return Response.json({ error: error.message || "ガチャ情報を取得できませんでした。" }, { status: error.status || 500 });
@@ -76,7 +80,7 @@ export async function POST(request) {
       adminAccess(decoded.uid),
       adminDb.collection("users").doc(decoded.uid).get(),
     ]);
-    const isEligibleStudent = registeredProgram && Number(userForEligibility.data()?.grade) === 9;
+    const isEligibleStudent = registeredProgram && Number(userForEligibility.data()?.grade) === 9 && userForEligibility.data()?.active!==false && userForEligibility.data()?.enrollmentStatus!=="withdrawn";
     if (!isEligibleStudent && !isAdmin) throw new GachaError("中3の講習参加者限定のガチャです。", 403);
     const program = registeredProgram || { id: "admin-preview", name: "管理者確認" };
     const rewardSnapshot = await adminDb.collection("rewards").get();

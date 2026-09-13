@@ -20,7 +20,7 @@ async function requireAdmin(request) {
   return decoded.uid;
 }
 
-const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || "");
+const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value||"") && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10)===value;
 const validId = (value) => /^[A-Za-z0-9_-]{6,128}$/.test(value || "");
 const wordTotalForGrade = (grade) => ({ 7: 20, 8: 30, 9: 50 }[Number(grade)] || 20);
 
@@ -118,10 +118,12 @@ export async function PATCH(request) {
     const reference = adminDb.collection("coursePrograms").doc(programId).collection("assignments").doc(assignmentId);
     const snapshot = await reference.get();
     if (!snapshot.exists) throw new ApiError("課題が見つかりません。", 404);
+    if(checkedDate<snapshot.data().assignedDate)throw new ApiError("確認日は指示日以降にしてください。");
+    if(snapshot.data().type==="homework"&&!["submitted","partial","missed"].includes(result?.homeworkStatus))throw new ApiError("宿題の結果を選択してください。");
     if (snapshot.data().type === "wordTest") {
       const correct = Number(result?.wordCorrect);
       const total = wordTotalForGrade(snapshot.data().grade);
-      if (!Number.isFinite(correct) || !Number.isFinite(total) || correct < 0 || total <= 0 || correct > total) throw new ApiError("単語テストの点数が正しくありません。");
+      if (!Number.isInteger(correct) || !Number.isFinite(total) || correct < 0 || total <= 0 || correct > total) throw new ApiError("単語テストの点数が正しくありません。");
       result.wordTotal = total;
     }
     await reference.set({ status: "checked", checkedDate, result, updatedBy: adminUid, updatedAt: FieldValue.serverTimestamp() }, { merge: true });

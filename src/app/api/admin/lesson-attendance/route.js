@@ -3,6 +3,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import { requireStaff, assertAssigned } from '@/lib/staffAccess';
 import { readAcademicSettings } from '@/lib/academicCalendarServer';
 import { resolveAcademicTerm, japanDateId } from '@/lib/academicCalendar.mjs';
+import { calculateSummary } from '@/lib/behaviorSummary.mjs';
 import { learningFields } from '@/lib/lessonStudents.mjs';
 import { homeworkTemplates, prepareHomeworkReview } from '@/lib/homeworkServer';
 
@@ -85,6 +86,7 @@ export async function POST(request) {
       if (Number(studentData.grade) !== Number(student.grade)) throw new ApiError('学年が変更されています。画面を再読み込みしてください。', 409);
       if (learningRecord && (isMiddle || studentData.active === false || studentData.enrollmentStatus === 'withdrawn')) throw new ApiError('対象生徒の登録状態を確認してください。', 409);
       const middleSnap = middleRef ? await transaction.get(middleRef) : null;
+      const middleRecords = middleRef ? await transaction.get(middleRef.parent) : null;
       const old = commonSnap.exists ? commonSnap.data() : middleSnap?.data() || {};
       const oldStatus = old.status || old.attendance || (!commonSnap.exists && legacySnap?.exists && legacySnap.data().attended ? "present" : null);
       const oldPresent = oldStatus === "present" || Boolean(legacySnap?.exists && legacySnap.data().attended);
@@ -116,6 +118,8 @@ export async function POST(request) {
         catch (error) { throw new ApiError(error.message, 400); }
         learningRecord = { ...learningRecord, homeworkReview: body.homeworkReview || null, commentIds: body.commentIds || [], ...(publication.homework ? { homework: publication.homework } : {}) };
       }
+      const memoProfile=await transaction.get(adminDb.collection('studentProfiles').doc(key));
+      if(middleRecords){const rows=middleRecords.docs.filter(item=>item.id!==date).map(item=>item.data());rows.push({...middleSnap?.data(),date,attendance:action==='delete'?null:status});transaction.set(userRef.collection('behaviorSummary').doc(termId),{...calculateSummary(rows,year,selectedTerm.term),updatedAt:now},{merge:true})}
       publication?.commit();
       if (action === "delete") {
         // Keep a dated cancellation marker so older copies cannot resurrect attendance.
@@ -126,7 +130,8 @@ export async function POST(request) {
         transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key),{ studentKey:key,date,grade,updatedBy:adminUid,updatedAt:now },{ merge:true });
         if (learningRecord) transaction.set(commonRef, { learningRecord: { ...learningRecord, date, termId, createdBy: old.learningRecord?.createdBy || adminUid, createdAt: old.learningRecord?.createdAt || now, updatedBy: adminUid, updatedAt: now } }, { merge: true });
         const teacherMemo = String(learningRecord?.behaviorNote || note || '').trim();
-        if (teacherMemo) transaction.set(adminDb.collection('studentProfiles').doc(key), {
+        transaction.set(adminDb.collection('studentProfiles').doc(key).collection('teacherNotes').doc(date),{date,note:teacherMemo,updatedBy:adminUid,updatedAt:now},{merge:true});
+        if (date>=String(memoProfile.data()?.teacherMemoDate||'')) transaction.set(adminDb.collection('studentProfiles').doc(key), {
           teacherMemo:teacherMemo.slice(0,5000), teacherMemoDate:date,
           teacherMemoBy:adminUid, teacherMemoUpdatedAt:now,
         }, { merge:true });

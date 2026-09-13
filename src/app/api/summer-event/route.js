@@ -29,7 +29,7 @@ export async function GET(request) {
     const ranking = usersSnap.docs
       .filter((item) => {
         const data = item.data();
-        return !adminIds.has(item.id) && data.isAdmin !== true && data.role !== "admin";
+        return !adminIds.has(item.id) && data.isAdmin !== true && data.role !== "admin" && data.active!==false && data.enrollmentStatus!=="withdrawn";
       })
       .map((item) => {
         const data = item.data();

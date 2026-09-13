@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  query, where,
   runTransaction,
 } from "firebase/firestore";
 import { historyMillis, mapInBatches } from '@/lib/historyCompatibility.mjs';
@@ -41,7 +42,9 @@ export default function SelfStudyList() {
     const users = await getDocs(collection(db, 'users'));
     const list = await mapInBatches(users.docs, async (student) => {
       const uid = student.id;
-      const checkSnap = await getDoc(doc(db, 'users', uid, 'checkins', todayId));
+      const active=await getDocs(query(collection(db,'users',uid,'checkins'),where('currentSessionActive','==',true)));
+      const checkSnap=active.docs.sort((a,b)=>a.id.localeCompare(b.id))[0];
+      if(!checkSnap)return null;
       if (!checkSnap.exists()) return null;
       const c = checkSnap.data();
       if (c.currentSessionActive !== true) return null;
@@ -56,7 +59,7 @@ export default function SelfStudyList() {
 
         return {
           uid,
-          date: todayId,
+          date: checkSnap.id,
           name: userData.realName || userData.displayName || "名前未登録",
           grade: userData.grade ?? "ー",
           enterTime: enterTimeText,
@@ -125,7 +128,7 @@ export default function SelfStudyList() {
               <tr key={s.uid}>
                 <td>{s.name}</td>
                 <td>{gradeLabel(s.grade)}</td>
-                <td>{s.enterTime}</td>
+                <td>{s.date!==getTodayId()?`${s.date}（退出忘れ） `:''}{s.enterTime}</td>
                 <td>
                   <button
                     className="ss-exit-btn"

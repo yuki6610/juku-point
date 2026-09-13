@@ -9,6 +9,7 @@ import {
   updateDoc,
   addDoc,
   collection,
+  query, where, getDocs,
   increment,
   serverTimestamp,
 } from "firebase/firestore";
@@ -79,8 +80,8 @@ export default function CheckinPage() {
       if (!user) return;
 
       const todayId = getTodayId();
-      const ref = doc(db, `users/${user.uid}/checkins/${todayId}`);
-      const snap = await getDoc(ref);
+      const active=await getDocs(query(collection(db,`users/${user.uid}/checkins`),where('currentSessionActive','==',true)));
+      const snap=active.docs[0]||await getDoc(doc(db,`users/${user.uid}/checkins/${todayId}`));
 
       if (snap.exists()) {
         const checkin = snap.data();

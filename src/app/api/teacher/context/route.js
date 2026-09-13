@@ -15,7 +15,7 @@ export async function GET(request) {
     const weekday = new Date(`${date}T12:00:00+09:00`).getDay();
     const students = [...users.docs.map(doc => ({ key: `user_${doc.id}`, id: doc.id, source: 'user', ...doc.data() })), ...elementary.docs.map(doc => ({ key: `elementary_${doc.id}`, id: doc.id, source: 'elementary', ...doc.data() }))]
       .filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn')
-      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || []; return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), weekdays, scheduled: weekdays.map(Number).includes(weekday), wordTestQuestionCount: Number(data.wordTestQuestionCount || (data.grade === 7 ? 20 : data.grade === 8 ? 30 : data.grade === 9 ? 50 : 20)) }; })
+      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || []; return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), weekdays, scheduled: weekdays.map(Number).includes(weekday), wordTestQuestionCount: Number(data.wordTestQuestionCount || (Number(data.grade) === 7 ? 20 : Number(data.grade) === 8 ? 30 : Number(data.grade) === 9 ? 50 : 20)) }; })
       .sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, 'ja'));
     const settings = await readAcademicSettings();
     const term = resolveAcademicTerm(settings, date);

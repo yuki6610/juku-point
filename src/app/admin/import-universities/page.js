@@ -13,6 +13,7 @@ export default function RebuildSearchIndex(){
     setLoading(true)
     const logs=[]
 
+    try {
     const univSnap = await getDocs(collection(db,'universities'))
 
     for(const univDoc of univSnap.docs){
@@ -50,7 +51,7 @@ export default function RebuildSearchIndex(){
     }
 
     setLog(logs)
-    setLoading(false)
+    }catch(error){setLog([...logs,`更新に失敗しました：${error.message}`])}finally{setLoading(false)}
   }
 
   return(

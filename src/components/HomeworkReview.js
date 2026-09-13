@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { homeworkApi } from '@/lib/homeworkClient';
-import { aggregateItemResults, ITEM_RESULT_LABELS, RESULT_LABELS } from '@/lib/homeworkModel.mjs';
+import { aggregateItemResults, ITEM_RESULT_LABELS, RESULT_LABELS, reviewableHomeworkItems } from '@/lib/homeworkModel.mjs';
 export default function HomeworkReview({ studentKey, date, value, onChange, commentIds, onCommentsChange, onReadyChange }) {
   const [data, setData] = useState(null), [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,7 +25,7 @@ export default function HomeworkReview({ studentKey, date, value, onChange, comm
     }}><option value="">登録済み宿題を選択しない</option>{data.items.filter(item => item.assignedDate <= date).map(item => <option key={item.id} value={item.id}>{item.dueDate}確認予定 / {item.items.map(row => `${row.materialLabel} ${row.range}`).join('・')} / {item.review ? RESULT_LABELS[item.review.status] : '未確認'}</option>)}</select></label>
     {data.next && <button type="button" disabled={busy} onClick={more}>古い宿題をさらに表示</button>}
     {value?.assignmentId && !selected && <p>対象セットを表示するには「古い宿題をさらに表示」を押してください。</p>}
-    {selected && <><div>{selected.items.map(item => <div key={item.id}><strong>{item.materialLabel}：{item.range}</strong><div className="choice-grid three">{Object.entries(ITEM_RESULT_LABELS).map(([status,label])=><button type="button" key={status} className={value.itemResults?.[item.id]===status?'selected':''} onClick={()=>{const itemResults={...(value.itemResults||{}),[item.id]:status};onChange({...value,itemResults,status:aggregateItemResults(selected.items,itemResults)})}}>{label}</button>)}</div></div>)}</div>
+    {selected && <><div>{reviewableHomeworkItems(selected.items).map(item => <div key={item.id}><strong>{item.materialLabel}：{item.range}</strong><div className="choice-grid three">{Object.entries(ITEM_RESULT_LABELS).map(([status,label])=><button type="button" key={status} className={value.itemResults?.[item.id]===status?'selected':''} onClick={()=>{const itemResults={...(value.itemResults||{}),[item.id]:status};onChange({...value,itemResults,status:aggregateItemResults(selected.items,itemResults)})}}>{label}</button>)}</div></div>)}</div>
       <p>総合判定：{RESULT_LABELS[aggregateItemResults(selected.items,value.itemResults)]}</p>
       <p>公開される定型文：{data.templates.results[aggregateItemResults(selected.items,value.itemResults)]}</p>
       <small>すべて提出で+50pt、1つでも未提出なら-50pt、未提出がなく途中がある場合は-25ptです。提出回数に週単位の制限はありません。</small>

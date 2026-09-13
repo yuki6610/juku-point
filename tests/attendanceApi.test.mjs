@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { resolveAcademicTerm } from '../src/lib/academicCalendar.mjs';
+import { calculateSummary } from '../src/lib/behaviorSummary.mjs';
 import { learningFields } from '../src/lib/lessonStudents.mjs';
 
 const source = fs.readFileSync(new URL('../src/app/api/admin/lesson-attendance/route.js', import.meta.url), 'utf8');
@@ -11,10 +12,10 @@ const lessons = 'users/student/lessonTerms/2026_2/records/';
 async function execute(body, initial) {
   const data = { 'admins/admin': {}, 'users/student': { grade: 8 }, ...initial };
   const writes = [];
-  const snapshot = path => ({ exists: Object.hasOwn(data, path), data: () => data[path] });
-  const ref = path => ({ path, collection: p => ref(`${path}/${p}`), doc: p => ref(`${path}/${p}`), get: async () => snapshot(path) });
+  const snapshot = path => path.split('/').length%2 ? {docs:Object.entries(data).filter(([key])=>key.startsWith(path+'/')&&!key.slice(path.length+1).includes('/')).map(([key,value])=>({id:key.split('/').at(-1),data:()=>value}))} : ({ exists: Object.hasOwn(data, path), data: () => data[path] });
+  const ref = path => ({ path, get parent(){return ref(path.split('/').slice(0,-1).join('/'))}, collection: p => ref(`${path}/${p}`), doc: p => ref(`${path}/${p}`), get: async () => snapshot(path) });
   const context = {
-    learningFields,
+    learningFields,calculateSummary,
     readAcademicSettings: async () => [{ year: 2026, terms: { 2: { start: '2026-09-03', end: '2026-12-26' } } }],
     resolveAcademicTerm,
     japanDateId: () => '2026-09-11',
@@ -53,7 +54,8 @@ test('cancel absence preserves completed makeup and homework', async () => {
   const linked = result.writes.find(w => w.path === `${root}2026-09-11`).value;
   assert.equal(linked.originalDate, null);
   assert.equal(Object.hasOwn(linked, 'status'), false);
-  assert.equal(result.writes.some(w => Object.hasOwn(w.value || {}, 'homework')), false);
+  assert.equal(result.writes.filter(w=>w.path.includes('/records/')).some(w => Object.hasOwn(w.value || {}, 'homework')), false);
+  assert.equal(result.writes.find(w=>w.path==='users/student/behaviorSummary/2026_2').value.attendance.absent,0);
 });
 test('cancel makeup explicitly clears absence link', async () => {
   const result = await execute({ action: 'delete', date: '2026-09-11' }, {

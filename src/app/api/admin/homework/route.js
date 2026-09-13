@@ -13,6 +13,10 @@ export async function GET(request) {
     if (key) assertAssigned(staff, key, params.get('date') || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date()));
     const templates = await homeworkTemplates();
     if (!key) return Response.json({ templates });
+    if(params.get('assignment')) {
+      const selected=await homeworkRefs(key,params.get('assignment')).privateRef.get();
+      return Response.json({templates,items:selected.exists?[{id:selected.id,...publicAssignment(selected.data()),version:selected.data().version||1}]:[],next:null});
+    }
     const collection = homeworkRefs(key, 'check').privateRef.parent;
     let query = collection.orderBy('assignedDate', 'desc').limit(31);
     const after = params.get('after');
@@ -47,6 +51,9 @@ export async function POST(request) {
     await adminDb.runTransaction(async transaction => {
       const [old, student] = await Promise.all([transaction.get(refs.privateRef), transaction.get(adminDb.collection(source).doc(id))]);
       if (!student.exists || student.data().active === false || student.data().enrollmentStatus === 'withdrawn') throw new Error('対象生徒が見つからないか退塾済みです。');
+      if (Number(student.data().grade)>9) throw new Error('高校生は出席管理のみ利用できます。');
+      // A retry after a lost response must not create another assignment or erase its review.
+      if(old.exists&&old.data().updatedBy===uid&&old.data().assignedDate===assignment.assignedDate&&old.data().dueDate===assignment.dueDate&&JSON.stringify((old.data().items||[]).map(item=>[item.materialId,item.range]))===signature)return;
       if (old.exists && body.version !== (old.data().version || 1)) throw new Error('他の操作で更新されました。再読み込みしてください。');
       if (old.exists && old.data().review && !['pending', 'absent'].includes(old.data().review.status)) throw new Error('確認済みの宿題内容は変更できません。新しいセットとして登録してください。');
       const data = { ...assignment, studentKey: key, termId: term.id, review: old.data()?.review || null, laterCompletion: null, version: (old.data()?.version || 0) + 1, createdBy: old.data()?.createdBy || uid, createdAt: old.data()?.createdAt || FieldValue.serverTimestamp(), updatedBy: uid, updatedAt: FieldValue.serverTimestamp() };

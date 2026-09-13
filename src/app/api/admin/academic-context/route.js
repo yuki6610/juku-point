@@ -7,7 +7,7 @@ export async function GET(request) {
     const token = request.headers.get('authorization') || '';
     if (!token.startsWith('Bearer ')) return Response.json({ error: 'ログインしてください。' }, { status: 401 });
     const user = await adminAuth.verifyIdToken(token.slice(7));
-    if (!(await adminDb.collection('admins').doc(user.uid).get()).exists) return Response.json({ error: '管理者権限がありません。' }, { status: 403 });
+    // Academic dates are shared read-only settings for all signed-in roles.
     const settings = await readAcademicSettings();
     const date = japanDateId();
     let current = null;

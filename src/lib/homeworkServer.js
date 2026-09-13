@@ -20,18 +20,19 @@ export function homeworkRefs(key, id) {
 }
 // Read the public copy first and safely fill gaps left by records created before
 // homeworkPublic was introduced. Only publicAssignment's allow-listed fields leave here.
-export async function readPublicHomeworkCompatible(key, limit = 150) {
+export async function readPublicHomeworkCompatible(key, limit = 150, before = null) {
   const refs = homeworkRefs(key, 'check');
+  const query=collection=>{let result=collection.orderBy('assignedDate','desc');if(before)result=result.where('assignedDate','<',before);return result.limit(limit)};
   const [published, legacy] = await Promise.all([
-    refs.publicRef.parent.limit(limit).get(),
-    refs.privateRef.parent.limit(limit).get(),
+    query(refs.publicRef.parent).get(),
+    query(refs.privateRef.parent).get(),
   ]);
   const byId = new Map(legacy.docs.map(doc => [doc.id, { id: doc.id, ...publicAssignment(doc.data()) }]));
   published.docs.forEach(doc => {
     const current = publicAssignment(doc.data()), old = byId.get(doc.id);
     // 初期の公開コピーには、後から入力した提出結果が反映されていない場合がある。
-    // 公開側の基本情報を優先しつつ、欠けている結果だけ旧保存先から安全に補う。
-    byId.set(doc.id, { id: doc.id, ...old, ...current, review: current.review || old?.review || null, laterCompletion: current.laterCompletion || old?.laterCompletion || null });
+    // 現在の保存内容を安全な公開項目に限定して優先し、古い公開コピーの残存を防ぐ。
+    byId.set(doc.id, { id: doc.id, ...current, ...old, review: old?.review || current.review || null, laterCompletion: old?.laterCompletion || current.laterCompletion || null });
   });
   return [...byId.values()].sort((a, b) => (b.assignedDate || '').localeCompare(a.assignedDate || ''));
 }
@@ -58,8 +59,8 @@ export async function prepareHomeworkReview(transaction, { key, date, termId, ui
     if (date < assignment.assignedDate) throw new Error('指示日より前には確認できません。');
     const itemResults = Object.fromEntries(Object.entries(review.itemResults || {}).filter(([id, status]) => assignment.items.some(item => item.id === id) && ['submitted','partial','missed'].includes(status)));
     const derivedStatus = aggregateItemResults(assignment.items, itemResults);
-    if (review.itemResults && derivedStatus === 'pending') throw new Error('すべての宿題について提出状況を選択してください。');
-    const status = attendance === 'absent' ? 'absent' : (Object.keys(itemResults).length ? derivedStatus : review.status);
+    if (attendance !== 'absent' && review.itemResults && derivedStatus === 'pending') throw new Error('すべての宿題について提出状況を選択してください。');
+    const status = attendance === 'absent' ? 'absent' : (review.itemResults ? derivedStatus : review.status);
     const value = homeworkValue(status);
     const old = assignment.review;
     if (status === 'laterCompleted') {

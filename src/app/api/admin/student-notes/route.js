@@ -23,7 +23,7 @@ export async function GET(request) {
     ].filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn').map(item => ({
       key:item.key, name:item.realName || item.displayName || item.name || '名前未設定', grade:Number(item.grade || 0),
       schoolName:profileMap[item.key]?.schoolName || '', targetSchool:profileMap[item.key]?.targetSchool || '',
-      memo:profileMap[item.key]?.memo || '', materials:profileMap[item.key]?.materials || '',
+      version:Number(profileMap[item.key]?.version||0), memo:profileMap[item.key]?.memo || '', materials:profileMap[item.key]?.materials || '',
       mockExam:profileMap[item.key]?.mockExam || '', courseMaterials:profileMap[item.key]?.courseMaterials || '',
       teacherMemo:profileMap[item.key]?.teacherMemo || '', teacherMemoDate:profileMap[item.key]?.teacherMemoDate || '',
     }));
@@ -40,7 +40,7 @@ export async function POST(request) {
       materials:clean(body.materials, 1000), mockExam:clean(body.mockExam, 500), courseMaterials:clean(body.courseMaterials, 1000),
       updatedBy:admin.uid, updatedAt:FieldValue.serverTimestamp(),
     };
-    await adminDb.collection('studentProfiles').doc(body.key).set(data, { merge:true });
-    return Response.json({ saved:true });
+    const ref=adminDb.collection('studentProfiles').doc(body.key);const version=await adminDb.runTransaction(async tx=>{const old=await tx.get(ref);const current=Number(old.data()?.version||0);if(Number(body.version||0)!==current)throw new Error('他の画面でメモが更新されました。入力内容を控え、最新に更新してください。');tx.set(ref,{...data,version:current+1},{merge:true});return current+1;});
+    return Response.json({ saved:true,version });
   } catch (error) { return Response.json({ error:error.message }, { status:error.status || 400 }); }
 }

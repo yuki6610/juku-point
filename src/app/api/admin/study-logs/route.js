@@ -1,3 +1,4 @@
+import { datedHistoryPage } from "@/lib/datedHistoryServer";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
@@ -47,7 +48,7 @@ export async function GET(request) {
             grade: Number(data.grade || 0),
           };
         })
-        .filter((student) => student.grade >= 7 && student.grade <= 9)
+        .filter((student) => student.grade >= 7 && student.grade <= 12)
         .sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, "ja"));
       return Response.json({ students });
     }
@@ -56,13 +57,11 @@ export async function GET(request) {
       throw new ApiError("生徒IDが正しくありません。", 400);
     }
 
-    const logsSnap = await adminDb
-      .collection("users")
-      .doc(uid)
-      .collection("checkins")
-      .get();
+    const before=searchParams.get('before');if(before&&!/^\d{4}-\d{2}-\d{2}$/.test(before))throw new ApiError('取得位置を確認してください。',400);
+    const ref=adminDb.collection('users').doc(uid).collection('checkins');
+    const logsSnap=await datedHistoryPage(ref,before);
 
-    const logs = logsSnap.docs
+    const logs = logsSnap.docs.slice(0,50)
       .map((snapshot) => {
         const data = snapshot.data();
         return {
@@ -80,7 +79,7 @@ export async function GET(request) {
       })
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    return Response.json({ logs });
+    return Response.json({ logs,next:logsSnap.next });
   } catch (error) {
     if (!(error instanceof ApiError)) {
       console.error("学習記録APIエラー:", error);

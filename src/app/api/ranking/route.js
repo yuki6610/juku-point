@@ -44,14 +44,12 @@ export async function GET(request) {
     ]);
     const adminIds = new Set(adminsSnap.docs.map((snapshot) => snapshot.id));
     const users = usersSnap.docs
-      .filter((snapshot) => !adminIds.has(snapshot.id))
+      .filter((snapshot) => !adminIds.has(snapshot.id) && snapshot.data().active!==false && snapshot.data().enrollmentStatus!=="withdrawn")
       .map((snapshot) => {
         const source = snapshot.data();
         const user = { id: snapshot.id };
         for (const field of PUBLIC_FIELDS) user[field] = source[field] ?? null;
-        user.rewardCount = Array.isArray(source.rewardHistory)
-          ? source.rewardHistory.length
-          : 0;
+        user.rewardCount = Math.max(Array.isArray(source.rewardHistory)?source.rewardHistory.length:0,Object.values(source.rewardCounts||{}).reduce((sum,value)=>sum+Number(value||0),0));
         return user;
       });
 

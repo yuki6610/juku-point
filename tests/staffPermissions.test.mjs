@@ -46,7 +46,7 @@ test('parent lesson history merges public, common and legacy term records', () =
   assert.match(parentLessons, /collection\('lessonPublic'\)/);
   assert.match(parentLessons, /collection\('adminLessonAttendance'\)/);
   assert.match(parentLessons, /collection\('lessonTerms'\)/);
-  assert.match(parentLessons, /if \(!byDate\.has\(doc\.id\)\)/);
+  assert.match(parentLessons, /mergeParentLessons\(entries\)/);
 });
 
 test('separate login screens reject accounts with the wrong role', () => {
