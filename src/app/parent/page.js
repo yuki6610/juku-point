@@ -13,6 +13,7 @@ const gradeLabel = value => Number(value)<=6?`小${Number(value)}`:Number(value)
 
 export default function ParentPage() {
   const [data,setData]=useState(null),[student,setStudent]=useState(''),[lessons,setLessons]=useState(null),[report,setReport]=useState(null),[portal,setPortal]=useState(null),[term,setTerm]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[reportVersion,setReportVersion]=useState(0),[previewTools,setPreviewTools]=useState(false);
+  const [activeTab,setActiveTab]=useState('overview');
   const [readyStudent,setReadyStudent]=useState(''),[reportBusy,setReportBusy]=useState(false),[moreBusy,setMoreBusy]=useState(false),[newsVersion,setNewsVersion]=useState(0);const currentStudent=useRef(student);currentStudent.current=student;
   useEffect(() => onAuthStateChanged(auth, async user => { if (!user) return location.href='/parent/login'; try { const value=await parentApi('/api/parent/context'); setData(value); const requested=new URLSearchParams(window.location.search).get('student');setStudent(value.children.some(item=>item.key===requested)?requested:value.children[0]?.key || ''); } catch(error) { setError(error.message); } }), []);
   useEffect(() => {
@@ -43,20 +44,24 @@ export default function ParentPage() {
     return () => { active = false; };
   }, [student,readyStudent,term,reportVersion]);
   const more=async()=>{if(!lessons?.next||moreBusy)return;const key=student;setMoreBusy(true);try{const next=await parentApi(`/api/parent/lessons?student=${encodeURIComponent(key)}&after=${encodeURIComponent(lessons.next)}`);if(currentStudent.current===key)setLessons(old=>({...old,lessons:[...new Map([...old.lessons,...next.lessons].map(item=>[item.date,item])).values()],next:next.next}))}catch(error){if(currentStudent.current===key)setError(error.message)}finally{setMoreBusy(false)}};
-  const child=data?.children.find(item=>item.key===student), summary=report?.summary;
-  return <main className="parent-shell">
+  const child=data?.children.find(item=>item.key===student);
+  useEffect(()=>{if(child && Number(child.grade)<7 && activeTab==='scores')setActiveTab('overview')},[child?.grade,activeTab]);
+  const tabs=[['overview','ホーム'],['homework','宿題'],['lessons','授業記録'],['report','学期レポート'],...(Number(child?.grade)>=7?[['scores','成績入力']]:[]),['calendar','カレンダー'],['news','お知らせ']];
+  const openTab=id=>{if(!tabs.some(([tab])=>tab===id))return;setActiveTab(id);window.history.replaceState(null,'',`#${id}`);window.scrollTo({top:0,behavior:'smooth'});};
+  useEffect(()=>{const onHash=()=>{const id=window.location.hash.slice(1);if(['overview','homework','lessons','report','scores','calendar','news'].includes(id))setActiveTab(id)};onHash();window.addEventListener('hashchange',onHash);return()=>window.removeEventListener('hashchange',onHash)},[]);
+  return <main className="parent-shell" onClick={event=>{if(event.defaultPrevented)return;const link=event.target.closest('a[href^="#"]');if(!link)return;const id=link.getAttribute('href')?.slice(1);if(tabs.some(([tab])=>tab===id)){event.preventDefault();openTab(id)}}}>
     <header><div><small>PARENT PORTAL</small><h1>保護者ページ</h1><p>{data?`${data.parent.displayName} 様`:'情報を確認しています…'}</p></div><button onClick={()=>signOut(auth).then(()=>location.href='/parent/login')}>ログアウト</button></header>
     {error&&<p className="parent-alert" role="alert">{error}</p>}
     {data&&<>{data.children.length===0?<section><p>紐付けられた生徒がいません。教室へお問い合わせください。</p></section>:<>
-      {data.adminPreview?(previewTools?<aside className="parent-preview-tools"><div><strong>管理者プレビュー</strong><small>確認する生徒を選択してください</small></div><select value={student} onChange={e=>setStudent(e.target.value)}>{data.children.map(item=><option key={item.key} value={item.key}>{item.name}（{gradeLabel(item.grade)}）</option>)}</select><button onClick={()=>setPreviewTools(false)}>選択欄を隠す</button></aside>:<button className="parent-preview-restore" onClick={()=>setPreviewTools(true)}>生徒を変更</button>):<nav className="parent-child-switch">{data.children.map(item=><button key={item.key} className={student===item.key?'active':''} onClick={()=>setStudent(item.key)}>{item.name}<small>{gradeLabel(item.grade)}</small></button>)}</nav>}
-      <nav className="parent-tabs" aria-label="ページ内メニュー"><a href="#homework">宿題</a><a href="#lessons">授業記録</a><a href="#report">学期レポート</a>{Number(child?.grade)>=7&&<a href="#scores">成績入力</a>}<a href="#calendar">カレンダー</a><a href="#news">お知らせ{portal&&unreadCount(filterPortal(portal,child))>0?<b>{unreadCount(filterPortal(portal,child))}</b>:''}</a></nav>
-      <ParentOverview child={child} lessons={lessons} portal={portal} submission={data.submissionStatus?.[child?.key?.replace(/^(user|elementary)_/,'')]} busy={busy}/>
-      <ParentRecent child={child} lessons={lessons} busy={busy}/>
-      <div id="homework"><HomeworkRecords child={child} homework={lessons?.homework} busy={busy}/></div>
-      <div id="lessons"><LessonRecords child={child} lessons={lessons} busy={busy||moreBusy} more={more}/></div>
-      <div id="report"><TermReport child={child} report={report} term={term} setTerm={setTerm} busy={busy||reportBusy}/></div>
-      {Number(child?.grade)>=7&&<div id="scores"><ParentScoreEntry key={`${student}:${term}`} child={child} report={report} term={term} setTerm={setTerm} busy={busy||reportBusy} saved={()=>setReportVersion(value=>value+1)}/></div>}
-      <div className="parent-utility-grid"><div id="calendar"><ParentCalendar portal={portal}/></div><div id="news"><ParentNews portal={portal} child={child} onRead={()=>setNewsVersion(value=>value+1)}/></div></div>
+      {data.adminPreview?(previewTools?<aside className="parent-preview-tools"><div><strong>管理者プレビュー</strong><small>確認する生徒を選択してください</small></div><select value={student} onChange={e=>{setStudent(e.target.value);setActiveTab('overview')}}>{data.children.map(item=><option key={item.key} value={item.key}>{item.name}（{gradeLabel(item.grade)}）</option>)}</select><button onClick={()=>setPreviewTools(false)}>選択欄を隠す</button></aside>:<button className="parent-preview-restore" onClick={()=>setPreviewTools(true)}>生徒を変更</button>):<nav className="parent-child-switch">{data.children.map(item=><button key={item.key} className={student===item.key?'active':''} onClick={()=>{setStudent(item.key);setActiveTab('overview')}}>{item.name}<small>{gradeLabel(item.grade)}</small></button>)}</nav>}
+      <nav className="parent-tabs" role="tablist" aria-label="保護者メニュー">{tabs.map(([id,label])=><button key={id} type="button" role="tab" aria-selected={activeTab===id} aria-controls={`parent-panel-${id}`} onClick={()=>openTab(id)}>{label}{id==='news'&&portal&&unreadCount(filterPortal(portal,child))>0?<b>{unreadCount(filterPortal(portal,child))}</b>:''}</button>)}</nav>
+      <div id="parent-panel-overview" role="tabpanel" className="parent-tab-panel" hidden={activeTab!=='overview'}><ParentOverview child={child} lessons={lessons} portal={portal} submission={data.submissionStatus?.[child?.key?.replace(/^(user|elementary)_/,'')]} busy={busy}/><ParentRecent child={child} lessons={lessons} busy={busy}/></div>
+      <div id="parent-panel-homework" role="tabpanel" className="parent-tab-panel" hidden={activeTab!=='homework'}><HomeworkRecords child={child} homework={lessons?.homework} busy={busy}/></div>
+      <div id="parent-panel-lessons" role="tabpanel" className="parent-tab-panel" hidden={activeTab!=='lessons'}><LessonRecords child={child} lessons={lessons} busy={busy||moreBusy} more={more}/></div>
+      <div id="parent-panel-report" role="tabpanel" className="parent-tab-panel" hidden={activeTab!=='report'}><TermReport child={child} report={report} term={term} setTerm={setTerm} busy={busy||reportBusy}/></div>
+      {Number(child?.grade)>=7&&<div id="parent-panel-scores" role="tabpanel" className="parent-tab-panel" hidden={activeTab!=='scores'}><ParentScoreEntry key={`${student}:${term}`} child={child} report={report} term={term} setTerm={setTerm} busy={busy||reportBusy} saved={()=>setReportVersion(value=>value+1)}/></div>}
+      <div id="parent-panel-calendar" role="tabpanel" className="parent-tab-panel" hidden={activeTab!=='calendar'}><ParentCalendar portal={portal}/></div>
+      <div id="parent-panel-news" role="tabpanel" className="parent-tab-panel" hidden={activeTab!=='news'}><ParentNews portal={portal} child={child} onRead={()=>setNewsVersion(value=>value+1)}/></div>
     </>}</>}
   </main>;
 }

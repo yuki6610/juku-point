@@ -602,3 +602,25 @@
   }
 }
 .student-record-links{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:13px 0}.student-record-links button{min-height:40px;padding:7px;color:#4c59aa;background:#f0f2ff;border:1px solid #d9dcf7;border-radius:9px;font-size:11px;font-weight:850;cursor:pointer}@media(max-width:700px){.student-record-links{grid-template-columns:1fr 1fr}}
+
+/* 生徒選択を上部に集約し、編集欄の横幅を一定に保つ */
+.students-workspace { grid-template-columns: minmax(0, 1fr); }
+.students-list-panel, .student-detail-panel { position: static; max-height: none; min-width: 0; overflow: visible; }
+.students-list-panel { overflow: hidden; }
+.students-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); max-height: 214px; gap: 7px; padding: 9px; overflow-y: auto; }
+.student-row { grid-template-columns: 32px minmax(0, 1fr); gap: 7px; min-width: 0; min-height: 64px; padding: 9px; border: 1px solid #e1e8f1; border-radius: 10px; }
+.student-row.active { box-shadow: inset 0 0 0 2px #7567d8; }
+.student-avatar { width: 32px; height: 32px; border-radius: 9px; }
+.student-row-points, .row-badges { display: none; }
+.student-detail-panel { width: 100%; box-sizing: border-box; }
+.student-detail-panel input, .student-detail-panel select, .student-detail-panel textarea { max-width: 100%; min-width: 0; box-sizing: border-box; font-size: 15px; }
+.student-detail-panel .name-editor { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+.student-detail-panel .point-editor { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+.student-detail-panel .point-row { min-width: 0; }
+.student-detail-panel .number-control { min-width: 0; }
+.student-detail-panel .number-control input { width: clamp(80px, 9vw, 125px); }
+@media (max-width: 700px) {
+  .students-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .student-detail-panel .point-editor { grid-template-columns: 1fr; }
+  .student-detail-panel .name-editor { grid-template-columns: 1fr; }
+}

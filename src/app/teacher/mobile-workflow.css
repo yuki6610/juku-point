@@ -11,6 +11,7 @@
 .teacher-shell .teacher-quick-students button.selected small { color: var(--staff-primary); }
 .teacher-empty-students { margin: 5px 0; color: #63728a; font-size: 13px; }
 .teacher-shell .teacher-attendance button.selected { color: #fff; background: var(--staff-primary); border-color: var(--staff-primary); }
+.teacher-shell .teacher-attendance:not(:has(button.selected))::after { content: "未選択です。授業の出欠を確認して選んでください。"; grid-column: 1 / -1; color: #9a5a13; font-size: 12px; }
 .teacher-shell .teacher-save { background: var(--staff-primary)!important; box-shadow: 0 10px 25px rgba(32,67,145,.22); }
 .teacher-shell .teacher-selected-student { color: var(--staff-primary); background: var(--staff-primary-soft); border-color: #c6d6f3; }
 .teacher-shell .teacher-checks label:has(input:checked) { color: var(--staff-primary); background: var(--staff-primary-soft); border-color: #b5c9ef; }

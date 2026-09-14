@@ -2,7 +2,8 @@
 import { useAcademicContext } from '@/lib/useAcademicContext';
 import { resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
 import HomeworkReview from '@/components/HomeworkReview';
-import { homeworkValue } from '@/lib/homeworkModel.mjs';
+import { homeworkValue, validateAssignment } from '@/lib/homeworkModel.mjs';
+import { homeworkApi } from '@/lib/homeworkClient';
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from 'next/navigation';
@@ -50,7 +51,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const [academicYear, setAcademicYear] = useState(currentYear);
   const [term, setTerm] = useState(1);
   const [date, setDate] = useState(today());
-  const [attendance, setAttendance] = useState("present");
+  const [attendance, setAttendance] = useState("");
   const [originalLessonDate, setOriginalLessonDate] = useState("");
   const [homework, setHomework] = useState("none");
   const [wordStatus, setWordStatus] = useState("notScheduled");
@@ -64,6 +65,12 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const [recordReady, setRecordReady] = useState(false);
   const [homeworkReady, setHomeworkReady] = useState(false);
   const [homeworkReview, setHomeworkReview] = useState(null);
+  const [assignmentData, setAssignmentData] = useState(null);
+  const [assignmentReady, setAssignmentReady] = useState(false);
+  const [assignmentId, setAssignmentId] = useState('');
+  const [assignmentVersion, setAssignmentVersion] = useState(null);
+  const [nextItems, setNextItems] = useState([{ materialId: '', range: '' }]);
+  const [dueDate, setDueDate] = useState('');
   const [commentIds, setCommentIds] = useState([]);
   const loadVersion = useRef(0);
   const [notice, setNotice] = useState("");
@@ -129,10 +136,37 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const isElementary = selectedGrade >= 1 && selectedGrade <= 6;
   const isHigh = selectedGrade >= 10 && selectedGrade <= 12;
   useEffect(() => { if (isHigh) setHomeworkReady(true); }, [isHigh]);
+  const materials = (assignmentData?.templates?.materials || []).filter(item => !item.audience || item.audience === 'all' || item.audience === (isElementary ? 'elementary' : 'middle'));
+
+  useEffect(() => {
+    let active = true;
+    setAssignmentReady(false);
+    setAssignmentData(null);
+    setAssignmentId(crypto.randomUUID());
+    setAssignmentVersion(null);
+    setNextItems([{ materialId: '', range: '' }]);
+    setDueDate('');
+    if (!studentId || !date || isHigh) { setAssignmentReady(true); return () => { active = false; }; }
+    homeworkApi(`/api/admin/homework?student=${encodeURIComponent(studentId)}&date=${date}`)
+      .then(value => {
+        if (!active) return;
+        setAssignmentData(value);
+        const existing = value.items?.find(item => item.assignedDate === date);
+        if (existing) {
+          setAssignmentId(existing.id);
+          setAssignmentVersion(existing.version);
+          setNextItems(existing.items.map(item => ({ materialId: item.materialId, range: item.range })));
+          setDueDate(existing.dueDate);
+        }
+        setAssignmentReady(true);
+      })
+      .catch(() => { if (active) setNotice('次回の宿題を読み込めませんでした。再読み込みしてください。'); });
+    return () => { active = false; };
+  }, [studentId, date, isHigh]);
 
   const resetRecordForm = () => {
     setHomeworkReview(null); setCommentIds([]);
-    setAttendance("present");
+    setAttendance("");
     setOriginalLessonDate("");
     setHomework("none");
     setWordStatus("notScheduled");
@@ -168,7 +202,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     const record = middle ? raw : { ...raw.learningRecord, attendance: raw.status, originalLessonDate: raw.originalDate, behaviorNote: raw.learningRecord?.behaviorNote ?? raw.note };
     setHomeworkReview(record.homeworkReview || null);
     setCommentIds(record.commentIds || []);
-    setAttendance(record.attendance || "present");
+    setAttendance(record.attendance || "");
     setOriginalLessonDate(record.originalLessonDate || "");
     setHomework(record.homework || "none");
     setWordStatus(record.wordTest?.status || "notScheduled");
@@ -187,12 +221,21 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   }, [studentId, date, termId]);
 
   const saveRecord = async () => {
-    if (!recordReady || !homeworkReady || !selectedStudent || saving) return;
+    if (!recordReady || !homeworkReady || !assignmentReady || !selectedStudent || saving) return;
     try {
       if (academic.loading || academic.error) throw new Error(academic.error || '学期設定を読み込み中です。');
       if (resolveAcademicTerm(academic.settings, date).id !== termId) throw new Error('授業日と選択した学期が一致しません。');
     } catch (error) { return setNotice(error.message); }
     if (!studentId || !date) return setNotice("生徒と授業日を選択してください。");
+    if (!attendance) return setNotice('出席・欠席・振替出席のいずれかを選択してください。');
+    const validNextItems = isHigh ? [] : nextItems.filter(item => item.materialId || item.range.trim());
+    const oldAssignment = assignmentData?.items?.find(item => item.id === assignmentId);
+    const unchangedAssignment = oldAssignment && oldAssignment.dueDate === dueDate && JSON.stringify(oldAssignment.items.map(item => [item.materialId, item.range])) === JSON.stringify(validNextItems.map(item => [item.materialId, item.range]));
+    try {
+      if (oldAssignment && !validNextItems.length) throw new Error('登録済みの宿題は空欄で削除できません。');
+      if (oldAssignment?.review && !['pending', 'absent'].includes(oldAssignment.review.status) && !unchangedAssignment) throw new Error('確認済みの宿題は変更できません。');
+      if (validNextItems.length && !unchangedAssignment) validateAssignment({ assignedDate: date, dueDate, items: validNextItems }, assignmentData?.templates);
+    } catch (error) { return setNotice(error.message); }
     if (
       (wordStatus === "completed" || wordStatus === "makeup") &&
       (!wordTotal || Number(wordCorrect) > Number(wordTotal))
@@ -205,6 +248,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
 
     setSaving(true);
     setNotice("");
+    let lessonSaved = false;
     try {
       const weekId = `${academicYear}-W${String(getWeekNumber(date)).padStart(2, "0")}`;
       const token = await auth.currentUser?.getIdToken();
@@ -217,6 +261,8 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || '保存できませんでした。');
+        lessonSaved = true;
+        await saveNextHomework(validNextItems, unchangedAssignment);
         onDirtyChange(false);
         setNotice(`学習記録と出欠を保存しました。${result.pointDelta ? `出席ポイント ${result.pointDelta > 0 ? '+' : ''}${result.pointDelta}pt` : '宿題・単語テストのポイント付与はありません。'}`);
         return;
@@ -259,6 +305,8 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
       });
       const saveResult = await response.json();
       if (!response.ok) throw new Error(saveResult.error || "保存に失敗しました。");
+      lessonSaved = true;
+      await saveNextHomework(validNextItems, unchangedAssignment);
       if (wordStatus === "completed" || wordStatus === "makeup") {
         setStudents((current) => current.map((student) =>
           student.uid === studentId
@@ -278,10 +326,18 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
       setNotice(`保存し、学期集計を更新しました。${rewardLabels.length ? `（${rewardLabels.join("、")}）` : "（今週の報酬は付与済み）"}`);
     } catch (error) {
       console.error(error);
-      setNotice(error.message || "保存に失敗しました。通信状態を確認してください。");
+      setNotice(`${lessonSaved ? '学習記録は保存済みですが、次回の宿題を保存できませんでした。 ' : ''}${error.message || "保存に失敗しました。通信状態を確認してください。"}`);
     } finally {
       setSaving(false);
     }
+  };
+
+  const saveNextHomework = async (validItems, unchanged) => {
+    if (!validItems.length || unchanged) return;
+    await homeworkApi('/api/admin/homework', { id: assignmentId, version: assignmentVersion, student: studentId, assignedDate: date, dueDate, items: validItems });
+    const refreshed = await homeworkApi(`/api/admin/homework?student=${encodeURIComponent(studentId)}&date=${date}`);
+    setAssignmentData(refreshed);
+    setAssignmentVersion(refreshed.items?.find(item => item.id === assignmentId)?.version ?? null);
   };
 
   if (academic.loading) return <p>年度・学期を確認中です…</p>;
@@ -340,7 +396,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
 
         <section className="record-panel">
           {!selectedStudent ? (
-            <div className="record-empty">左の一覧から生徒を選択してください。</div>
+            <div className="record-empty">上の一覧から生徒を選択してください。</div>
           ) : (
             <>
               <div className="record-title">
@@ -355,6 +411,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
 
               <fieldset>
                 <legend>出席状況</legend>
+                {!attendance && <p className="attendance-hint">未選択です。授業の出欠を確認してから保存してください。</p>}
                 <div className="choice-grid three">
                   {[
                     ["present", "出席"],
@@ -439,9 +496,20 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 />
               </fieldset>}
 
+              {!isHigh && <fieldset className="next-homework-fieldset" disabled={!assignmentReady || saving}>
+                <legend>今回出した宿題・次回確認</legend>
+                <p>教材と範囲を入力します。空欄のままなら宿題なしとして学習記録だけ保存します。</p>
+                {nextItems.map((item, index) => <div className="next-homework-row" key={index}>
+                  <select aria-label={`宿題${index + 1}の教材`} value={item.materialId} onChange={event => setNextItems(old => old.map((row, i) => i === index ? { ...row, materialId: event.target.value, range: '' } : row))}><option value="">教材を選択</option>{materials.map(material => <option key={material.id} value={material.id}>{material.label}</option>)}</select>
+                  <NextRange material={materials.find(material => material.id === item.materialId)} value={item.range} onChange={range => setNextItems(old => old.map((row, i) => i === index ? { ...row, range } : row))} />
+                  <button type="button" disabled={nextItems.length === 1} onClick={() => setNextItems(old => old.filter((_, i) => i !== index))}>削除</button>
+                </div>)}
+                <div className="next-homework-actions"><button type="button" disabled={nextItems.length >= 20} onClick={() => setNextItems(old => [...old, { materialId: '', range: '' }])}>＋ 宿題を追加</button><label>確認予定日<input type="date" min={date} value={dueDate} onChange={event => setDueDate(event.target.value)} /></label></div>
+              </fieldset>}
+
               {notice && <p className="record-notice" role="status">{notice}</p>}
-              <button className="record-save" onClick={saveRecord} disabled={saving || !recordReady || !homeworkReady}>
-                {saving ? "保存中…" : "この記録を保存"}
+              <button className="record-save" onClick={saveRecord} disabled={saving || !recordReady || !homeworkReady || !assignmentReady}>
+                {saving ? "保存中…" : "学習記録と次回の宿題を保存"}
               </button>
             </>
           )}
@@ -455,4 +523,10 @@ function getWeekNumber(dateString) {
   const date = new Date(`${dateString}T00:00:00`);
   const first = new Date(date.getFullYear(), 0, 1);
   return Math.ceil(((date - first) / 86400000 + first.getDay() + 1) / 7);
+}
+
+function NextRange({ material, value, onChange }) {
+  if (material?.rangeType !== 'number') return <input aria-label="ページ・範囲" placeholder="ページ・範囲" value={value} onChange={event => onChange(event.target.value)} />;
+  const numbers = String(value || '').match(/\d+/g) || [];
+  return <span className="next-number-range"><input aria-label="開始番号" type="number" min="1" placeholder="開始番号" value={numbers[0] || ''} onChange={event => onChange(`No.${event.target.value}〜${numbers[1] || ''}`)} /><b>〜</b><input aria-label="終了番号" type="number" min="1" placeholder="終了番号" value={numbers[1] || ''} onChange={event => onChange(`No.${numbers[0] || ''}〜${event.target.value}`)} /></span>;
 }

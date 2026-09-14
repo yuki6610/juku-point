@@ -35,6 +35,10 @@ export default function RankingPage() {
     const [hallOfFame, setHallOfFame] = useState(null);
 
   useEffect(() => {
+    if (category === 'wordTotal' && Number(grade) >= 10) setGrade('all');
+  }, [category, grade]);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
         setUsers([]);
@@ -134,7 +138,9 @@ export default function RankingPage() {
           return (
             !adminIds.has(snapshot.id) &&
             source.role !== "admin" &&
-            source.isAdmin !== true
+            source.isAdmin !== true &&
+            source.active !== false &&
+            source.enrollmentStatus !== 'withdrawn'
           );
         })
         .map((snapshot) => {
@@ -229,8 +235,7 @@ export default function RankingPage() {
         // 学年フィルタ
         if (grade !== "all" && Number(u.grade) !== Number(grade)) return false;
 
-        // ⭐ 単語テストのときだけ高校生を除外
-        if (category === "wordTotal" && u.grade >= 10) return false;
+        if (category === "wordTotal" && (Number(u.grade) < 7 || Number(u.grade) > 9)) return false;
 
         return true;
       });
@@ -238,6 +243,7 @@ export default function RankingPage() {
     const top3 = filteredUsers.slice(0, 3);
     const hallTop3 =
       hallOfFame?.[category]?.top3 ?? [];
+    const showHall = mode === 'term' && grade === 'all' && category !== 'level' && hallTop3.length > 0;
   // 上位3名の色
   const getRankClass = (rank) => {
     if (rank === 0) return "rank-gold";
@@ -381,6 +387,7 @@ export default function RankingPage() {
             >
               中3
             </button>
+            {category !== 'wordTotal' && [10, 11, 12].map(value => <button key={value} className={grade === value ? 'active' : ''} onClick={() => setGrade(value)}>高{value - 9}</button>)}
           </div>
 
           <div className="control-label">カテゴリー</div>
@@ -444,7 +451,7 @@ export default function RankingPage() {
             <p className="ranking-state">この条件に該当するランキングはまだありません。</p>
           ) : (
             <>
-              {mode === "term" && grade === "all" && (
+              {showHall && (
                 hallOfFame ? (
                   <div className="hall-card">
                     <h2>👑 前学期 TOP3</h2>

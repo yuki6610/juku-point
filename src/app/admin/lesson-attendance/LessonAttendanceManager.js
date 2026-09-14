@@ -122,17 +122,6 @@ function datesInMonth(year, month) {
   return result;
 }
 
-function addDays(date, days) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
-}
-
-function weekEndId(date) {
-  const weekday = date.getDay();
-  return dateId(addDays(date, 6 - weekday));
-}
-
 function normalizeStatus(value) {
   if (value === "欠席" || value === "absent") return "absent";
   if (value === "振替" || value === "振替実施" || value === "makeup") return "makeup";
@@ -458,14 +447,14 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
     selectedCalendarYear === now.getFullYear() && month === now.getMonth() + 1
       ? todayId()
       : `${selectedCalendarYear}-${pad(month)}-31`;
-  const currentWeekEnd = weekEndId(now);
+  const actualCutoff = todayId();
   const academicRecordStart = termSettings?.[1]?.start || `${year}-04-01`;
   const academicRecordEnd = termSettings?.[3]?.end || `${year + 1}-03-31`;
   const academicDueEnd =
-    currentWeekEnd < academicRecordStart
+    actualCutoff < academicRecordStart
       ? ""
-      : currentWeekEnd <= academicRecordEnd
-        ? currentWeekEnd
+      : actualCutoff <= academicRecordEnd
+        ? actualCutoff
         : academicRecordEnd;
 
   const visibleStudents = useMemo(() => {
@@ -546,7 +535,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
         return calendar[id] === true && weekdays.includes(weekday) && id >= start && id <= rangeEnd;
       }).length;
       const termPlanned = countScheduledLessons(end);
-      const dueEnd = currentWeekEnd < start ? "" : currentWeekEnd <= end ? currentWeekEnd : end;
+      const dueEnd = actualCutoff < start ? "" : actualCutoff <= end ? actualCutoff : end;
       const duePlanned = dueEnd ? countScheduledLessons(dueEnd) : 0;
       const termRecords = Object.values(ownRecords).filter((record) =>
         record.date && record.date >= start && record.date <= end
@@ -573,7 +562,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
       };
     });
     return { student, key, planned, accounted, actual, absent: absent.length, makeup, missing: Math.max(0, planned - accounted), pending, terms, lessonStartDate };
-  }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, currentWeekEnd, academicRecordStart, academicDueEnd]);
+  }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, actualCutoff, academicRecordStart, academicDueEnd]);
 
   const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
@@ -882,7 +871,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
           </div>
           <div className="attendance-table-wrap">
             <table>
-              <thead><tr><th>生徒</th><th>通塾曜日</th><th>学期別（現在週）予定 / 実施</th><th>欠席</th><th>振替</th><th>状態</th><th>学期別（トータル）予定 / 実施</th></tr></thead>
+              <thead><tr><th>生徒</th><th>通塾曜日</th><th>学期別（今日まで）予定 / 実施</th><th>欠席</th><th>振替</th><th>状態</th><th>学期別（トータル）予定 / 実施</th></tr></thead>
               <tbody>{summaries.map((item) => (
                 <tr key={item.key} onClick={() => { setSelectedKey(item.key); setTab("record"); }}>
                   <td><strong>{item.student.name || item.student.realName || item.student.displayName}</strong><small>{gradeLabel(item.student.grade)}</small></td>

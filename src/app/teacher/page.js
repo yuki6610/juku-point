@@ -18,7 +18,7 @@ export default function TeacherPage() {
   const [gradeFilter,setGradeFilter]=useState('all'),[studentQuery,setStudentQuery]=useState(''),[scheduledOnly,setScheduledOnly]=useState(true);
   const [reviewId, setReviewId] = useState(''), [itemResults, setItemResults] = useState({}), [commentIds, setCommentIds] = useState([]), [late, setLate] = useState(false), [forgot, setForgot] = useState(false), [note, setNote] = useState('');
   const [wordCorrect,setWordCorrect]=useState(''),[wordTotal,setWordTotal]=useState('');
-  const [attendance,setAttendance]=useState('present'),[originalDate,setOriginalDate]=useState('');
+  const [attendance,setAttendance]=useState(''),[originalDate,setOriginalDate]=useState('');
   const [nextItems, setNextItems] = useState([{ materialId: '', range: '' }]), [dueDate, setDueDate] = useState(''), [notice, setNotice] = useState(''), [saving, setSaving] = useState(false);
   const [draftLoadedKey,setDraftLoadedKey]=useState('');
   const [homework,setHomework]=useState('none'),[assignmentId,setAssignmentId]=useState(''),[assignmentVersion,setAssignmentVersion]=useState(null),[reload,setReload]=useState(0),[dirty,setDirty]=useState(false);
@@ -30,7 +30,7 @@ export default function TeacherPage() {
     let active=true;setDraftLoadedKey('');setHomeworkData(null);setNotice('');setDirty(false);
     if(!studentKey)return;
     const key=`teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`;
-    const apply=value=>{setReviewId(value.reviewId??value.homeworkReview?.assignmentId??'');setItemResults(value.itemResults??value.homeworkReview?.itemResults??{});setCommentIds(value.commentIds||[]);setLate(value.late===true);setForgot(value.forgot===true);setNote(value.note??value.behaviorNote??'');setWordCorrect(value.wordCorrect??value.wordTest?.correct??'');setWordTotal(value.wordTotal??value.wordTest?.total??student?.wordTestQuestionCount??20);setAttendance(value.attendance??value.status??'present');setOriginalDate(value.originalDate||value.originalLessonDate||'');setNextItems(value.nextItems||[{materialId:'',range:''}]);setDueDate(value.dueDate||'');setHomework(value.homework||'none');setAssignmentId(value.nextId||crypto.randomUUID());setAssignmentVersion(value.nextVersion??null)};
+    const apply=value=>{setReviewId(value.reviewId??value.homeworkReview?.assignmentId??'');setItemResults(value.itemResults??value.homeworkReview?.itemResults??{});setCommentIds(value.commentIds||[]);setLate(value.late===true);setForgot(value.forgot===true);setNote(value.note??value.behaviorNote??'');setWordCorrect(value.wordCorrect??value.wordTest?.correct??'');setWordTotal(value.wordTotal??value.wordTest?.total??student?.wordTestQuestionCount??20);setAttendance(value.attendance??value.status??'');setOriginalDate(value.originalDate||value.originalLessonDate||'');setNextItems(value.nextItems||[{materialId:'',range:''}]);setDueDate(value.dueDate||'');setHomework(value.homework||'none');setAssignmentId(value.nextId||crypto.randomUUID());setAssignmentVersion(value.nextVersion??null)};
     apply({});
     Promise.all([api(`/api/teacher/context?date=${date}&student=${encodeURIComponent(studentKey)}`),api(`/api/admin/homework?student=${encodeURIComponent(studentKey)}&date=${date}`)]).then(async([value,homeworkValue])=>{
       const reviewId=value.existingRecord?.homeworkReview?.assignmentId;
@@ -50,7 +50,9 @@ export default function TeacherPage() {
   const isMiddle=student?.grade>=7&&student?.grade<=9,isElementary=student?.grade>=1&&student?.grade<=6;
   const materials=(homeworkData?.templates?.materials||[]).filter(item=>!item.audience||item.audience==='all'||item.audience===(isElementary?'elementary':'middle'));
   const save = async () => {
-    if (!student || saving || !draftLoadedKey || !homeworkData) return; setSaving(true); setNotice('');let lessonSaved=false;
+    if (!student || saving || !draftLoadedKey || !homeworkData) return;
+    if (!attendance) return setNotice('出席・欠席・振替出席のいずれかを選択してください。');
+    setSaving(true); setNotice('');let lessonSaved=false;
     try {
       const termId = context.term.id, weekId = `${context.term.year}-W${String(getWeek(date)).padStart(2,'0')}`;
       const reviewStatus = reviewAssignment ? aggregateItemResults(reviewAssignment.items,itemResults) : 'pending';

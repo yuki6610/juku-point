@@ -31,18 +31,39 @@
 .lesson-hub .record-save { background: var(--staff-primary); }
 
 @media (min-width: 1050px) {
-  .lesson-hub .lesson-layout { grid-template-columns: minmax(255px, 300px) minmax(0, 1fr); align-items: start; }
-  .lesson-hub .student-picker { position: sticky; top: 78px; max-height: calc(100dvh - 94px); overflow: auto; }
-  .lesson-hub .picker-heading { align-items: stretch; flex-direction: column; }
-  .lesson-hub .picker-filters { grid-template-columns: 1fr; }
-  .lesson-hub .student-list { flex-direction: column; max-height: calc(100dvh - 335px); overflow-x: hidden; overflow-y: auto; }
-  .lesson-hub .student-list button { flex: none; width: 100%; min-height: 43px; }
+  .lesson-hub .lesson-layout { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .lesson-hub .student-picker { position: static; max-height: none; overflow: visible; }
+  .lesson-hub .picker-heading { align-items: end; flex-direction: row; }
+  .lesson-hub .picker-filters { grid-template-columns: minmax(220px, 1fr) 180px; }
+  .lesson-hub .student-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); max-height: 168px; overflow-x: hidden; overflow-y: auto; padding-right: 5px; }
+  .lesson-hub .student-list button { width: 100%; min-height: 43px; }
   .lesson-hub .record-panel { min-width: 0; }
   .lesson-hub .record-panel .record-save { position: sticky; bottom: 12px; z-index: 8; box-shadow: 0 10px 24px rgba(35,66,145,.22); }
 }
+
+.lesson-hub .lesson-page { padding: 0 0 60px; background: transparent; }
+.lesson-hub .record-panel { width: 100%; }
+.lesson-hub .record-panel fieldset { min-width: 0; }
+.lesson-hub .record-panel input:not([type="checkbox"]),
+.lesson-hub .record-panel select,
+.lesson-hub .record-panel textarea { max-width: 100%; box-sizing: border-box; font-size: 15px; }
+.lesson-hub .attendance-hint { margin: 0 0 10px; color: #9a5a13; font-size: 12px; }
+.lesson-hub .next-homework-fieldset > p { margin: 0 0 12px; color: #64748b; font-size: 12px; }
+.lesson-hub .next-homework-row { display: grid; grid-template-columns: minmax(180px, .9fr) minmax(210px, 1.3fr) auto; gap: 9px; align-items: center; margin-bottom: 9px; }
+.lesson-hub .next-homework-row > input,
+.lesson-hub .next-homework-row > select { width: 100%; }
+.lesson-hub .next-homework-row button,
+.lesson-hub .next-homework-actions button { min-height: 42px; padding: 8px 13px; color: var(--staff-primary); background: var(--staff-primary-soft); border: 1px solid #c4d2ed; border-radius: 10px; cursor: pointer; }
+.lesson-hub .next-homework-row button:disabled { opacity: .45; cursor: not-allowed; }
+.lesson-hub .next-homework-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; justify-content: space-between; }
+.lesson-hub .next-homework-actions label { display: grid; gap: 5px; color: #64748b; font-size: 12px; font-weight: 700; }
+.lesson-hub .next-number-range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 5px; align-items: center; min-width: 0; }
+.lesson-hub .next-number-range input { width: 100%; min-width: 0; }
 
 @media (max-width: 700px) {
   .lesson-hub { padding: 16px 10px 70px; }
   .lesson-hub-tabs { position: static; }
   .lesson-hub-tabs button,.lesson-hub-tabs a { flex: 1 1 45%; text-align: center; }
+  .lesson-hub .next-homework-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .lesson-hub .next-homework-row > select { grid-column: 1 / -1; }
 }

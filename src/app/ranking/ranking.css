@@ -121,6 +121,7 @@
 .top-crown { font-size: 38px; }
 .top-name { position: relative; z-index: 1; margin-top: 25px; font-size: 22px; font-weight: 850; }
 .top-score { position: relative; z-index: 1; margin-top: 8px; color: #68738b; font-size: 18px; font-weight: 800; }
+.top-name, .top-score, .hall-name, .hall-score { min-width: 0; overflow-wrap: anywhere; }
 .top1 .top-score { color: #8a6410; }
 
 .ranking-list {
@@ -223,7 +224,8 @@
   .ranking-heading p { margin-top: 13px; }
   .ranking-controls { grid-template-columns: 1fr; gap: 8px; padding: 14px; }
   .control-label:not(:first-child) { margin-top: 8px; }
-  .top3-container { gap: 7px; }
+  .top3-container { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .top-card.top1 { grid-column: 1 / -1; min-height: 130px; }
   .top-card { min-height: 150px; padding: 16px 10px; border-radius: 18px; text-align: center; }
   .top-crown { font-size: 28px; }
   .top-name { margin-top: 13px; font-size: 14px; overflow-wrap: anywhere; }
