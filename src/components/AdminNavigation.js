@@ -8,15 +8,15 @@ const groups = [{
     label: "管理メニュー",
     items: [
       { path: "/admin", icon: "⌂", label: "ダッシュボード", exact: true },
-      { path: "/admin/lesson-records", icon: "✓", label: "学習記録・出欠" },
-      { path: "/admin/course-lessons", icon: "季", label: "講習授業管理" },
-      { path: "/admin/settings", icon: "▦", label: "教室・授業設定" },
-      { path: "/admin/study-log", icon: "◷", label: "自習管理" },
-      { path: "/admin/students", icon: "◎", label: "生徒管理" },
-      { path: "/admin/student-notes", icon: "表", label: "生徒メモ" },
-      { path: "/admin/score", icon: "△", label: "成績・志望校" },
-      { path: "/admin/point-history", icon: "P", label: "ポイント履歴" },
-      { path: "/admin/rewards", icon: "◇", label: "景品・交換管理" },
+      { path: "/admin/lesson-records", icon: "✓", label: "学習記録・出欠", keywords: "宿題 単語テスト 出席 欠席 振替 生活態度" },
+      { path: "/admin/course-lessons", icon: "季", label: "講習授業管理", keywords: "夏期 冬期 春期 宿題 単語テスト" },
+      { path: "/admin/settings", icon: "▦", label: "教室・授業設定", keywords: "カレンダー 曜日 学期 年度 入試日 保護者 講師" },
+      { path: "/admin/study-log", icon: "◷", label: "自習管理", keywords: "入室 退出 GPS" },
+      { path: "/admin/students", icon: "◎", label: "生徒管理", keywords: "生徒登録 学年 退塾 ポイント タグ" },
+      { path: "/admin/student-notes", icon: "表", label: "生徒メモ", keywords: "教室内メモ 講師メモ" },
+      { path: "/admin/score", icon: "△", label: "成績・志望校", keywords: "定期テスト 通知表 内申 提出 判定 印刷" },
+      { path: "/admin/point-history", icon: "P", label: "ポイント履歴", keywords: "獲得 減点 累計 学期" },
+      { path: "/admin/rewards", icon: "◇", label: "景品・交換管理", keywords: "引き渡し ガチャ 在庫 食事券" },
     ],
   }];
 
@@ -66,6 +66,11 @@ export default function AdminNavigation() {
       ([path]) => path !== "/admin" && pathname.startsWith(`${path}/`),
     )?.[1] ||
     "管理画面";
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleGroups = groups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => `${item.label} ${item.path} ${item.keywords || ""}`.toLowerCase().includes(normalizedQuery)),
+  }));
 
   const sidebar = (
     <aside className="admin-sidebar" aria-label="管理メニュー">
@@ -82,10 +87,10 @@ export default function AdminNavigation() {
         <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="例：宿題、成績、設定  ／" aria-label="管理機能を検索" />
       </label>
       <nav className="admin-nav">
-        {groups.map((group) => (
+        {visibleGroups.map((group) => (
           <section key={group.label}>
             <p>{group.label}</p>
-            {group.items.filter((item) => `${item.label} ${item.path}`.toLowerCase().includes(query.trim().toLowerCase())).map((item) => {
+            {group.items.map((item) => {
               const active = item.exact
                 ? pathname === item.path
                 : pathname === item.path || pathname.startsWith(`${item.path}/`);
@@ -104,7 +109,7 @@ export default function AdminNavigation() {
             })}
           </section>
         ))}
-        {query && !groups.some((group) => group.items.some((item) => `${item.label} ${item.path}`.toLowerCase().includes(query.trim().toLowerCase()))) && <p className="admin-nav-empty">該当する機能はありません。</p>}
+        {normalizedQuery && !visibleGroups.some((group) => group.items.length) && <p className="admin-nav-empty">該当する機能はありません。</p>}
       </nav>
 
       <div className="admin-student-switch">
