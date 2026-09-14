@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import './lesson-hub.css';
+import './lesson-hub-improvements.css';
 const LearningRecordForm = dynamic(() => import('./LearningRecordForm'), { loading: () => <p>学習記録を読み込み中…</p> });
 const Attendance = dynamic(() => import('../lesson-attendance/LessonAttendanceManager'), { loading: () => <p>出欠情報を読み込み中…</p> });
 const HomeworkManager = dynamic(() => import('./HomeworkManager'), { loading: () => <p>宿題を読み込み中…</p> });
@@ -11,6 +12,19 @@ export default function LessonRecordsPage() {
   const [tab, setTab] = useState('learning');
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!dirty && !busy) return undefined;
+    const beforeUnload = (event) => { if (dirty || busy) { event.preventDefault(); event.returnValue = ''; } };
+    const beforeNavigate = (event) => {
+      if (!event.target.closest('.admin-nav button,.admin-student-switch button') || !dirty && !busy) return;
+      if (busy || !window.confirm('未保存の入力があります。内容を破棄して移動しますか？')) {
+        event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
+      } else setDirty(false);
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    document.addEventListener('click', beforeNavigate, true);
+    return () => { window.removeEventListener('beforeunload', beforeUnload); document.removeEventListener('click', beforeNavigate, true); };
+  }, [dirty, busy]);
   useEffect(()=>{ if(params.get('student')&&params.get('date')) setTab('learning'); },[params]);
   const switchTab = next => {
     if (next === tab || busy) return;
@@ -25,6 +39,6 @@ export default function LessonRecordsPage() {
       <button disabled={busy} aria-pressed={tab === 'homework'} onClick={() => switchTab('homework')}>次回の宿題を登録</button>
       <a href="/admin/settings" onClick={event => { if (busy || (dirty && !window.confirm('未保存の入力があります。設定ページへ移動しますか？'))) event.preventDefault(); }}>曜日・授業設定</a>
     </nav>
-    {tab === 'learning' ? <LearningRecordForm onDirtyChange={setDirty} onBusyChange={setBusy} /> : tab === 'homework' ? <HomeworkManager onDirtyChange={setDirty} onBusyChange={setBusy} /> : <Attendance recordsOnly onDirtyChange={setDirty} onBusyChange={setBusy} />}
+    {tab === 'learning' ? <LearningRecordForm isDirty={dirty} onDirtyChange={setDirty} onBusyChange={setBusy} /> : tab === 'homework' ? <HomeworkManager onDirtyChange={setDirty} onBusyChange={setBusy} /> : <Attendance recordsOnly onDirtyChange={setDirty} onBusyChange={setBusy} />}
   </div>;
 }

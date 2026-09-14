@@ -1,15 +1,13 @@
 /* 管理画面全体：既存機能を保ったまま、PC向けの明るい作業画面へ統一 */
 .admin-app-content {
-  --admin-ink: #29364e;
-  --admin-muted: #78869a;
-  --admin-line: #dfe6ef;
-  --admin-soft: #f6f8fc;
-  --admin-accent: #7167d4;
-  --admin-accent-soft: #efedff;
+  --admin-ink: var(--brand-ink);
+  --admin-muted: #61718a;
+  --admin-line: var(--staff-border);
+  --admin-soft: var(--staff-canvas);
+  --admin-accent: var(--staff-primary);
+  --admin-accent-soft: var(--staff-primary-soft);
   min-height: 100dvh;
-  background:
-    radial-gradient(circle at 85% 0, rgba(216, 231, 255, .55), transparent 26rem),
-    #f6f8fb;
+  background: var(--staff-canvas);
 }
 
 .admin-app-content :is(
@@ -74,7 +72,7 @@
 }
 
 .admin-app-content button:not(:disabled):hover {
-  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(56,91,189,.1);
 }
 
 .admin-app-content :is(.hw-filters,.wt-filters,.hsatt-date-box,.filter-row,.filter-buttons,.student-select-box) {

@@ -70,6 +70,11 @@
 .dashboard-alert.danger { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; }
 .dashboard-alert.warning { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; }
 
+.dashboard-shell { background: var(--customer-canvas)!important; }
+.home-focus { border-color: #d9e2f3; box-shadow: 0 6px 24px rgba(44,55,94,.055); }
+.home-focus-copy > button { background: var(--brand-primary); }
+.stat-tile,.avatar-panel,.progress-panel,.menu-section { border-color: var(--customer-border); box-shadow: 0 4px 18px rgba(30,48,82,.05); }
+
 .home-focus {
   display: grid;
   grid-template-columns: 1fr 240px;
@@ -359,7 +364,7 @@
   .dashboard-header { align-items: center; }
   .dashboard-header p:not(.dashboard-eyebrow) { display: none; }
   .header-logout { padding: 8px 11px; font-size: 13px; }
-  .dashboard-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .stat-tile { padding: 14px 10px; }
   .stat-tile strong { font-size: 24px; }
   .stat-tile small { display: none; }

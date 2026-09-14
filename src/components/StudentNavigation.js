@@ -29,9 +29,17 @@ export default function StudentNavigation() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const hidden =
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/teacher") ||
+    pathname.startsWith("/parent") ||
+    pathname.startsWith("/invite");
   const isHighSchool = Number(profile?.grade) >= 10 && Number(profile?.grade) <= 12;
   const visibleMoreItems = moreItems.filter((item) => {
-    if (item.middleOnly && (!profile || isHighSchool)) return false;
+    if (item.middleOnly && !(Number(profile?.grade) >= 7 && Number(profile?.grade) <= 9)) return false;
     if (item.requiredTag && !profile?.courseTags?.includes(item.requiredTag)) return false;
     return true;
   });
@@ -49,6 +57,7 @@ export default function StudentNavigation() {
   }, [open]);
 
   useEffect(() => {
+    if (hidden) return undefined;
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         setProfile(null);
@@ -63,16 +72,7 @@ export default function StudentNavigation() {
       }
     });
     return unsubscribe;
-  }, []);
-
-  const hidden =
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname === "/signup" ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/teacher") ||
-    pathname.startsWith("/parent") ||
-    pathname.startsWith("/invite");
+  }, [hidden]);
   if (hidden) return null;
 
   const navigate = (path) => {

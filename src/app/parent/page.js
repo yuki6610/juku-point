@@ -4,6 +4,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '@/firebaseConfig';
 import './parent.css';
 import './workflow-improvements.css';
+import './customer-portal.css';
 
 async function parentApi(path,options={}) { const token = await auth.currentUser?.getIdToken(),config={...options,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`,...(options.headers||{})}};let response;for(let attempt=0;attempt<3;attempt+=1)try{response=await fetch(path,config);break}catch(error){if(attempt===2)throw error;await new Promise(resolve=>setTimeout(resolve,500*(attempt+1)))}const result=await response.json();if(!response.ok)throw new Error(result.error);return result; }
 const attendanceLabel = { present: '出席', absent: '欠席', makeup: '振替' };
@@ -50,6 +51,7 @@ export default function ParentPage() {
       {data.adminPreview?(previewTools?<aside className="parent-preview-tools"><div><strong>管理者プレビュー</strong><small>確認する生徒を選択してください</small></div><select value={student} onChange={e=>setStudent(e.target.value)}>{data.children.map(item=><option key={item.key} value={item.key}>{item.name}（{gradeLabel(item.grade)}）</option>)}</select><button onClick={()=>setPreviewTools(false)}>選択欄を隠す</button></aside>:<button className="parent-preview-restore" onClick={()=>setPreviewTools(true)}>生徒を変更</button>):<nav className="parent-child-switch">{data.children.map(item=><button key={item.key} className={student===item.key?'active':''} onClick={()=>setStudent(item.key)}>{item.name}<small>{gradeLabel(item.grade)}</small></button>)}</nav>}
       <nav className="parent-tabs" aria-label="ページ内メニュー"><a href="#homework">宿題</a><a href="#lessons">授業記録</a><a href="#report">学期レポート</a>{Number(child?.grade)>=7&&<a href="#scores">成績入力</a>}<a href="#calendar">カレンダー</a><a href="#news">お知らせ{portal&&unreadCount(filterPortal(portal,child))>0?<b>{unreadCount(filterPortal(portal,child))}</b>:''}</a></nav>
       <ParentOverview child={child} lessons={lessons} portal={portal} submission={data.submissionStatus?.[child?.key?.replace(/^(user|elementary)_/,'')]} busy={busy}/>
+      <ParentRecent child={child} lessons={lessons} busy={busy}/>
       <div id="homework"><HomeworkRecords child={child} homework={lessons?.homework} busy={busy}/></div>
       <div id="lessons"><LessonRecords child={child} lessons={lessons} busy={busy||moreBusy} more={more}/></div>
       <div id="report"><TermReport child={child} report={report} term={term} setTerm={setTerm} busy={busy||reportBusy}/></div>
@@ -63,6 +65,15 @@ const homeworkStatus = { submitted:'すべて提出', partial:'一部未完了',
 const readKey=()=>`parent-portal-read:${auth.currentUser?.uid||'signed-out'}`;
 const unreadCount=portal=>{let read=[];if(typeof window!=='undefined')try{read=JSON.parse(localStorage.getItem(readKey())||'[]')}catch{}return [...(portal?.announcements||[]),...(portal?.documents||[])].filter(item=>!read.includes(item.id)).length};
 const filterPortal=(portal,child)=>{const visible=item=>item.targetType==='all'||!item.targetType||item.targetType==='elementary'&&Number(child?.grade)<=6||item.targetType==='middle'&&Number(child?.grade)>=7&&Number(child?.grade)<=9||item.targetType==='grade'&&String(child?.grade)===String(item.targetValue)||item.targetType==='student'&&String(item.targetValue).split(',').map(value=>value.trim()).some(value=>value===child?.key||value===child?.key?.replace(/^user_/,''));return {...portal,announcements:(portal?.announcements||[]).filter(visible),documents:(portal?.documents||[]).filter(visible)}};
+function ParentRecent({child,lessons,busy}) {
+  const latest=lessons?.lessons?.[0];
+  if (busy && !lessons) return <section className="parent-recent" aria-busy="true"><h2>最近の授業</h2><p>授業の様子を読み込み中です…</p></section>;
+  if (!latest) return null;
+  const reviewed=latest.reviewedHomework?.[0];
+  const homework=reviewed?.review?.text || homeworkStatus[latest.homework] || '記録なし';
+  const word=latest.wordTest && ['completed','makeup'].includes(latest.wordTest.status) ? `${latest.wordTest.correct} / ${latest.wordTest.total}問` : '今回は実施なし';
+  return <section className="parent-recent"><div className="parent-section-heading"><div><small>RECENT LESSON</small><h2>最近の授業</h2></div><span>{latest.date.replaceAll('-',' / ')}</span></div><div className="parent-recent-grid"><div><span>出席</span><strong>{attendanceLabel[latest.attendance]||'記録なし'}</strong></div><div><span>前回の宿題</span><strong>{homework}</strong></div>{Number(child?.grade)>=7&&<div><span>単語テスト</span><strong>{word}</strong></div>}</div>{latest.comments?.[0]?.text&&<p className="parent-recent-comment">講師からの報告：{latest.comments[0].text}</p>}<a href="#lessons">授業日の詳しい記録を見る →</a></section>;
+}
 function ParentOverview({child,lessons,portal,submission,busy}) {
   portal=filterPortal(portal,child);const homework=lessons?.homework||[], pending=homework.filter(item=>!item.review||['pending','absent'].includes(item.review.status)), latest=lessons?.lessons?.[0], unread=portal?unreadCount(portal):0;
   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo'}).format(new Date()), nextDate=(portal?.teachingDates||[]).find(value=>value>=today);

@@ -1,0 +1,48 @@
+.lesson-hub {
+  max-width: 1500px;
+  padding: 28px clamp(18px, 2.5vw, 34px) 70px;
+  color: var(--brand-ink);
+}
+
+.lesson-hub > header h1 { font-size: 28px; letter-spacing: -.035em; }
+.lesson-hub > header p { margin: 6px 0 0; font-size: 13px; }
+.lesson-hub-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 18;
+  gap: 4px;
+  margin: 16px 0;
+  padding: 5px;
+  background: #fff;
+  border: 1px solid var(--staff-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 22px rgba(26,43,75,.06);
+}
+.lesson-hub-tabs button,
+.lesson-hub-tabs a { min-height: 40px; padding: 8px 12px; border: 0; border-radius: 8px; font-size: 13px; }
+.lesson-hub-tabs button[aria-pressed=true] { color: var(--staff-primary); background: var(--staff-primary-soft); border: 0; }
+.lesson-hub-tabs a { margin-left: auto; color: #52627b; background: transparent; }
+.lesson-hub .lesson-page { min-height: 0; }
+.lesson-hub .student-picker,
+.lesson-hub .record-panel { border-color: var(--staff-border); border-radius: 15px; box-shadow: 0 4px 14px rgba(34,52,87,.04); }
+.lesson-hub .student-list button.active,
+.lesson-hub .choice-grid button.selected { color: var(--staff-primary); background: var(--staff-primary-soft); border-color: #b8caf1; }
+.lesson-hub .record-panel fieldset { border-color: var(--staff-border); }
+.lesson-hub .record-save { background: var(--staff-primary); }
+
+@media (min-width: 1050px) {
+  .lesson-hub .lesson-layout { grid-template-columns: minmax(255px, 300px) minmax(0, 1fr); align-items: start; }
+  .lesson-hub .student-picker { position: sticky; top: 78px; max-height: calc(100dvh - 94px); overflow: auto; }
+  .lesson-hub .picker-heading { align-items: stretch; flex-direction: column; }
+  .lesson-hub .picker-filters { grid-template-columns: 1fr; }
+  .lesson-hub .student-list { flex-direction: column; max-height: calc(100dvh - 335px); overflow-x: hidden; overflow-y: auto; }
+  .lesson-hub .student-list button { flex: none; width: 100%; min-height: 43px; }
+  .lesson-hub .record-panel { min-width: 0; }
+  .lesson-hub .record-panel .record-save { position: sticky; bottom: 12px; z-index: 8; box-shadow: 0 10px 24px rgba(35,66,145,.22); }
+}
+
+@media (max-width: 700px) {
+  .lesson-hub { padding: 16px 10px 70px; }
+  .lesson-hub-tabs { position: static; }
+  .lesson-hub-tabs button,.lesson-hub-tabs a { flex: 1 1 45%; text-align: center; }
+}

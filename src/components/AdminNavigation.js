@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import "./admin-navigation.css";
 
@@ -28,6 +28,8 @@ export default function AdminNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef(null);
 
   useEffect(() => {
     setOpen(false);
@@ -42,9 +44,20 @@ export default function AdminNavigation() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [open]);
 
+  useEffect(() => {
+    const focusSearch = (event) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey ||
+        event.target instanceof HTMLElement && event.target.closest("input, textarea, select, [contenteditable]")) return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
+
   const navigate = (path) => {
     setOpen(false);
-    if (path !== pathname) window.location.assign(path);
+    if (path !== pathname) router.push(path);
   };
 
   const currentTitle =
@@ -64,11 +77,15 @@ export default function AdminNavigation() {
         </div>
       </div>
 
+      <label className="admin-nav-search">
+        <span>機能を探す</span>
+        <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="例：宿題、成績、設定  ／" aria-label="管理機能を検索" />
+      </label>
       <nav className="admin-nav">
         {groups.map((group) => (
           <section key={group.label}>
             <p>{group.label}</p>
-            {group.items.map((item) => {
+            {group.items.filter((item) => `${item.label} ${item.path}`.toLowerCase().includes(query.trim().toLowerCase())).map((item) => {
               const active = item.exact
                 ? pathname === item.path
                 : pathname === item.path || pathname.startsWith(`${item.path}/`);
@@ -87,6 +104,7 @@ export default function AdminNavigation() {
             })}
           </section>
         ))}
+        {query && !groups.some((group) => group.items.some((item) => `${item.label} ${item.path}`.toLowerCase().includes(query.trim().toLowerCase()))) && <p className="admin-nav-empty">該当する機能はありません。</p>}
       </nav>
 
       <div className="admin-student-switch">

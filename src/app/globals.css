@@ -5,6 +5,15 @@
 }
 
 :root {
+  --brand-ink: #24324a;
+  --brand-primary: #5b64d8;
+  --brand-primary-soft: #eaedff;
+  --staff-primary: #385bbd;
+  --staff-primary-soft: #e8eefc;
+  --staff-canvas: #f4f7fb;
+  --staff-border: #d9e1ec;
+  --customer-canvas: #f7f9fd;
+  --customer-border: #e3e9f2;
   --surface: #ffffff;
   --surface-muted: #f8fafc;
   --text: #0f172a;
@@ -15,9 +24,9 @@
   --radius-md: 14px;
   --radius-lg: 22px;
   --shadow-card: 0 12px 32px rgba(15, 23, 42, 0.08);
-  --student-bg: #f5f7fc;
-  --student-primary: #6d63df;
-  --student-primary-soft: #eeecff;
+  --student-bg: var(--customer-canvas);
+  --student-primary: var(--brand-primary);
+  --student-primary-soft: var(--brand-primary-soft);
   --student-success: #169b77;
   --student-warning: #ef8b45;
   --student-text: #29324a;
@@ -57,6 +66,8 @@ button {
   min-height: 44px;
   touch-action: manipulation;
 }
+
+button:disabled { cursor: not-allowed; }
 
 button:focus-visible,
 a:focus-visible,

@@ -1,0 +1,23 @@
+@media screen {
+  .admin-app-content :is(.score-hub,.study-hub,.rewards-hub,.course-page,.students-page,.aph-page) { color: var(--brand-ink); }
+  .admin-app-content :is(.score-hub,.study-hub,.rewards-hub) { padding: 26px clamp(20px,2.5vw,36px) 72px; }
+  .admin-app-content :is(.score-hub-header,.study-hub-header,.rewards-hub-header) h1 { margin: 5px 0; color: var(--brand-ink); font-size: clamp(27px,3vw,34px); }
+  .admin-app-content :is(.score-hub-header,.study-hub-header,.rewards-hub-header) p { color: #61718a; font-size: 13px; line-height: 1.55; }
+  .admin-app-content :is(.score-hub-tabs,.study-hub-tabs,.rewards-hub-tabs) { gap: 4px; padding: 5px; background: #fff; border: 1px solid var(--staff-border); border-radius: 12px; box-shadow: 0 5px 18px rgba(30,49,84,.045); }
+  .admin-app-content :is(.score-hub-tabs,.study-hub-tabs,.rewards-hub-tabs) button { min-height: 48px; padding: 8px 12px; border-radius: 8px; }
+  .admin-app-content :is(.score-hub-tabs,.study-hub-tabs,.rewards-hub-tabs) button.active { color: var(--staff-primary); background: var(--staff-primary-soft); border-color: #bfcef0; box-shadow: none; }
+  .admin-app-content :is(.score-hub-tabs,.study-hub-tabs,.rewards-hub-tabs) button small { color: #66768d; }
+  .admin-app-content :is(.submission-manager,.score-submissions,.students-toolbar,.students-list-panel,.student-detail-panel) { border-color: var(--staff-border); border-radius: 13px; box-shadow: 0 4px 14px rgba(34,52,87,.045); }
+  .admin-app-content .students-toolbar { gap: 8px; padding: 12px; }
+  .admin-app-content .student-row { min-height: 58px; padding-block: 10px; }
+  .admin-app-content .student-row:hover { background: #f3f7fd; }
+  .admin-app-content .student-row[aria-selected=true],
+  .admin-app-content .student-row.active { background: var(--staff-primary-soft); }
+  .admin-app-content .list-heading span { color: var(--staff-primary); background: var(--staff-primary-soft); }
+  .admin-app-content :is(.course-tabs,.attendance-tabs,.student-type-tabs) button.active { color: var(--staff-primary); background: var(--staff-primary-soft); }
+}
+
+@media screen and (max-width: 850px) {
+  .admin-app-content :is(.score-hub,.study-hub,.rewards-hub) { padding: 17px 12px 65px; }
+  .admin-app-content :is(.score-hub-tabs,.study-hub-tabs,.rewards-hub-tabs) button small { display: none; }
+}

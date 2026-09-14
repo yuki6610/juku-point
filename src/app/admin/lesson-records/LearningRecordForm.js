@@ -39,7 +39,7 @@ const today = () => {
 const gradeLabel = studentGradeLabel;
 
 
-export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyChange = () => {} }) {
+export default function LearningRecordForm({ isDirty = false, onDirtyChange = () => {}, onBusyChange = () => {} }) {
   const params = useSearchParams();
   const academic = useAcademicContext();
   const currentYear = new Date().getFullYear();
@@ -67,6 +67,12 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
   const [commentIds, setCommentIds] = useState([]);
   const loadVersion = useRef(0);
   const [notice, setNotice] = useState("");
+  const confirmSwitch = () => {
+    if (saving) return false;
+    if (isDirty && !window.confirm('未保存の入力があります。内容を破棄して切り替えますか？')) return false;
+    onDirtyChange(false);
+    return true;
+  };
 
   const termId = `${academicYear}_${term}`;
   useEffect(() => {
@@ -289,12 +295,12 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
           <p>出欠・宿題・単語テスト・生活態度を学期単位で記録します。</p>
         </div>
         <div className="term-controls">
-          <select disabled={saving} value={academicYear} onChange={(e) => { setRecordReady(false); setAcademicYear(Number(e.target.value)); }}>
+          <select disabled={saving} value={academicYear} onChange={(e) => { if (!confirmSwitch()) return; setRecordReady(false); setAcademicYear(Number(e.target.value)); }}>
             {academic.settings.map(item => item.year).sort((a, b) => a - b).map((year) => (
               <option key={year} value={year}>{year}年度</option>
             ))}
           </select>
-          <select disabled={saving} value={term} onChange={(e) => { setRecordReady(false); setTerm(Number(e.target.value)); }}>
+          <select disabled={saving} value={term} onChange={(e) => { if (!confirmSwitch()) return; setRecordReady(false); setTerm(Number(e.target.value)); }}>
             {[1, 2, 3].map((value) => (
               <option key={value} value={value}>{value}学期</option>
             ))}
@@ -304,7 +310,7 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
 
       <section className="lesson-layout">
         <aside className="student-picker">
-          <div className="picker-heading"><div><span>STEP 1</span><h2>授業日と生徒を選択</h2></div><label>授業日<input disabled={saving} type="date" value={date} onChange={(e) => { setRecordReady(false); setDate(e.target.value); }} /></label></div>
+          <div className="picker-heading"><div><span>STEP 1</span><h2>授業日と生徒を選択</h2></div><label>授業日<input disabled={saving} type="date" value={date} onChange={(e) => { if (!confirmSwitch()) return; setRecordReady(false); setDate(e.target.value); }} /></label></div>
           <div className="picker-filters"><input
             type="search"
             placeholder="名前で検索"
@@ -323,7 +329,7 @@ export default function LearningRecordForm({ onDirtyChange = () => {}, onBusyCha
                 key={student.uid}
                 className={studentId === student.uid ? "active" : ""}
                 disabled={saving}
-                onClick={() => { if (studentId !== student.uid) { setRecordReady(false); setStudentId(student.uid); } }}
+                onClick={() => { if (studentId !== student.uid && confirmSwitch()) { setRecordReady(false); setStudentId(student.uid); } }}
               >
                 <strong>{student.realName || student.displayName || "名前未設定"}</strong>
                 <span>{gradeLabel(student.grade)}</span>

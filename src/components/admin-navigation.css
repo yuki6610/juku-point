@@ -3,7 +3,7 @@
   display: grid;
   grid-template-columns: 278px minmax(0, 1fr);
   color: #243047;
-  background: #f6f8fb;
+  background: var(--staff-canvas);
 }
 
 .admin-app-content {
@@ -21,7 +21,7 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 24px 17px 18px;
+  padding: 22px 13px 18px;
   overflow-y: auto;
   background:
     linear-gradient(180deg, rgba(239,247,255,.76), transparent 180px),
@@ -68,8 +68,12 @@
 
 .admin-nav {
   display: grid;
-  gap: 18px;
+  gap: 10px;
 }
+
+.admin-nav-search { display: grid; gap: 6px; margin: 0 3px 16px; color: #61718a; font-size: 11px; font-weight: 800; }
+.admin-nav-search input { width: 100%; min-height: 40px; padding: 8px 11px; color: #23344e; background: #f7f9fc; border: 1px solid var(--staff-border); border-radius: 9px; font-size: 12px; }
+.admin-nav-empty { padding: 10px; color: #61718a; font-size: 12px; }
 
 .admin-nav section > p {
   margin: 0 10px 6px;
@@ -81,16 +85,16 @@
 
 .admin-nav section > button {
   width: 100%;
-  min-height: 46px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 7px 10px;
-  color: #667187;
+  color: #52627b;
   background: transparent;
   border: 0;
   border: 1px solid transparent;
-  border-radius: 12px;
+  border-radius: 9px;
   cursor: pointer;
   text-align: left;
 }
@@ -120,15 +124,15 @@
 }
 
 .admin-nav section > button.active {
-  color: #4f47b4;
-  background: #eeecff;
-  border-color: #dcd7fb;
-  box-shadow: 0 5px 13px rgba(91,82,190,.08);
+  color: var(--staff-primary);
+  background: var(--staff-primary-soft);
+  border-color: #c6d5f4;
+  box-shadow: none;
 }
 
 .admin-nav section > button.active > span {
   color: #fff;
-  background: #7469dc;
+  background: var(--staff-primary);
 }
 
 .admin-student-switch {

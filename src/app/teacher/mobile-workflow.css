@@ -1,0 +1,28 @@
+.teacher-shell { max-width: 980px; color: var(--brand-ink); background: var(--staff-canvas); }
+.teacher-shell > header { margin-bottom: 14px; }
+.teacher-shell > header small,.teacher-student-picker > span,.teacher-flow label > span { color: var(--staff-primary); }
+.teacher-shell h1 { font-size: clamp(25px,3vw,32px); }
+.teacher-shell section,.teacher-flow { gap: 12px; margin: 12px 0; border-color: var(--staff-border); border-radius: 15px; box-shadow: 0 3px 12px rgba(30,49,84,.04); }
+.teacher-flow { grid-template-columns: minmax(160px,.7fr) minmax(0,1.3fr); }
+.teacher-quick-students { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; max-height: 210px; overflow: auto; }
+.teacher-shell .teacher-quick-students button { display: grid; align-content: center; gap: 2px; min-width: 0; min-height: 56px; padding: 8px 11px; text-align: left; background: #f7f9fc; border: 1px solid var(--staff-border); border-radius: 9px; }
+.teacher-quick-students button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.teacher-shell .teacher-quick-students button.selected { color: var(--staff-primary); background: var(--staff-primary-soft); border-color: #9eb6e8; }
+.teacher-shell .teacher-quick-students button.selected small { color: var(--staff-primary); }
+.teacher-empty-students { margin: 5px 0; color: #63728a; font-size: 13px; }
+.teacher-shell .teacher-attendance button.selected { color: #fff; background: var(--staff-primary); border-color: var(--staff-primary); }
+.teacher-shell .teacher-save { background: var(--staff-primary)!important; box-shadow: 0 10px 25px rgba(32,67,145,.22); }
+.teacher-shell .teacher-selected-student { color: var(--staff-primary); background: var(--staff-primary-soft); border-color: #c6d6f3; }
+.teacher-shell .teacher-checks label:has(input:checked) { color: var(--staff-primary); background: var(--staff-primary-soft); border-color: #b5c9ef; }
+
+@media (max-width: 650px) {
+  .teacher-shell { padding: 12px 10px 108px; }
+  .teacher-shell > header h1 { font-size: 24px; }
+  .teacher-shell > header p { margin: 3px 0 0; line-height: 1.45; }
+  .teacher-shell section,.teacher-flow { padding: 15px; }
+  .teacher-flow { grid-template-columns: 1fr; }
+  .teacher-quick-students { grid-template-columns: repeat(2,minmax(0,1fr)); max-height: 196px; }
+  .teacher-daily-status { position: static; }
+  .teacher-selected-student { top: 0; }
+  .teacher-shell .teacher-save { position: fixed; z-index: 25; right: 10px; bottom: max(8px,env(safe-area-inset-bottom)); left: 10px; width: calc(100% - 20px); min-height: 56px!important; }
+}

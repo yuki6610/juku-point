@@ -7,6 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 import AdminNavigation from "../../components/AdminNavigation";
 import "./admin-pages-modern.css";
+import "./staff-system.css";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();

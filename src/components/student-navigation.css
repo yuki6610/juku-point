@@ -28,6 +28,11 @@
 .student-bottom-nav button > span { font-size: 19px; font-weight: 900; line-height: 1; }
 .student-bottom-nav button > small { font-size: 10px; font-weight: 800; }
 .student-bottom-nav button.active { color: #5d52d6; background: #eeecff; }
+.student-bottom-nav { border-color: var(--customer-border); box-shadow: 0 12px 32px rgba(39,50,83,.13); }
+.student-bottom-nav button.active { color: #4651c2; background: var(--brand-primary-soft); }
+.student-bottom-nav button > small { font-size: 11px; }
+.student-menu-grid button { border-color: var(--customer-border); }
+.student-menu-grid button:hover { border-color: #bec8ef; background: #f0f3ff; }
 .student-nav-spacer { height: 82px; }
 
 .student-menu-overlay {

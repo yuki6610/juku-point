@@ -7,6 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebaseConfig";
 import { resetSeason } from "../utils/resetSeason";
 import "./admin.css";
+import "./dashboard-improvements.css";
 
 const menuGroups = [
   {
