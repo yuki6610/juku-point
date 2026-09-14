@@ -51,7 +51,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const [academicYear, setAcademicYear] = useState(currentYear);
   const [term, setTerm] = useState(1);
   const [date, setDate] = useState(today());
-  const [attendance, setAttendance] = useState("");
+  const [attendance, setAttendance] = useState("present");
   const [originalLessonDate, setOriginalLessonDate] = useState("");
   const [homework, setHomework] = useState("none");
   const [wordStatus, setWordStatus] = useState("notScheduled");
@@ -166,7 +166,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
 
   const resetRecordForm = () => {
     setHomeworkReview(null); setCommentIds([]);
-    setAttendance("");
+    setAttendance("present");
     setOriginalLessonDate("");
     setHomework("none");
     setWordStatus("notScheduled");
@@ -202,7 +202,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     const record = middle ? raw : { ...raw.learningRecord, attendance: raw.status, originalLessonDate: raw.originalDate, behaviorNote: raw.learningRecord?.behaviorNote ?? raw.note };
     setHomeworkReview(record.homeworkReview || null);
     setCommentIds(record.commentIds || []);
-    setAttendance(record.attendance || "");
+    setAttendance(record.attendance || "present");
     setOriginalLessonDate(record.originalLessonDate || "");
     setHomework(record.homework || "none");
     setWordStatus(record.wordTest?.status || "notScheduled");
@@ -411,7 +411,6 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
 
               <fieldset>
                 <legend>出席状況</legend>
-                {!attendance && <p className="attendance-hint">未選択です。授業の出欠を確認してから保存してください。</p>}
                 <div className="choice-grid three">
                   {[
                     ["present", "出席"],

@@ -47,7 +47,6 @@
 .lesson-hub .record-panel input:not([type="checkbox"]),
 .lesson-hub .record-panel select,
 .lesson-hub .record-panel textarea { max-width: 100%; box-sizing: border-box; font-size: 15px; }
-.lesson-hub .attendance-hint { margin: 0 0 10px; color: #9a5a13; font-size: 12px; }
 .lesson-hub .next-homework-fieldset > p { margin: 0 0 12px; color: #64748b; font-size: 12px; }
 .lesson-hub .next-homework-row { display: grid; grid-template-columns: minmax(180px, .9fr) minmax(210px, 1.3fr) auto; gap: 9px; align-items: center; margin-bottom: 9px; }
 .lesson-hub .next-homework-row > input,
