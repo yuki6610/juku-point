@@ -7,6 +7,7 @@ import { japanDateId, resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
 import { buildParentTermSummary, publicScore } from '@/lib/parentReport.mjs';
 import { readPublicHomeworkCompatible } from '@/lib/homeworkServer';
 import { mergeParentLessons } from '@/lib/parentLessonCompatibility.mjs';
+import { matchingSubmissionEntries, projectSubmissionStatus } from '@/lib/scoreSubmissionPlan.mjs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
@@ -36,7 +37,11 @@ export async function GET(request) {
     const assignments = (await readPublicHomeworkCompatible(studentKey, 300, through.toISOString().slice(0,10))).filter(item => item.review?.date >= selected.start && item.review?.date <= selected.end);
     let scores = [], submissionStatus = null;
     if (!elementary) { const snapshot = await adminDb.collection('users').doc(id).collection('scores').get(); scores = snapshot.docs.map(doc => publicScore(doc.data(), doc.id)).filter(item => item && item.year === String(selected.year) && item.term === `${selected.term}学期`); }
-    if (!elementary && Number(student.data().grade) >= 7) { const status = await adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(id).get(); submissionStatus = { examReceived: status.data()?.examReceived === true, internalReceived: status.data()?.internalReceived === true }; }
+    if (!elementary && Number(student.data().grade) >= 7) {
+      const [status,calendar,profile]=await Promise.all([adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(id).get(),adminDb.collection('scoreSubmissionCalendars').doc(String(selected.year)).collection('entries').get(),adminDb.collection('studentProfiles').doc(studentKey).get()]);
+      const saved=status.data()||{},entries=matchingSubmissionEntries(calendar.docs.map(doc=>({id:doc.id,...doc.data()})),{grade:student.data().grade,schoolName:profile.data()?.schoolName||''},termId);
+      submissionStatus=projectSubmissionStatus(entries,saved,japanDateId());
+    }
     return Response.json({ terms, currentTermId, selected, summary: buildParentTermSummary([...byDate.values()], assignments), scores, submissionStatus });
   } catch (error) { return Response.json({ error: error.message || '学期レポートを取得できませんでした。' }, { status: error.status || 400 }); }
 }

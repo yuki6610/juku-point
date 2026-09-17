@@ -8,6 +8,14 @@
 .parent-tabs button b { margin-left: 5px; padding: 2px 5px; color: #fff; background: #c05261; border-radius: 999px; font-size: 10px; }
 .parent-tab-panel[hidden] { display: none !important; }
 .parent-tab-panel > section { margin-top: 16px; }
+.parent-score-submission-list { display: grid; gap: 8px; margin: 14px 0; }
+.parent-score-submission-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--customer-border); border-radius: 12px; background: #f8fafc; }
+.parent-score-submission-list article > div { display: grid; gap: 2px; }
+.parent-score-submission-list article small { color: #758399; }
+.parent-score-submission-list article b { padding: 5px 9px; border-radius: 999px; font-size: 11px; }
+.parent-score-submission-list article.received b,.parent-score-submission-list article.legacy b { color: #257153; background: #e9f8f0; }
+.parent-score-submission-list article.missing b { color: #98601c; background: #fff1d7; }
+.parent-score-submission-list article.upcoming b { color: #496789; background: #eaf1f9; }
 .parent-tabs button:focus-visible { outline: 3px solid #a9b4f0; outline-offset: 2px; }
 .parent-tabs a { min-height: 44px; display: grid; place-items: center; }
 .parent-tabs a:focus-visible { outline: 3px solid #a9b4f0; }

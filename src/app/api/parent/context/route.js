@@ -2,6 +2,7 @@ import { adminDb } from '@/lib/firebaseAdmin';
 import { requireParent, linkedChildren } from '@/lib/parentAccess';
 import { readAcademicSettings } from '@/lib/academicCalendarServer';
 import { japanDateId, resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
+import { matchingSubmissionEntries, projectSubmissionStatus } from '@/lib/scoreSubmissionPlan.mjs';
 export const dynamic = 'force-dynamic';
 export async function GET(request) {
   try {
@@ -11,8 +12,9 @@ export async function GET(request) {
     try {
       currentTermId=resolveAcademicTerm(await readAcademicSettings(),japanDateId()).id;
       const ids=children.filter(child=>child.key.startsWith('user_')&&child.grade>=7&&child.grade<=9).map(child=>child.key.slice(5));
-      const snapshots=await Promise.all(ids.map(id=>adminDb.collection('scoreSubmissionTerms').doc(currentTermId).collection('students').doc(id).get()));
-      submissionStatus=Object.fromEntries(snapshots.map((doc,index)=>[ids[index],{examReceived:doc.data()?.examReceived===true,internalReceived:doc.data()?.internalReceived===true}]));
+      const year=currentTermId.split('_')[0],calendar=await adminDb.collection('scoreSubmissionCalendars').doc(year).collection('entries').get(),entries=calendar.docs.map(doc=>({id:doc.id,...doc.data()}));
+      const snapshots=await Promise.all(ids.map(async id=>Promise.all([adminDb.collection('scoreSubmissionTerms').doc(currentTermId).collection('students').doc(id).get(),adminDb.collection('studentProfiles').doc(`user_${id}`).get()])));
+      submissionStatus=Object.fromEntries(snapshots.map(([status,profile],index)=>{const child=children.find(item=>item.key===`user_${ids[index]}`),matched=matchingSubmissionEntries(entries,{grade:child?.grade,schoolName:profile.data()?.schoolName||''},currentTermId);return [ids[index],projectSubmissionStatus(matched,status.data()||{},japanDateId())]}));
     } catch {}
     return Response.json({ parent: { displayName: parent.profile.displayName }, adminPreview: parent.role === 'admin', children, currentTermId, submissionStatus });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 500 }); }
