@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/../firebaseConfig'
 import { getBehaviorSummary } from '@/lib/termCompatibility'
 
@@ -27,24 +26,10 @@ export default function BehaviorSummary({ uid, year, term }) {
 
       setSummary(snap.data())
 
-      if (snap.data().wordTest?.completed > 0) {
-        setAverageWordTestScore(snap.data().wordTest.averageRate || 0)
-        return
-      }
-
-     const userSnap = await getDoc(doc(db, 'users', uid))
-     if (cancelled) return
-
-if (userSnap.exists()) {
-  const data = userSnap.data()
-
-  const total = data.totalWordTestScore || 0
-  const count = data.wordTestCount || 0
-
-  setAverageWordTestScore(
-    count > 0 ? (total / count).toFixed(1) : 0
-  )
-}
+      const word=snap.data().wordTest||{}
+      setAverageWordTestScore(Number(word.totalQuestions)>0
+        ? Math.round((Number(word.totalCorrect||0)/Number(word.totalQuestions))*1000)/10
+        : 0)
     }
 
     load().catch(() => { if (!cancelled) setError('生活態度を取得できませんでした。再読み込みしてください。') })
@@ -84,8 +69,8 @@ if (userSnap.exists()) {
 
         {/* ★ 単語テスト総得点 */}
         <div className="info-card">
-          <div className="info-label">単語テスト平均点</div>
-          <div className="info-value">{averageWordTestScore}</div>
+          <div className="info-label">単語テスト平均正答率</div>
+          <div className="info-value">{averageWordTestScore} %</div>
         </div>
       </div>
     </div>

@@ -63,3 +63,4 @@
   .picker-heading{align-items:stretch;flex-direction:column}.picker-filters{grid-template-columns:1fr 120px}.student-list button{flex-basis:145px}
   .choice-grid.four { grid-template-columns: repeat(2, 1fr); }
 }
+.lesson-report-fields{display:grid;gap:12px}.lesson-report-fields h3,.lesson-report-fields p{margin:0}.lesson-report-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.lesson-report-fields label{display:grid;gap:6px}.lesson-report-preview{padding:14px;border:1px solid #c7d2fe;border-radius:14px;background:#f5f7ff}.lesson-report-preview p{margin-top:6px;line-height:1.7}@media(max-width:800px){.lesson-report-grid{grid-template-columns:1fr 1fr}}

@@ -15,5 +15,8 @@ export function learningFields(record) {
   const completed = ['completed', 'makeup'].includes(status);
   const correct = Number(record.wordTest.correct), total = Number(record.wordTest.total);
   if (completed && (!Number.isInteger(correct) || !Number.isInteger(total) || correct < 0 || total < 1 || correct > total)) throw new Error('単語テストの点数を確認してください。');
-  return { homework, wordTest: { status, correct: completed ? correct : null, total: completed ? total : null }, late: record.late === true, forgot: record.forgot === true, behaviorNote: String(record.behaviorNote || '').trim().slice(0, 5000) };
+  const range = record?.wordTest?.range;
+  const normalizedRange = range && Number.isInteger(Number(range.start)) && Number.isInteger(Number(range.end)) && Number(range.start) > 0 && Number(range.end) >= Number(range.start)
+    ? { start: Number(range.start), end: Number(range.end) } : null;
+  return { homework, wordTest: { status, correct: completed ? correct : null, total: completed ? total : null, ...(normalizedRange ? { range: normalizedRange } : {}) }, late: record.late === true, forgot: record.forgot === true, behaviorNote: String(record.behaviorNote || '').trim().slice(0, 5000), learningContent: String(record.learningContent || '').trim().slice(0, 500), reportFacts: record.reportFacts && typeof record.reportFacts === 'object' ? record.reportFacts : {} };
 }

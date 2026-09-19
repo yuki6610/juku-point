@@ -17,8 +17,11 @@ export async function requireParent(request) {
 export async function linkedChildren(parentUid, adminPreview = false) {
   if (adminPreview) {
     const [users, elementary] = await Promise.all([adminDb.collection('users').get(), adminDb.collection('adminStudents').get()]);
+    const adminKey=`user_${parentUid}`;
     return [...users.docs.map(doc=>({key:`user_${doc.id}`,...doc.data()})),...elementary.docs.map(doc=>({key:`elementary_${doc.id}`,...doc.data()}))]
-      .filter(item=>item.active!==false&&item.enrollmentStatus!=='withdrawn'&&Number(item.grade)<=9).map(item=>item.key);
+      .filter(item=>item.key===adminKey||item.active!==false&&item.enrollmentStatus!=='withdrawn'&&Number(item.grade)<=9)
+      .sort((a,b)=>Number(b.key===adminKey)-Number(a.key===adminKey))
+      .map(item=>item.key);
   }
   const snapshot = await adminDb.collection('parentLinks').doc(parentUid).collection('children').get();
   return snapshot.docs.filter(doc => doc.data().active !== false).map(doc => doc.id);

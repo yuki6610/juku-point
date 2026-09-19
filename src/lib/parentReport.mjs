@@ -3,8 +3,7 @@ export function buildParentTermSummary(records = [], assignments = []) {
   const summary = { lessons: 0, attendance: { present: 0, absent: 0, makeup: 0, late: 0 }, homework: { submitted: 0, partial: 0, missed: 0, absent: 0, total: 0, rate: null }, forgot: 0, wordTest: { count: 0, correct: 0, total: 0, rate: null } };
   records.forEach(record => {
     const attendance = record.attendance || record.status;
-    if (['present','absent','makeup'].includes(attendance)) summary.attendance[attendance] += 1;
-    if (attended(attendance)) summary.lessons += 1;
+    if (['present','absent','makeup'].includes(attendance)) { summary.attendance[attendance] += 1; summary.lessons += 1; }
     if (record.late && attended(attendance)) summary.attendance.late += 1;
     if (record.forgot && attended(attendance)) summary.forgot += 1;
     const word = record.wordTest;
@@ -20,7 +19,8 @@ export function buildParentTermSummary(records = [], assignments = []) {
 }
 
 export function publicScore(data, id) {
-  if (data.type === 'exam') return { id, type: 'exam', year: String(data.year || ''), term: data.term || '', testType: data.testType || '', grade: Number(data.grade || 0), subjects: { ...(data.exam || {}) }, total: Number(data.examTotal || 0) };
-  if (data.type === 'internal') return { id, type: 'internal', year: String(data.year || ''), term: data.term || '', grade: Number(data.grade || 0), main: { ...(data.internalMain || {}) }, sub: { ...(data.internalSub || {}) }, total: Number(data.internalTotal || 0) };
+  const createdAt=data.createdAt?.toMillis?.()||data.createdAt?.seconds*1000||Date.parse(data.createdAt||'')||0;
+  if (data.type === 'exam') return { id, type: 'exam', year: String(data.year || ''), term: data.term || '', testType: data.testType || '', grade: Number(data.grade || 0), subjects: { ...(data.exam || {}) }, total: Number(data.examTotal || 0), converted:Number(data.examConverted || 0), createdAt };
+  if (data.type === 'internal') return { id, type: 'internal', year: String(data.year || ''), term: data.term || '', grade: Number(data.grade || 0), main: { ...(data.internalMain || {}) }, sub: { ...(data.internalSub || {}) }, total: Number(data.internalTotal || 0), createdAt };
   return null;
 }

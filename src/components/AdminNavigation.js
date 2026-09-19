@@ -14,6 +14,7 @@ const groups = [{
       { path: "/admin/study-log", icon: "◷", label: "自習管理", keywords: "入室 退出 GPS" },
       { path: "/admin/students", icon: "◎", label: "生徒管理", keywords: "生徒登録 学年 退塾 ポイント タグ" },
       { path: "/admin/student-notes", icon: "表", label: "生徒メモ", keywords: "教室内メモ 講師メモ" },
+      { path: "/admin/parents", icon: "家", label: "保護者管理", keywords: "保護者 招待 紐付け タグ 配信" },
       { path: "/admin/score", icon: "△", label: "成績・志望校", keywords: "定期テスト 通知表 内申 提出 判定 印刷" },
       { path: "/admin/point-history", icon: "P", label: "ポイント履歴", keywords: "獲得 減点 累計 学期" },
       { path: "/admin/rewards", icon: "◇", label: "景品・交換管理", keywords: "引き渡し ガチャ 在庫 食事券" },

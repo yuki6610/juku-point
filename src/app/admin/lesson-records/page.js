@@ -8,14 +8,15 @@ const LearningRecordForm = dynamic(() => import('./LearningRecordForm'), { loadi
 const Attendance = dynamic(() => import('../lesson-attendance/LessonAttendanceManager'), { loading: () => <p>出欠情報を読み込み中…</p> });
 export default function LessonRecordsPage() {
   const params = useSearchParams();
-  const [tab, setTab] = useState('learning');
+  const [tab, setTab] = useState(params.get('tab') === 'attendance' ? 'attendance' : 'learning');
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (!dirty && !busy) return undefined;
     const beforeUnload = (event) => { if (dirty || busy) { event.preventDefault(); event.returnValue = ''; } };
     const beforeNavigate = (event) => {
-      if (!event.target.closest('.admin-nav button,.admin-student-switch button') || !dirty && !busy) return;
+      const target=event.target instanceof Element?event.target:event.target?.parentElement;
+      if (!target?.closest('.admin-nav button,.admin-student-switch button') || !dirty && !busy) return;
       if (busy || !window.confirm('未保存の入力があります。内容を破棄して移動しますか？')) {
         event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
       } else setDirty(false);
@@ -24,7 +25,7 @@ export default function LessonRecordsPage() {
     document.addEventListener('click', beforeNavigate, true);
     return () => { window.removeEventListener('beforeunload', beforeUnload); document.removeEventListener('click', beforeNavigate, true); };
   }, [dirty, busy]);
-  useEffect(()=>{ if(params.get('student')&&params.get('date')) setTab('learning'); },[params]);
+  useEffect(()=>{ if(params.get('student')&&params.get('date')) setTab('learning'); else if(params.get('tab')==='attendance')setTab('attendance'); },[params]);
   const switchTab = next => {
     if (next === tab || busy) return;
     if (dirty && !window.confirm('未保存の入力があります。内容を破棄して切り替えますか？')) return;

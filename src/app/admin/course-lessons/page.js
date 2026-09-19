@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./course-lessons.css";
+import CourseOperations from './CourseOperations';
 
 const HOMEWORK_MATERIALS = {
   "サミングアップ": ["国語", "数学", "英語", "理科", "社会"],
@@ -274,7 +275,7 @@ export default function CourseLessonsPage() {
 
       {program && tab === "history" && <section className="course-card"><div className="list-toolbar"><div><h2>確認履歴</h2><p>講習期間中に指示・確認した内容を保存します。</p></div><div><select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}><option value="all">全学年</option><option value="7">中1</option><option value="8">中2</option><option value="9">中3</option></select><select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}><option value="all">全生徒</option>{students.map((item) => <option key={item.uid} value={item.uid}>{studentName(item)}</option>)}</select></div></div><AssignmentList items={history} historyMode /></section>}
       {program && tab === "instruction" && <section className="course-card next-week-separated"><div className="section-heading"><div><span>NEXT WEEK</span><h2>次週の確認予定</h2><p>{formatDate(nextWeek.start)}〜{formatDate(nextWeek.end)}</p></div><strong>{dueNextWeek.length}件</strong></div><div className="next-week-columns"><section><div className="next-week-title homework"><h3>宿題</h3><span>{nextWeekHomework.length}件</span></div><AssignmentList items={nextWeekHomework} /></section><section><div className="next-week-title word"><h3>単語テスト</h3><span>{nextWeekWordTests.length}件</span></div><p className="word-rule">中1：20問　中2：30問　中3：50問</p><AssignmentList items={nextWeekWordTests} /></section></div></section>}
-      {notice && <p className="course-notice" role="status">{notice}</p>}
+      {program&&<CourseOperations programId={programId}/>} {notice && <p className="course-notice" role="status">{notice}</p>}
     </main>
   );
 }

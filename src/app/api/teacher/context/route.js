@@ -15,7 +15,7 @@ export async function GET(request) {
     const weekday = new Date(`${date}T12:00:00+09:00`).getDay();
     const students = [...users.docs.map(doc => ({ key: `user_${doc.id}`, id: doc.id, source: 'user', ...doc.data() })), ...elementary.docs.map(doc => ({ key: `elementary_${doc.id}`, id: doc.id, source: 'elementary', ...doc.data() }))]
       .filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn')
-      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || []; return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), weekdays, scheduled: weekdays.map(Number).includes(weekday), wordTestQuestionCount: Number(data.wordTestQuestionCount || (Number(data.grade) === 7 ? 20 : Number(data.grade) === 8 ? 30 : Number(data.grade) === 9 ? 50 : 20)) }; })
+      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || []; return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), weekdays, scheduled: weekdays.map(Number).includes(weekday), wordTestQuestionCount: Number(data.wordTestQuestionCount || (Number(data.grade) === 7 ? 20 : Number(data.grade) === 8 ? 30 : Number(data.grade) === 9 ? 50 : 20)), wordTestCurrentRange: data.wordTestCurrentRange || null }; })
       .sort((a, b) => a.grade - b.grade || a.name.localeCompare(b.name, 'ja'));
     const settings = await readAcademicSettings();
     const term = resolveAcademicTerm(settings, date);
@@ -30,6 +30,8 @@ export async function GET(request) {
         existingRecord = middle.exists ? middle.data() : common.data()?.learningRecord || common.data() || null;
       } else existingRecord = common.data()?.learningRecord ? { ...common.data(),...common.data().learningRecord } : common.data() || null;
     }
-    return Response.json({ role: staff.role, displayName: staff.profile?.displayName || '管理者', date, weekday, term, students, inputStatus, existingRecord });
+    const selectedProfile = requested ? await adminDb.collection('studentProfiles').doc(requested).get() : null;
+    const guidance = selectedProfile?.exists ? { policy: String(selectedProfile.data().memo || '').slice(0,2000), materials: String(selectedProfile.data().materials || '').slice(0,1000), courseMaterials: String(selectedProfile.data().courseMaterials || '').slice(0,1000) } : null;
+    return Response.json({ role: staff.role, displayName: staff.profile?.displayName || '管理者', date, weekday, term, students, inputStatus, existingRecord, guidance });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }
 }

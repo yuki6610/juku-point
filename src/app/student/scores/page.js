@@ -16,26 +16,12 @@ import {
 import { db } from "@/../firebaseConfig";
 import { useAcademicContext } from "@/lib/useAcademicContext";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
+import { BASE_TEST_TYPES, PAST_EXAMS, SUMMER_ENTRANCE_PRACTICE } from '@/lib/scoreSubmissionPlan.mjs';
 import "./scores.css";
 
 const GRADES = ["中1", "中2", "中3"];
 
 const TERMS = ["1学期", "2学期", "3学期"];
-const BASE_TEST_TYPES = [
-  "中間",
-  "期末",
-  "春課題実力",
-  "1学期実力",
-  "夏課題実力",
-  "2学期実力",
-  "冬課題実力",
-  "3学期実力",
-];
-const PAST_EXAMS = Array.from({ length: 10 }, (_, index) => `過去問${2016 + index}`);
-const SUMMER_ENTRANCE_PRACTICE = Array.from(
-  { length: 10 },
-  (_, index) => `入試演習問題${index + 1}`,
-);
 const MAIN = ["国語", "社会", "数学", "理科", "英語"];
 const SUB = ["音楽", "美術", "保体", "技家"];
 

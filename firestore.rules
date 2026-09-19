@@ -33,6 +33,7 @@ service cloud.firestore {
     // Admin SDKを使うサーバーAPIはRulesの対象外。講師は専用APIのみを使用する。
     match /admins/{uid} { allow get: if isOwner(uid) || isAdmin(); allow list, write: if isAdmin(); }
     match /teachers/{uid} { allow get: if isOwner(uid) || isAdmin(); allow list, write: if isAdmin(); }
+    match /pendingTeachers/{uid} { allow read, write: if isAdmin(); }
     match /parentAccounts/{uid} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
     match /parentLinks/{parentUid}/children/{studentKey} { allow read: if isOwner(parentUid) || isAdmin(); allow write: if isAdmin(); }
 

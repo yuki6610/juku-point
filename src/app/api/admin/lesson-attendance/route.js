@@ -6,10 +6,19 @@ import { resolveAcademicTerm, japanDateId } from '@/lib/academicCalendar.mjs';
 import { calculateSummary } from '@/lib/behaviorSummary.mjs';
 import { learningFields } from '@/lib/lessonStudents.mjs';
 import { homeworkTemplates, prepareHomeworkReview } from '@/lib/homeworkServer';
+import { homeworkRefs } from '@/lib/homeworkServer';
+import { publicAssignment } from '@/lib/homeworkModel.mjs';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const ATTENDANCE_POINT = 100;
+
+function applyExperienceDelta(user, delta) {
+  let level=Math.max(1,Number(user.level||1)),experience=Math.max(0,Number(user.experience||0)),remaining=Number(delta||0);
+  if(remaining>=0){experience+=remaining;while(level<999&&experience>=100+(level-1)*10){experience-=100+(level-1)*10;level+=1;}return{level,experience};}
+  while(remaining<0){const used=Math.min(experience,-remaining);experience-=used;remaining+=used;if(remaining<0&&level>1){level-=1;experience=100+(level-1)*10;}else break;}
+  return {level,experience:Math.max(0,experience)};
+}
 
 class ApiError extends Error {
   constructor(message, status) { super(message); this.status = status; }
@@ -34,7 +43,7 @@ export async function POST(request) {
     const staff = await requireStaff(request);
     const adminUid = staff.uid;
     const body = await request.json();
-    const templates = body.homeworkReview || Array.isArray(body.commentIds) ? await homeworkTemplates() : null;
+    const templates = body.homeworkReview || Array.isArray(body.commentIds) || body.learningRecord?.reportFacts ? await homeworkTemplates() : null;
     const { action = "save", student, date, status: requestedStatus, originalDate, note = "" } = body;
     const settings = await readAcademicSettings();
     let selectedTerm;
@@ -91,7 +100,7 @@ export async function POST(request) {
       const oldStatus = old.status || old.attendance || (!commonSnap.exists && legacySnap?.exists && legacySnap.data().attended ? "present" : null);
       const oldPresent = oldStatus === "present" || Boolean(legacySnap?.exists && legacySnap.data().attended);
       const nextPresent = action === "save" && status === "present";
-      const pointDelta = isHigh ? (Number(nextPresent) - Number(oldPresent)) * ATTENDANCE_POINT : 0;
+      let pointDelta = isHigh ? (Number(nextPresent) - Number(oldPresent)) * ATTENDANCE_POINT : 0;
       const now = FieldValue.serverTimestamp();
       const oldOriginal = old.originalDate || old.originalLessonDate || null;
       const oldMakeupDate = old.makeupDate || null;
@@ -111,6 +120,25 @@ export async function POST(request) {
         throw new ApiError('この欠席には別の振替が登録されています。先に既存の記録を確認してください。', 409);
       }
 
+      const oldLearning=isMiddle?(middleSnap?.data()||old):(old.learningRecord||old);
+      const rewardWeekId=oldLearning.weekId;
+      const rewardRefs=action==='delete'&&isMiddle&&termId&&rewardWeekId?[
+        userRef.collection('lessonRewards').doc(`${termId}_${date}_homework`),
+        userRef.collection('lessonRewards').doc(`${termId}_${rewardWeekId}_homework_submitted`),
+        userRef.collection('lessonRewards').doc(`${termId}_${date}_homework_missed`),
+        userRef.collection('lessonRewards').doc(`${termId}_${rewardWeekId}_wordtest`),
+      ]:[];
+      const rewardSnaps=await Promise.all(rewardRefs.map(ref=>transaction.get(ref)));
+      const appliedRewards=rewardSnaps.filter(snapshot=>snapshot.exists&&(!snapshot.data().sourceDate||snapshot.data().sourceDate===date));
+      const rewardPointTotal=appliedRewards.reduce((sum,snapshot)=>sum+Number(snapshot.data().amount||0),0);
+      const rewardEarnedTotal=appliedRewards.reduce((sum,snapshot)=>sum+Math.max(0,Number(snapshot.data().amount||0)),0);
+      const rewardHomeworkCount=appliedRewards.some(snapshot=>snapshot.data().type==='homework'&&Number(snapshot.data().amount)>0)?1:0;
+      const wordReward=appliedRewards.find(snapshot=>snapshot.data().type==='wordtest');
+      pointDelta-=rewardPointTotal;
+      const assignmentId=action==='delete'?oldLearning.homeworkReview?.assignmentId:null;
+      const assignmentRefs=assignmentId?homeworkRefs(key,assignmentId):null;
+      const assignmentSnap=assignmentRefs?await transaction.get(assignmentRefs.privateRef):null;
+
       let publication = null;
       if (learningRecord && templates) {
         if (old.learningRecord?.homeworkReview?.assignmentId && old.learningRecord.homeworkReview.assignmentId !== body.homeworkReview?.assignmentId) throw new ApiError('この日の確認対象の宿題セットは変更できません。元のセットを選択してください。', 409);
@@ -126,6 +154,12 @@ export async function POST(request) {
         transaction.set(commonRef, { date, status: null, attendance: null, originalDate: null, originalLessonDate: null, makeupDate: null, makeupCompleted: false, updatedBy: adminUid, updatedAt: now }, { merge: true });
         if (middleRef) transaction.set(middleRef, { attendance: null, originalLessonDate: null, updatedBy: adminUid, updatedAt: now }, { merge: true });
         if (legacyHighRef) transaction.delete(legacyHighRef);
+        transaction.delete(adminDb.collection('lessonPublic').doc(key).collection('records').doc(date));
+        transaction.delete(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key));
+        transaction.delete(adminDb.collection('studentProfiles').doc(key).collection('teacherNotes').doc(date));
+        if(assignmentSnap?.exists&&assignmentSnap.data().review?.date===date){const next={...assignmentSnap.data(),review:null,laterCompletion:null};transaction.set(assignmentRefs.privateRef,{review:null,laterCompletion:null,version:Number(assignmentSnap.data().version||1)+1,updatedBy:adminUid,updatedAt:now},{merge:true});transaction.set(assignmentRefs.publicRef,publicAssignment(next));}
+        rewardRefs.forEach((ref,index)=>{if(rewardSnaps[index]?.exists&&(!rewardSnaps[index].data().sourceDate||rewardSnaps[index].data().sourceDate===date))transaction.delete(ref)});
+        if(isMiddle&&termId&&rewardWeekId){transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${date}_homework`));transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${date}_homework_missed`));transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${rewardWeekId}_wordtest`));}
       } else {
         transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key),{ studentKey:key,date,grade,updatedBy:adminUid,updatedAt:now },{ merge:true });
         if (learningRecord) transaction.set(commonRef, { learningRecord: { ...learningRecord, date, termId, createdBy: old.learningRecord?.createdBy || adminUid, createdAt: old.learningRecord?.createdAt || now, updatedBy: adminUid, updatedAt: now } }, { merge: true });
@@ -161,6 +195,7 @@ export async function POST(request) {
         const data = userSnap.data();
         transaction.update(userRef, { points: Math.max(0, Number(data.points || 0) + pointDelta), ...(termId && termId === currentTermId ? { termPoints: Math.max(0, Number(data.termPoints || 0) + pointDelta) } : {}), totalEarnedPoints: Math.max(0, Number(data.totalEarnedPoints || 0) + pointDelta), classAttendanceCount: Math.max(0, Number(data.classAttendanceCount || 0) + pointDelta / ATTENDANCE_POINT), lastUpdated: now });
       }
+      if(isMiddle&&action==='delete'&&appliedRewards.length){const data=userSnap.data(),nextExp=applyExperienceDelta(data,-rewardPointTotal);transaction.update(userRef,{points:Number(data.points||0)+pointDelta,...(termId===currentTermId?{termPoints:Number(data.termPoints||0)+pointDelta}:{}),totalEarnedPoints:Math.max(0,Number(data.totalEarnedPoints||0)-rewardEarnedTotal),experience:nextExp.experience,level:nextExp.level,homeworkCount:Math.max(0,Number(data.homeworkCount||0)-rewardHomeworkCount),wordTestCount:Math.max(0,Number(data.wordTestCount||0)-Number(Boolean(wordReward?.data().completed))),totalWordTestScore:Math.max(0,Number(data.totalWordTestScore||0)-Number(wordReward?.data().correct||0)),...(termId===currentTermId?{termHomeworkCount:Math.max(0,Number(data.termHomeworkCount||0)-rewardHomeworkCount),termWordTestCount:Math.max(0,Number(data.termWordTestCount||0)-Number(Boolean(wordReward?.data().completed))),termWordScore:Math.max(0,Number(data.termWordScore||0)-Number(wordReward?.data().correct||0))}:{}),lastUpdated:now});}
       if (isHigh) {
         if (nextPresent) transaction.set(historyRef, { type: "classAttendance", amount: ATTENDANCE_POINT, note: `授業出席 (${date})`, sourceDate: date, termId, createdAt: Timestamp.fromDate(new Date(`${date}T12:00:00+09:00`)), recordedAt: now, updatedBy: adminUid }, { merge: true });
         else transaction.delete(historyRef);

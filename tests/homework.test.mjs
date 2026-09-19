@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { DEFAULT_HOMEWORK_TEMPLATES as templates, aggregateItemResults, validateAssignment, validateTemplates, homeworkValue, publicAssignment } from '../src/lib/homeworkModel.mjs';
+import { generateLessonReport } from '../src/lib/lessonReport.mjs';
 
 const assignment = { assignedDate: '2026-09-12', dueDate: '2026-09-19', items: [{ materialId: 'new_math', range: 'P.20〜23' }, { materialId: 'new_english', range: 'P.10〜12' }] };
 test('multiple tasks form one set with fixed material snapshots', () => {
@@ -34,7 +35,7 @@ async function prepare(old = {}, input = {}) {
   const writes = [];
   let seq = 0;
   const ref = path => ({ path, collection: part => ref(`${path}/${part}`), doc: part => ref(`${path}/${part || `audit${++seq}`}`) });
-  const context = { FieldValue: { serverTimestamp: () => 123 }, adminDb: { collection: path => ref(path) }, aggregateItemResults, homeworkValue, publicAssignment, DEFAULT_HOMEWORK_TEMPLATES: templates };
+  const context = { FieldValue: { serverTimestamp: () => 123 }, adminDb: { collection: path => ref(path) }, aggregateItemResults, homeworkValue, publicAssignment, generateLessonReport, DEFAULT_HOMEWORK_TEMPLATES: templates };
   vm.createContext(context);
   vm.runInContext(server.replace(/^import .*\n/gm, '').replaceAll('export ', ''), context);
   const transaction = {

@@ -7,7 +7,7 @@ import './student-notes.css';
 const gradeLabel = value => value <= 6 ? `小${value}` : value <= 9 ? `中${value-6}` : `高${value-9}`;
 const fields = [
   ['schoolName','学校名'],['targetSchool','志望校'],['memo','生徒メモ'],['materials','教材'],
-  ['mockExam','模試'],['courseMaterials','講習教材'],
+  ['courseMaterials','講習教材'],
 ];
 
 export default function StudentNotesPage(){

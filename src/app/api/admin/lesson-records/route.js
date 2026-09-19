@@ -5,6 +5,7 @@ import { readAcademicSettings } from '@/lib/academicCalendarServer';
 import { japanDateId, resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
 import { homeworkTemplates, prepareHomeworkReview } from '@/lib/homeworkServer';
 import { calculateSummary } from '@/lib/behaviorSummary.mjs';
+import { normalizeReportFacts } from '@/lib/lessonReport.mjs';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function POST(request) {
     const body = await request.json();
     const { uid, date, termId, weekId, record } = body;
     assertAssigned(staff, `user_${uid}`, date);
-    const templates = body.homeworkReview || Array.isArray(body.commentIds) ? await homeworkTemplates() : null;
+    const templates = body.homeworkReview || Array.isArray(body.commentIds) || body.record?.reportFacts ? await homeworkTemplates() : null;
     const settings = await readAcademicSettings();
     let selectedTerm;
     let currentTerm;
@@ -74,6 +75,8 @@ export async function POST(request) {
         (!Number.isInteger(correct) || !Number.isInteger(total) || correct < 0 || total <= 0 || correct > total)) {
       throw new ApiError("単語テストの点数が正しくありません。", 400);
     }
+    const wordRange = record?.wordTest?.range;
+    if (wordRange && (!Number.isInteger(Number(wordRange.start)) || !Number.isInteger(Number(wordRange.end)) || Number(wordRange.start) < 1 || Number(wordRange.end) < Number(wordRange.start))) throw new ApiError('単語テストの範囲が正しくありません。', 400);
 
     const userRef = adminDb.collection("users").doc(uid);
     const eventTimestamp = Timestamp.fromDate(new Date(`${date}T12:00:00+09:00`));
@@ -108,8 +111,12 @@ export async function POST(request) {
       const memoRef=adminDb.collection('studentProfiles').doc(`user_${uid}`);
       const memoProfile=await transaction.get(memoRef);
       const now = FieldValue.serverTimestamp();
+      const { reportFacts: rawReportFacts, learningContent: rawLearningContent, ...recordFields } = record;
+      const hasReportInput = Boolean(String(rawLearningContent || '').trim() || Object.keys(rawReportFacts || {}).length);
       const savedRecord = {
-        ...record,
+        ...recordFields,
+        learningContent:hasReportInput ? String(rawLearningContent||'').trim().slice(0,500) : null,
+        reportFacts:hasReportInput ? normalizeReportFacts(rawReportFacts) : null,
         ...(templates ? { homeworkReview: body.homeworkReview || null, commentIds: body.commentIds || [] } : {}),
         ...(publication?.homework ? { homework: publication.homework } : {}),
         date, termId, weekId,
@@ -235,6 +242,7 @@ export async function POST(request) {
         totalWordTestScore: Math.max(0, Number(user.totalWordTestScore || 0) + wordScoreDelta),
         ...(selectedTerm.id===currentTerm.id?{termWordScore:Math.max(0,Number(user.termWordScore||0)+wordScoreDelta),termHomeworkCount:Math.max(0,Number(user.termHomeworkCount||0)+homeworkCountDelta),termWordTestCount:Math.max(0,Number(user.termWordTestCount||0)+wordTestCountDelta)}:{}),
         ...(wordCompleted ? { wordTestQuestionCount: total } : {}),
+        ...(wordCompleted && wordRange ? { wordTestCurrentRange: { start:Number(wordRange.start), end:Number(wordRange.end) } } : {}),
         lastUpdated: now,
       });
       return { rewards, pointDelta, expDelta, levelUps: nextExp.levelUps };

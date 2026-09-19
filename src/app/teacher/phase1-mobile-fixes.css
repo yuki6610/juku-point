@@ -1,0 +1,24 @@
+.teacher-shell,
+.teacher-shell fieldset,
+.teacher-shell section,
+.teacher-shell label,
+.teacher-shell select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.teacher-shell {
+  overflow-x: clip;
+}
+
+.teacher-shell select {
+  width: 100%;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 650px) {
+  .teacher-shell fieldset,
+  .teacher-shell section {
+    contain: inline-size;
+  }
+}

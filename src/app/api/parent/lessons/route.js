@@ -37,7 +37,7 @@ export async function GET(request) {
       snapshots.forEach((snapshot,index)=>snapshot.docs.forEach(doc=>entries.push({id:doc.id,data:doc.data(),source:sources[index][0]})));
       if(mergeParentLessons(entries).size>PAGE_SIZE)break;
     }
-    const homework=await readPublicHomeworkCompatible(studentKey,150,after);
+    const homework=await readPublicHomeworkCompatible(studentKey,500,after);
     const ordered=[...mergeParentLessons(entries).values()].sort((a,b)=>b.date.localeCompare(a.date));
     const page = ordered.slice(0, PAGE_SIZE);
     const lessons = page.map(data => ({ ...data,

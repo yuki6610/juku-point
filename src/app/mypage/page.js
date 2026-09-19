@@ -46,6 +46,7 @@ export default function MyPage() {
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [gachaAccess, setGachaAccess] = useState({ eligible: false, pendingCount: 0 });
   const [examDates, setExamDates] = useState({});
+  const [studentEvents,setStudentEvents]=useState([]);
 
   const [levelUpVisible, setLevelUpVisible] = useState(false);
 
@@ -111,6 +112,7 @@ export default function MyPage() {
       ).then((response) => response.ok ? response.json() : null)
         .then((result) => result && setGachaAccess(result))
         .catch(() => {});
+      currentUser.getIdToken().then(token=>fetch('/api/student/events',{headers:{Authorization:`Bearer ${token}`}})).then(response=>response.ok?response.json():null).then(result=>result&&setStudentEvents(result.items||[])).catch(()=>{});
 
       try {
           // キャッシュを利用できる端末では先に表示し、弱い回線でもホームを開きやすくする。
@@ -290,6 +292,7 @@ export default function MyPage() {
         </div>
       </section>
       {Number(data.grade) === 9 && visibleExams.length>0 && <section className="dashboard-alerts" aria-label="入試までの日数">{visibleExams.map(exam=><div key={exam.id} className="dashboard-alert warning"><strong>{exam.label}まで あと{exam.days}日</strong></div>)}</section>}
+      {studentEvents.length>0&&<section className="dashboard-alerts" aria-label="教室からの予定">{studentEvents.slice(0,3).map(event=><div key={event.id} className="dashboard-alert"><strong>{event.name}</strong><span>{event.startDate.replaceAll('-',' / ')}{event.endDate!==event.startDate?`〜${event.endDate.replaceAll('-',' / ')}`:''}{event.startTime?`　${event.startTime}${event.endTime?`〜${event.endTime}`:''}`:''}</span></div>)}</section>}
 
       <section className="dashboard-stats" aria-label="学習状況">
         <article className="stat-tile">

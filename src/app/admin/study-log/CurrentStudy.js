@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db } from "../../../firebaseConfig";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query, where,
-  runTransaction,
-} from "firebase/firestore";
-import { historyMillis, mapInBatches } from '@/lib/historyCompatibility.mjs';
+import { auth } from "../../../firebaseConfig";
 import "../qr/selfstudy.css";
 
 const gradeLabel = (value) => {
@@ -38,19 +29,11 @@ export default function SelfStudyList() {
     setLoading(true);
     setError('');
     try {
-    const todayId = getTodayId();
-    const users = await getDocs(collection(db, 'users'));
-    const list = await mapInBatches(users.docs, async (student) => {
-      const uid = student.id;
-      const active=await getDocs(query(collection(db,'users',uid,'checkins'),where('currentSessionActive','==',true)));
-      const checkSnap=active.docs.sort((a,b)=>a.id.localeCompare(b.id))[0];
-      if(!checkSnap)return null;
-      if (!checkSnap.exists()) return null;
-      const c = checkSnap.data();
-      if (c.currentSessionActive !== true) return null;
-      const userData = student.data();
-        const enterAt = historyMillis(c.enterAt || c.lastEnterAt);
-
+    const token=await auth.currentUser?.getIdToken();
+    const response=await fetch('/api/admin/study-logs?current=1',{headers:{Authorization:`Bearer ${token}`},cache:'no-store'});
+    const result=await response.json();if(!response.ok)throw new Error(result.error);
+    const list=(result.students||[]).map(student=>{
+        const enterAt=student.enterAt?new Date(student.enterAt).getTime():0;
         const enterTimeText = enterAt ? new Date(enterAt).toLocaleTimeString("ja-JP", {
           timeZone: 'Asia/Tokyo',
           hour: "2-digit",
@@ -58,10 +41,10 @@ export default function SelfStudyList() {
         }) : '時刻不明';
 
         return {
-          uid,
-          date: checkSnap.id,
-          name: userData.realName || userData.displayName || "名前未登録",
-          grade: userData.grade ?? "ー",
+          uid:student.uid,
+          date: student.date,
+          name: student.name,
+          grade: student.grade ?? "ー",
           enterTime: enterTimeText,
         };
     });
@@ -79,21 +62,9 @@ export default function SelfStudyList() {
   async function forceExit(uid, date) {
     setError('');
     try {
-      const ref = doc(db, 'users', uid, 'checkins', date);
-      await runTransaction(db, async (transaction) => {
-        const snap = await transaction.get(ref);
-        if (!snap.exists() || snap.data().currentSessionActive !== true) {
-          throw new Error('既に退出済みか、入室記録がありません。再読み込みしてください。');
-        }
-        const data = snap.data();
-        const enterAt = historyMillis(data.enterAt || data.lastEnterAt);
-        if (!enterAt) throw new Error('入室時刻が取得できません。記録を確認してください。');
-        const now = Date.now();
-        transaction.update(ref, {
-          currentSessionActive: false,
-          sessions: [...(Array.isArray(data.sessions) ? data.sessions : []), { enterAt, exitAt: now, forced: true, minutes: 0 }],
-        });
-      });
+      const token=await auth.currentUser?.getIdToken();
+      const response=await fetch('/api/admin/study-logs',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({action:'force-exit',uid,date})});
+      const result=await response.json();if(!response.ok)throw new Error(result.error);
       alert('強制退出しました（ポイントは付与されません）');
       await loadSelfStudyStudents();
     } catch (error) {

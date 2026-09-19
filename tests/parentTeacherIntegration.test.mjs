@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { mergeParentLessons } from '../src/lib/parentLessonCompatibility.mjs';
 import { buildParentTermSummary } from '../src/lib/parentReport.mjs';
 import { calculateSummary } from '../src/lib/behaviorSummary.mjs';
+import { matchingSubmissionEntries, projectSubmissionStatus } from '../src/lib/scoreSubmissionPlan.mjs';
 
 test('new admin attendance correction wins over stale parent copy without losing comments',()=>{
   const entries=[{id:'2026-09-10',source:'public',data:{attendance:'present',updatedAt:100,comments:[{id:'good',text:'集中できました。'}]}},{id:'2026-09-10',source:'common',data:{status:'absent',updatedAt:200,note:'PRIVATE'}}];
@@ -32,8 +33,8 @@ test('teacher record can update the same summary used by the admin graphs, inclu
 });
 test('parent context only requests and exposes linked children submission status',async()=>{
   const paths=[];const data={'users/alice':{grade:8,realName:'Alice'},'scoreSubmissionTerms/2026_2/students/alice':{examReceived:true}};
-  const ref=path=>({collection:part=>ref(`${path}/${part}`),doc:part=>ref(`${path}/${part}`),get:async()=>{paths.push(path);return {exists:Object.hasOwn(data,path),data:()=>data[path]}}});
-  const context={Response,requireParent:async()=>({uid:'parent',role:'parent',profile:{displayName:'Parent'}}),linkedChildren:async()=>['user_alice'],adminDb:{collection:ref},readAcademicSettings:async()=>[],resolveAcademicTerm:()=>({id:'2026_2'}),japanDateId:()=> '2026-09-13'};
+  const ref=path=>({collection:part=>ref(`${path}/${part}`),doc:part=>ref(`${path}/${part}`),get:async()=>{paths.push(path);if(path==='scoreSubmissionCalendars/2026/entries')return{docs:[]};return {exists:Object.hasOwn(data,path),data:()=>data[path]||{}}}});
+  const context={Response,requireParent:async()=>({uid:'parent',role:'parent',profile:{displayName:'Parent'}}),linkedChildren:async()=>['user_alice'],adminDb:{collection:ref},readAcademicSettings:async()=>[],resolveAcademicTerm:()=>({id:'2026_2'}),japanDateId:()=> '2026-09-13',matchingSubmissionEntries,projectSubmissionStatus};
   vm.createContext(context);vm.runInContext(fs.readFileSync(new URL('../src/app/api/parent/context/route.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replaceAll('export ',''),context);
   const result=await (await context.GET({})).json();assert.deepEqual(Object.keys(result.submissionStatus),['alice']);
   assert.equal(result.submissionStatus.alice.examReceived,true);

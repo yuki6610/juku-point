@@ -6,7 +6,7 @@ export function mergeParentLessons(entries) {
   const rank={legacy:0,public:1,common:2};
   for(const {id,data,source} of [...entries].sort((a,b)=>time(a.data.updatedAt)-time(b.data.updatedAt)||(rank[a.source]||0)-(rank[b.source]||0))) {
     const learning=data.learningRecord||data;
-    const row=rows.get(id)||{date:id,termId:null,attendance:null,late:false,forgot:false,wordTest:null,comments:[],homeworkResult:null};
+    const row=rows.get(id)||{date:id,termId:null,attendance:null,late:false,forgot:false,wordTest:null,comments:[],homeworkResult:null,learningContent:'',lessonReport:null};
     if(data.termId||learning.termId)row.termId=data.termId||learning.termId;
     if(has(data,'status'))row.attendance=data.status;
     else if(has(data,'attendance'))row.attendance=data.attendance;
@@ -16,6 +16,8 @@ export function mergeParentLessons(entries) {
     if(source==='public'){
       row.comments=(data.comments||[]).map(item=>({id:item.id,text:item.text}));
       row.homeworkResult=data.homeworkResult?{status:data.homeworkResult.status,text:data.homeworkResult.text,date:data.homeworkResult.date}:null;
+      row.learningContent=String(data.learningContent||'').slice(0,500);
+      row.lessonReport=data.lessonReport?.text?{version:Number(data.lessonReport.version||1),text:String(data.lessonReport.text).slice(0,1500)}:null;
     }
     rows.set(id,row);
   }

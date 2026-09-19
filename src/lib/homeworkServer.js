@@ -2,6 +2,7 @@ import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { DEFAULT_HOMEWORK_TEMPLATES, aggregateItemResults, homeworkValue, publicAssignment } from './homeworkModel.mjs';
 import { requireStaff } from './staffAccess';
+import { generateLessonReport } from './lessonReport.mjs';
 export async function requireHomeworkUser(request, admin = false) {
   const token = request.headers.get('authorization') || '';
   if (!token.startsWith('Bearer ')) throw new Error('ログインしてください。');
@@ -12,7 +13,9 @@ export async function requireHomeworkUser(request, admin = false) {
 export async function requireHomeworkStaff(request) { return requireStaff(request); }
 export async function homeworkTemplates() {
   const snapshot = await adminDb.collection('admin_data').doc('homeworkTemplates').get();
-  return snapshot.exists ? snapshot.data().templates : DEFAULT_HOMEWORK_TEMPLATES;
+  if (!snapshot.exists) return DEFAULT_HOMEWORK_TEMPLATES;
+  const templates = snapshot.data().templates;
+  return { ...templates, materials: (templates.materials || []).map(item => ({ ...item, subject: item.subject || DEFAULT_HOMEWORK_TEMPLATES.materials.find(value => value.id === item.id)?.subject || 'all' })) };
 }
 export function homeworkRefs(key, id) {
   if (!/^(user|elementary)_[A-Za-z0-9_-]{1,128}$/.test(key) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('生徒または課題IDが正しくありません。');
@@ -86,15 +89,19 @@ export async function prepareHomeworkReview(transaction, { key, date, termId, ui
         transaction.set(payload.privateRef.collection('reviewHistory').doc(), { ...payload.result, updatedBy: uid, updatedAt: now });
       }
       const wordTest = learningRecord.wordTest || {};
+      const hasReportInput = Boolean(String(learningRecord.learningContent || '').trim() || Object.keys(learningRecord.reportFacts || {}).length);
+      const lessonReport = hasReportInput ? generateLessonReport({ facts: learningRecord.reportFacts, learningContent: learningRecord.learningContent, homework: payload?.value || learningRecord.homework, wordTest, late: learningRecord.late, forgot: learningRecord.forgot }) : null;
       transaction.set(lessonRef, {
         date, termId, attendance,
         late: attendance === 'absent' ? false : learningRecord.late === true,
         forgot: attendance === 'absent' ? false : learningRecord.forgot === true,
         wordTest: ['completed', 'makeup'].includes(wordTest.status)
-          ? { status: wordTest.status, correct: Number(wordTest.correct), total: Number(wordTest.total) }
+          ? { status: wordTest.status, correct: Number(wordTest.correct), total: Number(wordTest.total), ...(wordTest.range ? { range: wordTest.range } : {}) }
           : { status: wordTest.status || 'notScheduled' },
         comments: selectedComments,
         homeworkResult: payload?.result || null,
+        learningContent: hasReportInput ? String(learningRecord.learningContent || '').trim().slice(0, 500) : null,
+        lessonReport: hasReportInput ? lessonReport : null,
         updatedAt: now,
       }, { merge: true });
     },

@@ -3,22 +3,16 @@ import { useEffect, useState } from 'react';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 import { auth } from '@/firebaseConfig';
 
-async function api(path = '', options) {
-  const token = await auth.currentUser?.getIdToken();
-  const response = await fetch(`/api/admin/teachers${path}`, { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options?.headers || {}) } });
-  const result = await response.json(); if (!response.ok) throw new Error(result.error); return result;
+async function api(options) {
+  const token=await auth.currentUser?.getIdToken();
+  const response=await fetch('/api/admin/teachers',{...options,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`}});
+  const result=await response.json();if(!response.ok)throw new Error(result.error);return result;
 }
-export default function TeacherManager() {
+export default function TeacherManager(){
   const edits=useUnsavedChanges('.teacher-settings');
-  const [data, setData] = useState(null), [selected, setSelected] = useState(''), [name, setName] = useState(''), [notice, setNotice] = useState(''), [inviteUrl, setInviteUrl] = useState('');
-  const load = () => api().then(setData).catch(error => setNotice(error.message));
-  useEffect(() => { load(); }, []);
-  const teacher = data?.teachers.find(item => item.uid === selected);
-  const create = async () => { try { const token = await auth.currentUser?.getIdToken(); const response = await fetch('/api/admin/invites', { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`}, body:JSON.stringify({role:'teacher',displayName:name}) }); const result=await response.json(); if(!response.ok)throw new Error(result.error); setInviteUrl(result.invite.url); setName(''); setNotice('講師用の招待リンクを発行しました。有効期限は7日間です。'); } catch (error) { setNotice(error.message); } };
-  const save = async () => { try { await api('', { method: 'PATCH', body: JSON.stringify({ uid: teacher.uid, active: teacher.active }) }); edits.markSaved();setNotice('講師アカウントの状態を保存しました。'); await load(); } catch (error) { setNotice(error.message); } };
-  return <section className="teacher-settings"><h2>講師アカウント</h2><p>講師名を入力して招待リンクを発行します。メールアドレスとパスワードは講師本人が登録します。</p>{notice && <p role="status">{notice}</p>}{inviteUrl && <div className="invite-box"><strong>招待リンク（7日間・1回限り）</strong><input readOnly value={inviteUrl}/><button onClick={()=>navigator.clipboard.writeText(inviteUrl).then(()=>setNotice('招待リンクをコピーしました。'))}>リンクをコピー</button></div>}
-    <div className="teacher-create invite-create"><input placeholder="講師名" value={name} onChange={e => setName(e.target.value)} /><button onClick={create}>講師招待を発行</button></div>
-    {data && <><label>登録済み講師<select value={selected} onChange={e => { setSelected(e.target.value); setInviteUrl(''); }}><option value="">選択してください</option>{data.teachers.map(item => <option key={item.uid} value={item.uid}>{item.displayName}{item.active === false ? '（停止中）' : ''}</option>)}</select></label>
-    {teacher && <div><label><input type="checkbox" checked={teacher.active !== false} onChange={e => setData(current => ({ ...current, teachers: current.teachers.map(item => item.uid === selected ? { ...item, active: e.target.checked } : item) }))} />ログインを有効にする</label><button onClick={save}>アカウント状態を保存</button></div>}</>}
-  </section>;
+  const [data,setData]=useState(null),[selected,setSelected]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState('');
+  const load=()=>api().then(setData).catch(error=>setNotice(error.message));useEffect(()=>{load()},[]);
+  const teacher=data?.teachers.find(item=>item.uid===selected);
+  const update=async body=>{setBusy(body.uid);try{await api({method:'PATCH',body:JSON.stringify(body)});edits.markSaved();setNotice(body.action==='approve'?'講師申請を承認しました。':body.action==='reject'?'講師申請を却下しました。':'講師アカウントの状態を保存しました。');await load()}catch(error){setNotice(error.message)}finally{setBusy('')}};
+  return <section className="teacher-settings"><h2>講師アカウント</h2><p>講師本人が講師ログイン画面の「講師アカウントを申請」から登録します。申請内容を確認して承認してください。</p>{notice&&<p role="status">{notice}</p>}{data?.pending?.length>0&&<div className="teacher-pending"><h3>承認待ち</h3>{data.pending.map(item=><article key={item.uid}><div><strong>{item.displayName}</strong><small>{item.email}</small></div><button disabled={busy===item.uid} onClick={()=>update({uid:item.uid,action:'approve'})}>承認</button><button disabled={busy===item.uid} onClick={()=>update({uid:item.uid,action:'reject'})}>却下</button></article>)}</div>}{data&&<><label>登録済み講師<select value={selected} onChange={e=>setSelected(e.target.value)}><option value="">選択してください</option>{data.teachers.map(item=><option key={item.uid} value={item.uid}>{item.displayName}{item.active===false?'（停止中）':''}</option>)}</select></label>{teacher&&<div><label><input type="checkbox" checked={teacher.active!==false} onChange={e=>setData(current=>({...current,teachers:current.teachers.map(item=>item.uid===selected?{...item,active:e.target.checked}:item)}))}/>ログインを有効にする</label><button disabled={busy===teacher.uid} onClick={()=>update({uid:teacher.uid,active:teacher.active})}>アカウント状態を保存</button></div>}</>}</section>;
 }

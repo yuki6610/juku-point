@@ -49,7 +49,9 @@ test('cancel absence preserves completed makeup and homework', async () => {
     [`${lessons}2026-09-11`]: { attendance: 'makeup', homework: 'submitted' },
   });
   assert.equal(result.status, 200);
-  assert.equal(result.writes.some(w => w.action === 'delete'), false);
+  assert.equal(result.writes.some(w => w.action === 'delete' && w.path === `${root}2026-09-11`), false);
+  assert.equal(result.writes.some(w => w.action === 'delete' && w.path === 'lessonPublic/user_student/records/2026-09-10'), true);
+  assert.equal(result.writes.some(w => w.action === 'delete' && w.path === 'dailyLessonInputs/2026-09-10/students/user_student'), true);
   assert.equal(result.writes.find(w => w.path === `${root}2026-09-10`).value.status, null);
   const linked = result.writes.find(w => w.path === `${root}2026-09-11`).value;
   assert.equal(linked.originalDate, null);

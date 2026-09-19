@@ -14,13 +14,16 @@ async function activeStudents() {
 export async function POST(request) {
   try {
     const admin=await requireAdmin(request), body=await request.json(), role=body.role, displayName=String(body.displayName||'').trim();
-    if(!validInviteRole(role)||!displayName) throw new Error('招待の種類と氏名を確認してください。');
+    if(!validInviteRole(role)||role!=='parent'||!displayName) throw new Error('保護者招待の氏名を確認してください。講師は本人申請方式です。');
     const childKeys=role==='parent'?[...new Set((body.childKeys||[]).map(normalizeStudentKey))]:[];
     if(role==='parent'&&!childKeys.length) throw new Error('保護者に紐付ける生徒を1人以上選択してください。');
     const students=await activeStudents(); if(childKeys.some(key=>!students.has(key))) throw new Error('退塾済みまたは存在しない生徒が含まれています。');
     const id=crypto.randomUUID().replaceAll('-',''),secret=newInviteSecret(),now=new Date(),expires=new Date(now.getTime()+7*86400000);
     await adminDb.collection('accountInvites').doc(id).set({role,displayName,childKeys,secretHash:inviteHash(secret),status:'pending',expiresAt:Timestamp.fromDate(expires),createdBy:admin.uid,createdAt:FieldValue.serverTimestamp()});
-    const origin=new URL(request.url).origin;
+    const configured=String(process.env.APP_BASE_URL||'').replace(/\/$/,'');
+    const requestOrigin=new URL(request.url).origin;
+    const origin=configured||(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(requestOrigin)?requestOrigin:'');
+    if(!origin)throw new Error('公開URLが設定されていません。APP_BASE_URLを確認してください。');
     return Response.json({invite:{id,role,displayName,expiresAt:expires.toISOString(),url:`${origin}/invite/${id}#${secret}`}});
   } catch(error){return Response.json({error:error.message},{status:error.status||400});}
 }

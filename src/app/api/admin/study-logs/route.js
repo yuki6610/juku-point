@@ -1,4 +1,5 @@
 import { datedHistoryPage } from "@/lib/datedHistoryServer";
+import { FieldValue } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
@@ -36,6 +37,20 @@ export async function GET(request) {
     await requireAdmin(request);
     const { searchParams } = new URL(request.url);
     const uid = searchParams.get("uid");
+    if (searchParams.get('current') === '1') {
+      const active = await adminDb.collectionGroup('checkins').where('currentSessionActive', '==', true).get();
+      const rows = await Promise.all(active.docs.map(async snapshot => {
+        const uid = snapshot.ref.parent.parent?.id;
+        if (!uid) return null;
+        try {
+          const profile = await adminDb.collection('users').doc(uid).get();
+          if (!profile.exists || profile.data().active === false || profile.data().enrollmentStatus === 'withdrawn') return null;
+          const data = snapshot.data();
+          return { uid, date:snapshot.id, name:profile.data().realName||profile.data().displayName||data.userName||'名前未登録', grade:Number(profile.data().grade||data.grade||0), enterAt:toIso(data.enterAt||data.lastEnterAt) };
+        } catch { return null; }
+      }));
+      return Response.json({ students: rows.filter(Boolean).sort((a,b)=>String(a.enterAt||'').localeCompare(String(b.enterAt||''))) });
+    }
 
     if (!uid) {
       const usersSnap = await adminDb.collection("users").get();
@@ -89,4 +104,15 @@ export async function GET(request) {
       error instanceof ApiError ? error.message : "学習記録を取得できませんでした。";
     return Response.json({ error: message }, { status });
   }
+}
+
+export async function POST(request) {
+  try {
+    await requireAdmin(request);
+    const { action, uid, date } = await request.json();
+    if (action !== 'force-exit' || !/^[A-Za-z0-9_-]{6,128}$/.test(uid||'') || !/^\d{4}-\d{2}-\d{2}$/.test(date||'')) throw new ApiError('操作内容が正しくありません。',400);
+    const ref=adminDb.collection('users').doc(uid).collection('checkins').doc(date);
+    await adminDb.runTransaction(async tx=>{const snap=await tx.get(ref);if(!snap.exists||snap.data().currentSessionActive!==true)throw new ApiError('すでに退出済みか、入室記録がありません。',409);const data=snap.data(),now=Date.now(),enterAt=Number(data.lastEnterAt||data.enterAt||0);tx.update(ref,{currentSessionActive:false,exitAt:now,sessions:[...(Array.isArray(data.sessions)?data.sessions:[]),{enterAt,exitAt:now,forced:true,minutes:0}],updatedAt:FieldValue.serverTimestamp()});});
+    return Response.json({saved:true});
+  } catch(error) { return Response.json({error:error.message||'強制退出できませんでした。'},{status:error.status||500}); }
 }

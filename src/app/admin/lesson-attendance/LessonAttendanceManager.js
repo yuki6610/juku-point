@@ -17,6 +17,7 @@ import {
   startAt,
   endAt,
   updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./lesson-attendance.css";
@@ -576,9 +577,10 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
       const target = student.source === "elementary"
         ? doc(db, "adminStudents", student.id)
         : doc(db, "users", student.id);
+      const previous=(student.lessonSchedule?.weekdays||student.weekdays||[]).map(Number),history={effectiveFrom:todayId(),weekdays:weekdays.map(Number),previousWeekdays:previous,updatedBy:auth.currentUser?.uid||null};
       await updateDoc(target, student.source === "elementary"
-        ? { weekdays, updatedAt: serverTimestamp() }
-        : { lessonSchedule: { ...(student.lessonSchedule || {}), weekdays }, updatedAt: serverTimestamp() });
+        ? { weekdays, lessonScheduleHistory:arrayUnion(history), updatedAt: serverTimestamp() }
+        : { 'lessonSchedule.weekdays':weekdays, 'lessonSchedule.history':arrayUnion(history), updatedAt: serverTimestamp() });
       await loadStudents();
       setScheduleDrafts((current) => { const next = { ...current }; delete next[studentKey(student)]; return next; });
       setNotice("通塾曜日を保存しました。");

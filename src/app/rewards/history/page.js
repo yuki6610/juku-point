@@ -56,10 +56,23 @@ export default function RewardHistory() {
 
   const fetchHistory = async (targetUid) => {
     try {
-      const [page,user]=await Promise.all([fetchHistoryPage(targetUid),getDoc(doc(db,'users',targetUid))]);
-      const old=(user.data()?.rewardHistory||[]).map((item,index)=>({...item,id:`legacy_${index}`}));
-      setLegacy(old);setModern(page.list);setHistory(mergeRewardHistory(page.list,old));
+      const [pageResult,userResult,undatedResult]=await Promise.allSettled([
+        fetchHistoryPage(targetUid),
+        getDoc(doc(db,'users',targetUid)),
+        getAuth().currentUser?.getIdToken().then(async token=>{
+          const response=await fetch('/api/rewards/undated-history',{headers:{Authorization:`Bearer ${token}`},cache:'no-store'});
+          const data=await response.json();if(!response.ok)throw new Error(data.error);return data.items||[];
+        }),
+      ]);
+      const page=pageResult.status==='fulfilled'?pageResult.value:{list:[],last:null,hasNext:false};
+      const user=userResult.status==='fulfilled'?userResult.value:null;
+      const undated=undatedResult.status==='fulfilled'?undatedResult.value:[];
+      if(pageResult.status==='rejected'&&userResult.status==='rejected'&&undatedResult.status==='rejected')throw pageResult.reason;
+      const old=(user?.data?.()?.rewardHistory||[]).map((item,index)=>({...item,id:`legacy_${index}`}));
+      const current=[...new Map([...page.list,...undated].map(item=>[item.id,item])).values()];
+      setLegacy(old);setModern(current);setHistory(mergeRewardHistory(current,old));
       setLastDoc(page.last);setHasMore(page.hasNext);setUsingLegacyHistory(false);
+      setUndatedLoaded(true);
       setVisibleCount(PAGE_SIZE);
     } catch (error) {
       console.error('履歴取得エラー:', error)
@@ -151,7 +164,7 @@ export default function RewardHistory() {
       ) : (
         <div className="history-list">
           {filteredHistory.map((item, index) => (
-            <article className="history-item" key={item.rewardId || `${formatDate(item.date)}-${index}`}>
+              <article className="history-item" key={item.id || `${item.rewardId||item.name}-${historyMillis(item.date||item.createdAt)}-${index}`}>
               <div className="history-icon">◇</div>
               <div className="history-copy">
                 <strong>{item.name}</strong>

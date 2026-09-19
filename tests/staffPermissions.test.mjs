@@ -10,6 +10,8 @@ const homeworkServer = fs.readFileSync(new URL('../src/lib/homeworkServer.js', i
 const authRole = fs.readFileSync(new URL('../src/app/api/auth/role/route.js', import.meta.url), 'utf8');
 const roleLogin = fs.readFileSync(new URL('../src/components/RoleLogin.js', import.meta.url), 'utf8');
 const inviteApi = fs.readFileSync(new URL('../src/app/api/invite/route.js', import.meta.url), 'utf8');
+const teacherRegister = fs.readFileSync(new URL('../src/app/api/teacher/register/route.js', import.meta.url), 'utf8');
+const teacherAdmin = fs.readFileSync(new URL('../src/app/api/admin/teachers/route.js', import.meta.url), 'utf8');
 
 test('teacher selection is daily and no fixed assignment is required', () => {
   assert.doesNotMatch(context, /profile\.assignments|weekdays\.includes/);
@@ -63,4 +65,11 @@ test('account invitations are one-time, expiring and do not store plain secrets'
   assert.match(inviteApi, /timingSafeEqual/);
   assert.match(inviteApi, /status:'claimed'/);
   assert.doesNotMatch(inviteApi, /secret:/);
+});
+
+test('teacher self-registration remains approval-gated', () => {
+  assert.match(teacherRegister, /pendingTeachers/);
+  assert.doesNotMatch(teacherRegister, /collection\('teachers'\).*set/);
+  assert.match(teacherAdmin, /action==='approve'/);
+  assert.match(teacherAdmin, /collection\('teachers'\)/);
 });
