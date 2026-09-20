@@ -22,6 +22,7 @@ import {
 
 import './score.css'
 import { BASE_TEST_TYPES, PAST_EXAMS, SUMMER_ENTRANCE_PRACTICE } from '@/lib/scoreSubmissionPlan.mjs'
+import { availableStudentGrades } from '@/lib/studentFilterOptions.mjs'
 
 const GRADES=['中1','中2','中3']
 const TERMS=['1学期','2学期','3学期']
@@ -52,6 +53,7 @@ export default function ScoreManager() {
   const [saved,setSaved]=useState([])
 
   const [gradeFilter,setGradeFilter]=useState('all')
+  const availableGrades=availableStudentGrades(students)
 
   const [grade,setGrade]=useState('中1')
   const [term,setTerm]=useState('1学期')
@@ -287,9 +289,7 @@ export default function ScoreManager() {
       <div className="student-select-box">
         <select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
           <option value="all">全学年</option>
-          <option value="7">中1</option>
-          <option value="8">中2</option>
-          <option value="9">中3</option>
+          {availableGrades.map(value=><option key={value} value={value}>{gradeLabel(value)}</option>)}
         </select>
 
         <select value={selectedStudentId} onChange={e=>setSelectedStudentId(e.target.value)}>
@@ -297,7 +297,7 @@ export default function ScoreManager() {
 
           {filteredStudents.map(s=>(
             <option key={s.uid} value={s.uid}>
-              {gradeLabel(s.grade)} {s.realName || s.displayName}
+              {s.realName || s.displayName}
             </option>
           ))}
         </select>

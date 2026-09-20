@@ -1,19 +1,21 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { auth } from '@/firebaseConfig';
+import { useAppDialog } from '@/components/AppDialogProvider';
 import './parent-services.css';
 
 const blankUnavailable=()=>({id:crypto.randomUUID(),date:'',startTime:'',endTime:''});
 const labels={applied:'申込済',scheduling:'日程作成中',confirmed:'日程確定',changeRequested:'変更希望を送信済み',cancelled:'取消済み'};
 
 export default function ParentServices({child}){
+  const dialog=useAppDialog();
   const [data,setData]=useState(null),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[choices,setChoices]=useState({}),[unavailable,setUnavailable]=useState({}),[notes,setNotes]=useState({});
   const api=async(options={})=>{const token=await auth.currentUser?.getIdToken(),response=await fetch(`/api/parent/services?student=${encodeURIComponent(child.key)}`,{...options,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`}}),result=await response.json();if(!response.ok)throw new Error(result.error);return result};
   const load=()=>api().then(value=>{setData(value);setUnavailable(Object.fromEntries(value.programs.map(program=>[program.id,value.availability.find(item=>item.programId===program.id)?.entries||[blankUnavailable()]])))}).catch(error=>setNotice(error.message));
   useEffect(()=>{load()},[child.key]);
   const act=async(body,message)=>{setBusy(true);setNotice('');try{await api({method:'POST',body:JSON.stringify({...body,student:child.key})});setNotice(message);await load()}catch(error){setNotice(error.message)}finally{setBusy(false)}};
   const total=(program,choice)=>program.application.mode==='variable'?Number(choice?.lessons||0)*Number(program.application.unitPrice||0):Number(program.application.courses?.find(item=>item.id===choice?.courseId)?.price||0);
-  const apply=program=>{const choice=choices[program.id]||{},setting=program.application,summary=setting.mode==='variable'?`${choice.lessons||0}回・${total(program,choice).toLocaleString()}円`:`${setting.courses?.find(item=>item.id===choice.courseId)?.name||'未選択'}・${total(program,choice).toLocaleString()}円`;if(!confirm(`${program.name}\n${summary}\nこの内容で申し込みますか？`))return;act({action:'applyCourse',programId:program.id,...choice},'講習を申し込みました。')};
+  const apply=async program=>{const choice=choices[program.id]||{},setting=program.application,summary=setting.mode==='variable'?`${choice.lessons||0}回・${total(program,choice).toLocaleString()}円`:`${setting.courses?.find(item=>item.id===choice.courseId)?.name||'未選択'}・${total(program,choice).toLocaleString()}円`;if(!await dialog.confirm({title:'講習申込の確認',message:`${program.name}\n${summary}\nこの内容で申し込みますか？`,confirmLabel:'申し込む'}))return;act({action:'applyCourse',programId:program.id,...choice},'講習を申し込みました。')};
   const openCoursePdf=async program=>{const tab=window.open('','_blank');try{const response=await fetch(`/api/parent/course-document/${encodeURIComponent(program.id)}?student=${encodeURIComponent(child.key)}`,{headers:{Authorization:`Bearer ${await auth.currentUser?.getIdToken()}`}});if(!response.ok)throw new Error('講習案内を開けませんでした。');const url=URL.createObjectURL(await response.blob());if(tab)tab.location.href=url;setTimeout(()=>URL.revokeObjectURL(url),60000)}catch(error){tab?.close();setNotice(error.message)}};
   const periods=data?.periods||[],slots=data?.slots||[],applications=data?.applications||[],sessions=data?.sessions||[],assignments=data?.assignments||[];
   const grouped=useMemo(()=>Object.fromEntries(periods.map(period=>[period.id,slots.filter(slot=>slot.periodId===period.id).sort((a,b)=>`${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`))])),[periods,slots]);

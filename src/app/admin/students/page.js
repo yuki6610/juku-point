@@ -19,16 +19,7 @@ import { useAcademicContext } from '@/lib/useAcademicContext';
 import './students.css';
 import './enrollment.css';
 import ElementaryStudentManager from './ElementaryStudentManager';
-
-const GRADES = [
-  { value: 'ALL', label: '全員' },
-  { value: '7', label: '中1' },
-  { value: '8', label: '中2' },
-  { value: '9', label: '中3' },
-  { value: '10', label: '高1' },
-  { value: '11', label: '高2' },
-  { value: '12', label: '高3' },
-];
+import { availableStudentGrades } from '@/lib/studentFilterOptions.mjs';
 
 const STATUS_FILTERS = [
   { value: 'active', label: '在籍中' },
@@ -107,8 +98,6 @@ export default function StudentsPage() {
   const [filterGrade, setFilterGrade] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('active');
   const [sortKey, setSortKey] = useState('grade');
-  const [search, setSearch] = useState('');
-  const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
@@ -123,6 +112,7 @@ export default function StudentsPage() {
     () => students.find((student) => student.uid === selectedStudentId) || null,
     [students, selectedStudentId]
   );
+  const availableGrades = useMemo(() => availableStudentGrades(students), [students]);
 
   const updateLocalStudent = (uid, patch) => {
     setStudents((prev) =>
@@ -180,7 +170,6 @@ export default function StudentsPage() {
   }, [students]);
 
   const filteredStudents = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
     const filtered = students.filter((student) => {
       if (filterGrade !== 'ALL' && Number(student.grade) !== Number(filterGrade)) return false;
       const isWithdrawn = student.active === false || student.enrollmentStatus === 'withdrawn';
@@ -189,13 +178,10 @@ export default function StudentsPage() {
       if (statusFilter === 'attention' && !student.isBanned && Number(student.yellowCard || 0) === 0) return false;
       if (statusFilter === 'banned' && !student.isBanned) return false;
       if (statusFilter === 'course' && !(student.courseTags || []).length) return false;
-      if (!keyword) return true;
-      return `${displayName(student)} ${student.displayName || ''} ${student.uid}`
-        .toLowerCase()
-        .includes(keyword);
+      return true;
     });
     return sortStudents(filtered, sortKey);
-  }, [students, filterGrade, statusFilter, search, sortKey]);
+  }, [students, filterGrade, statusFilter, sortKey]);
 
   useEffect(() => {
     if (filteredStudents.length === 0) {
@@ -407,21 +393,6 @@ export default function StudentsPage() {
     }
   };
 
-  const toggleCourseTag = async (tag) => {
-    if (!selectedStudent) return;
-    const current = selectedStudent.courseTags || [];
-    const updated = current.includes(tag)
-      ? current.filter((value) => value !== tag)
-      : [...current, tag];
-
-    await updateDoc(doc(db, 'users', selectedStudent.uid), {
-      courseTags: updated,
-      updatedAt: serverTimestamp(),
-    });
-
-    updateLocalStudent(selectedStudent.uid, { courseTags: updated });
-  };
-
   if (loading) return <div className="students-loading">読み込み中...</div>;
 
   return (
@@ -430,7 +401,7 @@ export default function StudentsPage() {
         <div>
           <span>STUDENT CONTROL</span>
           <h1>生徒管理</h1>
-          <p>検索、状態確認、ポイント調整、講習タグ設定をこの画面でまとめて行います。</p>
+          <p>在籍状態、ポイント、規律情報を確認・編集します。タグ操作は「タグ一括管理」で行います。</p>
         </div>
         <div className="students-head-actions"><button className="refresh-button" onClick={()=>router.push('/admin/student-notes')}>表形式の生徒メモ</button><button className="refresh-button" onClick={loadStudents}>最新に更新</button></div>
       </header>
@@ -454,20 +425,11 @@ export default function StudentsPage() {
       {studentType === 'elementary' ? <ElementaryStudentManager onNotice={setNotice} /> : <>
 
       <section className="students-toolbar">
-        <label className="search-box">
-          <span>名前検索</span>
-          <input
-            type="search"
-            placeholder="氏名・表示名・UIDで検索"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
-
         <label>
           学年
           <select value={filterGrade} onChange={(event) => setFilterGrade(event.target.value)}>
-            {GRADES.map((grade) => <option key={grade.value} value={grade.value}>{grade.label}</option>)}
+            <option value="ALL">全員</option>
+            {availableGrades.map((value) => <option key={value} value={value}>{gradeLabel(value)}</option>)}
           </select>
         </label>
 
@@ -621,7 +583,7 @@ export default function StudentsPage() {
               </section>
 
               <section className="detail-actions">
-                <h3>規律・対象タグ</h3>
+                <h3>規律・対象情報</h3>
                 <div className="action-grid">
                   <button onClick={() => addYellowCard(selectedStudent.uid, selectedStudent.yellowCard)}>⚠ 注意 +1</button>
                   <button onClick={() => resetYellowCard(selectedStudent.uid)}>注意リセット</button>
@@ -630,7 +592,6 @@ export default function StudentsPage() {
                   ) : (
                     <button className="danger" onClick={() => banStudent(selectedStudent.uid)}>7日間出禁</button>
                   )}
-                  <button onClick={() => setCourseModalOpen(true)}>講習・入試タグを編集</button>
                 </div>
 
                 <div className="course-tags">
@@ -639,6 +600,7 @@ export default function StudentsPage() {
                   ) : selectedStudent.courseTags.map((tag) => (
                     <span key={tag}>{courseTagLabel[tag] || tag}</span>
                   ))}
+                  <button type="button" onClick={()=>router.push('/admin/tags')}>タグ一括管理を開く</button>
                 </div>
               </section>
 
@@ -668,28 +630,6 @@ export default function StudentsPage() {
       </section>
       </>}
 
-      {courseModalOpen && selectedStudent && (
-        <div className="students-modal-overlay" onClick={() => setCourseModalOpen(false)}>
-          <div className="students-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-title">
-              <span>{gradeLabel(selectedStudent.grade)}</span>
-              <h2>{displayName(selectedStudent)} の講習・入試タグ</h2>
-            </div>
-            {Object.keys(courseTagLabel).map((tag) => (
-              <button
-                type="button"
-                key={tag}
-                className={(selectedStudent.courseTags || []).includes(tag) ? 'course-tag-btn active' : 'course-tag-btn'}
-                disabled={tag.startsWith('exam_') && Number(selectedStudent.grade) !== 9}
-                onClick={() => toggleCourseTag(tag)}
-              >
-                {courseTagLabel[tag]}
-              </button>
-            ))}
-            <button className="modal-close" onClick={() => setCourseModalOpen(false)}>閉じる</button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

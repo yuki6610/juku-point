@@ -17,11 +17,11 @@ import '../judge/judge.css'
 
 import ScoreBreakdown from '@/components/ScoreBreakdown'
 import BehaviorSummary from '@/components/BehaviorSummary'
+import { availableStudentGrades } from '@/lib/studentFilterOptions.mjs'
 
 /* =====================
    定数
 ===================== */
-const GRADE_OPTIONS = ['全学年','中1','中2','中3']
 const TERMS = ['1学期','2学期','3学期']
 
 const gradeLabel = g => g>=7 && g<=9 ? `中${g-6}` : '不明'
@@ -49,6 +49,7 @@ export default function AdminJudgePage(){
   const [loading,setLoading]=useState(true)
 
   const [students,setStudents]=useState([])
+  const availableGrades=availableStudentGrades(students)
   const [gradeFilter,setGradeFilter]=useState('全学年')
   const [selectedStudentId,setSelectedStudentId]=useState('')
   const [selectedStudent,setSelectedStudent]=useState(null)
@@ -211,7 +212,7 @@ export default function AdminJudgePage(){
 
         <div className="judge-filters no-print">
           <label>学年<select value={gradeFilter} onChange={e=>setGradeFilter(e.target.value)}>
-            {GRADE_OPTIONS.map(g=><option key={g}>{g}</option>)}
+            <option>全学年</option>{availableGrades.map(value=><option key={value}>{gradeLabel(value)}</option>)}
           </select></label>
 
           <label>年度<select value={year} onChange={e=>setYear(e.target.value)}>

@@ -1,6 +1,8 @@
 import "./globals.css";
 import "./customer-experience.css";
 import StudentNavigation from "../components/StudentNavigation";
+import PwaRegistration from "../components/PwaRegistration";
+import { AppDialogProvider } from "../components/AppDialogProvider";
 
 export const metadata = {
   title: "塾ポイントアプリ",
@@ -26,8 +28,11 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body>
-        <div className="app-container">{children}</div>
-        <StudentNavigation />
+        <AppDialogProvider>
+          <div className="app-container">{children}</div>
+          <StudentNavigation />
+          <PwaRegistration />
+        </AppDialogProvider>
       </body>
     </html>
   );

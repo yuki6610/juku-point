@@ -120,7 +120,6 @@ export default function RewardsPage() {
     const [filteredRewards, setFilteredRewards] = useState([])
     const [categories, setCategories] = useState([])
     const [selectedCategory, setSelectedCategory] = useState('')
-    const [searchTerm, setSearchTerm] = useState('')
     const [showAffordableOnly, setShowAffordableOnly] = useState(false)
     const [sortOrder, setSortOrder] = useState('asc')
     const [points, setPoints] = useState(0)
@@ -207,17 +206,12 @@ export default function RewardsPage() {
                 result = result.filter((r) => (r.category || 'その他') === selectedCategory)
             }
         }
-        if (searchTerm.trim() !== '') {
-            result = result.filter((r) =>
-                                   r.name.toLowerCase().includes(searchTerm.toLowerCase())
-                                   )
-        }
         if (showAffordableOnly) {
             result = result.filter((r) => r.cost <= points)
         }
         result.sort((a, b) => (sortOrder === 'asc' ? a.cost - b.cost : b.cost - a.cost))
         setFilteredRewards(result)
-    }, [rewards, selectedCategory, searchTerm, showAffordableOnly, sortOrder, points])
+    }, [rewards, selectedCategory, showAffordableOnly, sortOrder, points])
     
     // 🔢 その生徒がその景品を何回交換したか
     const getUsedCount = (reward) =>
@@ -302,14 +296,6 @@ export default function RewardsPage() {
         {/* 🔍 フィルタバー */}
         <section className="reward-controls">
         <div className="filter-bar">
-          <input
-            type="text"
-            placeholder="景品を検索..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
             className="sort-button"

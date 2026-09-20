@@ -5,6 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDoc, getDocs, limit, orderBy, query, startAfter, doc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./point-history.css";
+import { availableStudentGrades } from "@/lib/studentFilterOptions.mjs";
 
 const PAGE_SIZE = 50;
 const gradeLabel = (grade) => ({7:"中1",8:"中2",9:"中3",10:"高1",11:"高2",12:"高3"}[Number(grade)] || "学年未設定");
@@ -32,7 +33,6 @@ export default function AdminPointHistoryPage() {
   const [students,setStudents]=useState([]);
   const [uid,setUid]=useState("");
   const [grade,setGrade]=useState("all");
-  const [search,setSearch]=useState("");
   const [items,setItems]=useState([]);
   const [lastDoc,setLastDoc]=useState(null);
   const [hasMore,setHasMore]=useState(false);
@@ -73,7 +73,8 @@ export default function AdminPointHistoryPage() {
     try{const result=await fetchHistory(uid,lastDoc);setItems(v=>[...v,...result.list]);setLastDoc(result.last);setHasMore(result.more);}catch{setError("追加の履歴を取得できませんでした。");}finally{setLoadingHistory(false);}
   };
 
-  const filteredStudents=useMemo(()=>students.filter(s=>(grade==="all"||Number(s.grade)===Number(grade))&&`${s.realName||""} ${s.displayName||""}`.toLowerCase().includes(search.trim().toLowerCase())),[students,grade,search]);
+  const filteredStudents=useMemo(()=>students.filter(s=>grade==="all"||Number(s.grade)===Number(grade)),[students,grade]);
+  const availableGrades=useMemo(()=>availableStudentGrades(students),[students]);
   const visibleItems=useMemo(()=>items.filter(item=>filter==="all"||(filter==="earned"?pointValue(item)>0:pointValue(item)<0)),[items,filter]);
   const selected=students.find(s=>s.uid===uid);
   const earned=items.reduce((sum,item)=>sum+Math.max(pointValue(item),0),0);
@@ -84,9 +85,8 @@ export default function AdminPointHistoryPage() {
     <header><span>POINT AUDIT</span><h1>生徒ポイント履歴</h1><p>生徒ごとの獲得・利用・減点の理由を確認できます。</p></header>
     {error&&<p className="aph-error">{error}</p>}
     <section className="aph-picker">
-      <select value={grade} onChange={e=>setGrade(e.target.value)}><option value="all">全学年</option>{[7,8,9,10,11,12].map(g=><option key={g} value={g}>{gradeLabel(g)}</option>)}</select>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="生徒名で検索" />
-      <select value={uid} onChange={e=>setUid(e.target.value)}><option value="">生徒を選択</option>{filteredStudents.map(s=><option key={s.uid} value={s.uid}>{gradeLabel(s.grade)}　{s.realName||s.displayName||"名前未登録"}</option>)}</select>
+      <select value={grade} onChange={e=>setGrade(e.target.value)}><option value="all">全学年</option>{availableGrades.map(g=><option key={g} value={g}>{gradeLabel(g)}</option>)}</select>
+      <select value={uid} onChange={e=>setUid(e.target.value)}><option value="">生徒を選択</option>{filteredStudents.map(s=><option key={s.uid} value={s.uid}>{s.realName||s.displayName||"名前未登録"}</option>)}</select>
     </section>
     {!uid?<section className="aph-empty">生徒を選択してください。</section>:<>
       <section className="aph-summary"><article><span>対象</span><strong>{selected?.realName||selected?.displayName}</strong><small>{gradeLabel(selected?.grade)}</small></article><article><span>表示中の獲得</span><strong className="plus">+{earned.toLocaleString()}pt</strong></article><article><span>表示中の利用・減点</span><strong className="minus">-{used.toLocaleString()}pt</strong></article><article><span>読込済み</span><strong>{items.length}件</strong></article></section>

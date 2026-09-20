@@ -44,7 +44,7 @@ export async function GET(request) {
     ]);
     const adminIds = new Set(adminsSnap.docs.map((snapshot) => snapshot.id));
     const users = usersSnap.docs
-      .filter((snapshot) => !adminIds.has(snapshot.id) && snapshot.data().active!==false && snapshot.data().enrollmentStatus!=="withdrawn")
+      .filter((snapshot) => !adminIds.has(snapshot.id) && Number(snapshot.data().grade)>=7 && Number(snapshot.data().grade)<=9 && snapshot.data().active!==false && snapshot.data().enrollmentStatus!=="withdrawn")
       .map((snapshot) => {
         const source = snapshot.data();
         const user = { id: snapshot.id };

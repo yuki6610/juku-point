@@ -384,3 +384,4 @@
     transition: none;
   }
 }
+.beta-notice{display:flex;align-items:center;gap:9px;margin:10px 0 14px;padding:9px 12px;color:#52627a;background:#f7f9ff;border:1px solid #dfe6f5;border-radius:12px;font-size:12px}.beta-notice b{padding:3px 7px;color:#4256c8;background:#e8edff;border-radius:999px;font-size:10px;letter-spacing:.08em}.beta-notice span{line-height:1.45}

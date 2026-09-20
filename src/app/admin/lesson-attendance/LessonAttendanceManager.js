@@ -24,29 +24,12 @@ import "./lesson-attendance.css";
 import "./attendance-adjustments.css";
 import "./annual-calendar.css";
 import "./edit-record.css";
+import { availableStudentGrades } from "@/lib/studentFilterOptions.mjs";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const TEACHING_DAYS = [1, 2, 3, 4, 5, 6];
 const attendanceRecordCache=new Map();
 const RECORD_CACHE_MS=5*60*1000;
-const GRADE_FILTERS = [
-  ["all", "全学年"],
-  ["elementary", "小学生"],
-  ["middle", "中学生"],
-  ["high", "高校生"],
-  ["1", "小1"],
-  ["2", "小2"],
-  ["3", "小3"],
-  ["4", "小4"],
-  ["5", "小5"],
-  ["6", "小6"],
-  ["7", "中1"],
-  ["8", "中2"],
-  ["9", "中3"],
-  ["10", "高1"],
-  ["11", "高2"],
-  ["12", "高3"],
-];
 const pad = (value) => String(value).padStart(2, "0");
 const dateId = (date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -242,6 +225,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [tab, setTab] = useState(settingsOnly ? 'settings' : 'overview');
   const [students, setStudents] = useState([]);
+  const gradeFilters = useMemo(() => [["all", "全学年"], ...availableStudentGrades(students).map((value) => [String(value), gradeLabel(value)])], [students]);
   const [calendar, setCalendar] = useState({});
   const [termSettings, setTermSettings] = useState(defaultTerms(initialAcademicYear));
   const [records, setRecords] = useState({});
@@ -857,7 +841,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
 
       {tab !== "settings" && (
         <div className="attendance-filter-bar" aria-label="学年フィルタ">
-          {GRADE_FILTERS.map(([value, label]) => (
+          {gradeFilters.map(([value, label]) => (
             <button
               type="button"
               key={value}

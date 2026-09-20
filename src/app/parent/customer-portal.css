@@ -46,3 +46,28 @@
   .parent-utility-grid { gap: 0; }
   .parent-lessons > article,.parent-homework-list > article { padding: 14px; border-radius: 12px; }
 }
+
+/* Keep every parent destination visible without horizontal discovery. */
+.parent-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
+  overflow: visible;
+}
+.parent-tabs button {
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.25;
+}
+@media (max-width: 650px) {
+  .parent-tabs {
+    top: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3px;
+    padding: 4px;
+  }
+  .parent-tabs button {
+    min-height: 40px;
+    padding: 7px 3px;
+    font-size: 10.5px;
+  }
+}

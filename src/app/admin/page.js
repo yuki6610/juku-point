@@ -31,6 +31,7 @@ const menuGroups = [
         path: "/admin/study-log",
         tone: "cyan",
       },
+      { title:"講習授業管理",desc:"講習申込・日程・宿題進捗を管理",icon:"季",path:"/admin/course-lessons",tone:"sky" },
     ],
   },
   {
@@ -60,6 +61,11 @@ const menuGroups = [
         path: "/admin/score",
         tone: "sky",
       },
+      { title:"生徒メモ",desc:"授業方針・共有事項・教材を一覧編集",icon:"表",path:"/admin/student-notes",tone:"slate" },
+      { title:"保護者管理",desc:"保護者の紐付け・招待・タグを管理",icon:"家",path:"/admin/parents",tone:"mint" },
+      { title:"タグ一括管理",desc:"生徒・保護者へタグを一括設定",icon:"#",path:"/admin/tags",tone:"violet" },
+      { title:"模試成績",desc:"生徒ごとの模試結果を登録・確認",icon:"模",path:"/admin/mock-scores",tone:"indigo" },
+      { title:"高校情報",desc:"高校の通学・部活動・進路情報を管理",icon:"校",path:"/admin/schools",tone:"sky" },
     ],
   },
   {
@@ -82,13 +88,8 @@ const menuGroups = [
         path: "/admin/rewards",
         tone: "mint",
       },
-      {
-        title: "大学情報取込",
-        desc: "大学・入試情報のデータ更新",
-        icon: "U",
-        path: "/admin/import-universities",
-        tone: "slate",
-      },
+      { title:"友人紹介管理",desc:"紹介から特典引き渡しまでを管理",icon:"紹",path:"/admin/referrals",tone:"mint" },
+      { title:"バグ報告",desc:"生徒・保護者から届いた報告を確認",icon:"!",path:"/admin/feedback",tone:"violet" },
     ],
   },
 ];
@@ -97,7 +98,6 @@ const allMenuItems = menuGroups.flatMap(group => group.items).filter((item,index
 export default function AdminPage() {
   const router = useRouter();
   const [switchingSeason, setSwitchingSeason] = useState(false);
-  const [rebuildingPoints, setRebuildingPoints] = useState(false);
   const [daily,setDaily]=useState(null);
   const academic = useAcademicContext();
   const currentSeason = academic.current;
@@ -138,28 +138,6 @@ export default function AdminPage() {
       window.alert("学期切替に失敗しました。");
     } finally {
       setSwitchingSeason(false);
-    }
-  };
-
-  const rebuildTermPoints = async () => {
-    if (!currentSeason) return window.alert(academic.error || '学期設定を読み込み中です。');
-    if (rebuildingPoints) return;
-    if (!window.confirm(`${termLabel}のポイントを履歴から再集計しますか？`)) return;
-    setRebuildingPoints(true);
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      const response = await fetch("/api/admin/rebuild-term-points", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "APIで再集計できませんでした。");
-      window.alert(`${result.updated}人分の学期ポイントを再集計しました。`);
-    } catch (error) {
-      console.error("学期ポイント同期に失敗しました:", error);
-      window.alert("再集計に失敗しました。データは変更されていません。");
-    } finally {
-      setRebuildingPoints(false);
     }
   };
 
@@ -228,9 +206,6 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="admin-term-actions">
-          <button type="button" className="rebuild" onClick={rebuildTermPoints} disabled={rebuildingPoints}>
-            {rebuildingPoints ? "再集計中…" : "学期ポイントを再集計"}
-          </button>
           <button type="button" onClick={startNewSeason} disabled={switchingSeason}>
             {switchingSeason ? "切り替えています…" : "新学期を開始"}
           </button>

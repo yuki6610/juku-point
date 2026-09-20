@@ -24,16 +24,17 @@ export async function GET(request) {
         adminDb.collection('users').doc(student.id).collection('scores').where('year','==',year).where('term','==',`${term}学期`).get(),
         adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(student.id).get(),
       ]);
-      const saved = status.data() || {}, schoolName=profileMap[`user_${student.id}`]?.schoolName || '';
+      const saved = status.data() || {},calendarSchools=[...new Set(entries.map(item=>String(item.schoolName||'')).filter(Boolean))],tagSchool=(student.tags||[]).find(tag=>calendarSchools.some(name=>String(name).normalize('NFKC').replace(/\s+/g,'')===String(tag).normalize('NFKC').replace(/\s+/g,''))),schoolName=tagSchool||profileMap[`user_${student.id}`]?.schoolName || '';
       const requiredItems=matchingSubmissionEntries(entries,{grade:student.grade,schoolName},termId);
-      const projected=projectSubmissionStatus(requiredItems,saved,new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo'}).format(new Date()));
+      const scoreRows=scores.docs.map(doc=>doc.data());
+      const projected=projectSubmissionStatus(requiredItems,saved,new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo'}).format(new Date()),scoreRows);
       return {
         uid:student.id, name:student.realName || student.displayName || '名前未設定', grade:Number(student.grade), schoolName,
         examReceived:projected.examReceived, internalReceived:projected.internalReceived, submissionItems:projected.items,
         hasSchedule:projected.hasSchedule, missingCount:projected.missingCount, legacyCount:projected.legacyCount,
         resubmission:saved.resubmission === true, note:String(saved.note || ''),
         updatedBy:saved.updatedBy || null, updatedAt:saved.updatedAt?.toDate?.().toISOString() || null,
-        hasExamData:scores.docs.some(doc => doc.data().type === 'exam'), hasInternalData:scores.docs.some(doc => doc.data().type === 'internal'),
+        hasExamData:scoreRows.some(item => item.type === 'exam'), hasInternalData:scoreRows.some(item => item.type === 'internal'),
       };
     }));
     return Response.json({ termId,students:rows.sort((a,b) => a.grade-b.grade || a.name.localeCompare(b.name,'ja')) });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import "./admin-navigation.css";
 
@@ -14,10 +14,14 @@ const groups = [{
       { path: "/admin/study-log", icon: "◷", label: "自習管理", keywords: "入室 退出 GPS" },
       { path: "/admin/students", icon: "◎", label: "生徒管理", keywords: "生徒登録 学年 退塾 ポイント タグ" },
       { path: "/admin/student-notes", icon: "表", label: "生徒メモ", keywords: "教室内メモ 講師メモ" },
-      { path: "/admin/parents", icon: "家", label: "保護者管理", keywords: "保護者 招待 紐付け タグ 配信" },
+      { path: "/admin/tags", icon: "#", label: "タグ一括管理" },
+      { path: "/admin/referrals", icon: "紹", label: "友人紹介管理" },
       { path: "/admin/score", icon: "△", label: "成績・志望校", keywords: "定期テスト 通知表 内申 提出 判定 印刷" },
+      { path: "/admin/mock-scores", icon: "◎", label: "模試成績" },
+      { path: "/admin/schools", icon: "校", label: "高校情報" },
       { path: "/admin/point-history", icon: "P", label: "ポイント履歴", keywords: "獲得 減点 累計 学期" },
       { path: "/admin/rewards", icon: "◇", label: "景品・交換管理", keywords: "引き渡し ガチャ 在庫 食事券" },
+      { path: "/admin/feedback", icon: "!", label: "バグ報告" },
     ],
   }];
 
@@ -29,8 +33,6 @@ export default function AdminNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const searchRef = useRef(null);
 
   useEffect(() => {
     setOpen(false);
@@ -45,17 +47,6 @@ export default function AdminNavigation() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [open]);
 
-  useEffect(() => {
-    const focusSearch = (event) => {
-      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey ||
-        event.target instanceof HTMLElement && event.target.closest("input, textarea, select, [contenteditable]")) return;
-      event.preventDefault();
-      searchRef.current?.focus();
-    };
-    window.addEventListener("keydown", focusSearch);
-    return () => window.removeEventListener("keydown", focusSearch);
-  }, []);
-
   const navigate = (path) => {
     setOpen(false);
     if (path !== pathname) router.push(path);
@@ -67,11 +58,7 @@ export default function AdminNavigation() {
       ([path]) => path !== "/admin" && pathname.startsWith(`${path}/`),
     )?.[1] ||
     "管理画面";
-  const normalizedQuery = query.trim().toLowerCase();
-  const visibleGroups = groups.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => `${item.label} ${item.path} ${item.keywords || ""}`.toLowerCase().includes(normalizedQuery)),
-  }));
+  const visibleGroups = groups;
 
   const sidebar = (
     <aside className="admin-sidebar" aria-label="管理メニュー">
@@ -83,10 +70,6 @@ export default function AdminNavigation() {
         </div>
       </div>
 
-      <label className="admin-nav-search">
-        <span>機能を探す</span>
-        <input ref={searchRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="例：宿題、成績、設定  ／" aria-label="管理機能を検索" />
-      </label>
       <nav className="admin-nav">
         {visibleGroups.map((group) => (
           <section key={group.label}>
@@ -110,7 +93,6 @@ export default function AdminNavigation() {
             })}
           </section>
         ))}
-        {normalizedQuery && !visibleGroups.some((group) => group.items.length) && <p className="admin-nav-empty">該当する機能はありません。</p>}
       </nav>
 
       <div className="admin-student-switch">

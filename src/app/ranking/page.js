@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "../../firebaseApp";
 import "./ranking.css";
+import { availableStudentGrades } from "@/lib/studentFilterOptions.mjs";
 
 const auth = getAuth(app);
 const PUBLIC_FIELDS = [
@@ -26,6 +27,7 @@ const PUBLIC_FIELDS = [
 
 export default function RankingPage() {
   const [users, setUsers] = useState([]);
+  const availableGrades = useMemo(() => availableStudentGrades(users), [users]);
   const [category, setCategory] = useState("points");
   const [grade, setGrade] = useState("all"); // ⭐ 学年フィルタ追加
   const [loading, setLoading] = useState(true);
@@ -136,7 +138,7 @@ export default function RankingPage() {
           const source = snapshot.data();
           return (
             !adminIds.has(snapshot.id) &&
-            source.role !== "admin" &&
+            source.role !== "admin" && Number(source.grade)>=7 && Number(source.grade)<=9 &&
             source.isAdmin !== true &&
             source.active !== false &&
             source.enrollmentStatus !== 'withdrawn'
@@ -243,6 +245,10 @@ export default function RankingPage() {
     const hallTop3 =
       hallOfFame?.[category]?.top3 ?? [];
     const showHall = mode === 'term' && grade === 'all' && category !== 'level' && hallTop3.length > 0;
+    const hallSeasonLabel = (() => {
+      const season = String(hallOfFame?.season || '').match(/^(\d{4})_(\d)$/);
+      return season ? `${season[1]}年度 ${season[2]}学期` : '前学期';
+    })();
   // 上位3名の色
   const getRankClass = (rank) => {
     if (rank === 0) return "rank-gold";
@@ -340,22 +346,7 @@ export default function RankingPage() {
           </header>
 
           <section className="ranking-controls">
-          <div className="control-label">期間</div>
-          <div className="ranking-tabs">
-            <button
-              className={mode === "term" ? "active" : ""}
-              onClick={() => setMode("term")}
-            >
-              📅 今学期
-            </button>
-
-            <button
-              className={mode === "total" ? "active" : ""}
-              onClick={() => setMode("total")}
-            >
-              🏆 累計
-            </button>
-          </div>
+          <div className="control-label">期間：今学期</div>
 
           <div className="control-label">学年</div>
           <div className="ranking-tabs" style={{ marginBottom: "16px" }}>
@@ -366,38 +357,11 @@ export default function RankingPage() {
               全学年
             </button>
 
-            <button
-              className={grade === 7 ? "active" : ""}
-              onClick={() => setGrade(7)}
-            >
-              中1
-            </button>
-
-            <button
-              className={grade === 8 ? "active" : ""}
-              onClick={() => setGrade(8)}
-            >
-              中2
-            </button>
-
-            <button
-              className={grade === 9 ? "active" : ""}
-              onClick={() => setGrade(9)}
-            >
-              中3
-            </button>
-            {category !== 'wordTotal' && [10, 11, 12].map(value => <button key={value} className={grade === value ? 'active' : ''} onClick={() => setGrade(value)}>高{value - 9}</button>)}
+            {availableGrades.map((value) => <button key={value} className={grade === value ? "active" : ""} onClick={() => setGrade(value)}>中{value - 6}</button>)}
           </div>
 
           <div className="control-label">カテゴリー</div>
           <div className="ranking-tabs">
-            <button
-              className={category === "level" ? "active" : ""}
-              onClick={() => setCategory("level")}
-            >
-              📈 レベル
-            </button>
-
             <button
               className={category === "points" ? "active" : ""}
               onClick={() => setCategory("points")}
@@ -450,13 +414,17 @@ export default function RankingPage() {
             <p className="ranking-state">この条件に該当するランキングはまだありません。</p>
           ) : (
             <>
-              {showHall && (
-                hallOfFame ? (
+              {mode === 'term' && grade === 'all' && category !== 'level' && (
+                showHall ? (
                   <div className="hall-card">
-                    <h2>👑 前学期 TOP3</h2>
+                    <div className="hall-heading">
+                      <span>HALL OF FAME</span>
+                      <h2>👑 {hallSeasonLabel} トップ3</h2>
+                      <p>前学期に積み重ねた成果を称えます</p>
+                    </div>
 
                     <div className="hall-podium">
-                      <div className="hall-second">
+                      <div className="hall-second" data-rank="2">
                         {hallTop3[1] && (
                           <>
                             <div className="hall-medal">🥈</div>
@@ -470,7 +438,7 @@ export default function RankingPage() {
                         )}
                       </div>
 
-                      <div className="hall-first">
+                      <div className="hall-first" data-rank="1">
                         {hallTop3[0] && (
                           <>
                             <div className="hall-medal">🥇</div>
@@ -484,7 +452,7 @@ export default function RankingPage() {
                         )}
                       </div>
 
-                      <div className="hall-third">
+                      <div className="hall-third" data-rank="3">
                         {hallTop3[2] && (
                           <>
                             <div className="hall-medal">🥉</div>
@@ -501,14 +469,18 @@ export default function RankingPage() {
                   </div>
                 ) : (
                   <div className="hall-card">
-                    <h2>👑 前学期 TOP3</h2>
-                    <p style={{ textAlign: "center" }}>
+                    <div className="hall-heading">
+                      <span>HALL OF FAME</span>
+                      <h2>👑 前学期トップ3</h2>
+                    </div>
+                    <p className="hall-empty">
                       前学期データはまだありません。
                     </p>
                   </div>
                 )
               )}
 
+              <h2 className="current-term-top3-title">今学期トップ3</h2>
               <div className="top3-container">
                 {top3.map((u, index) => (
                   <div

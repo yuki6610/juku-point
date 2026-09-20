@@ -6,6 +6,7 @@ import LessonReportFields from '@/components/LessonReportFields';
 import HomeworkAssignmentRow from '@/components/HomeworkAssignmentRow';
 import { homeworkValue, validateAssignment } from '@/lib/homeworkModel.mjs';
 import { homeworkApi } from '@/lib/homeworkClient';
+import { availableStudentGrades } from '@/lib/studentFilterOptions.mjs';
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from 'next/navigation';
@@ -49,8 +50,8 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const academic = useAcademicContext();
   const currentYear = new Date().getFullYear();
   const [students, setStudents] = useState([]);
+  const availableGrades = useMemo(() => availableStudentGrades(students), [students]);
   const [studentId, setStudentId] = useState("");
-  const [search, setSearch] = useState("");
   const [grade, setGrade] = useState("all");
   const [academicYear, setAcademicYear] = useState(currentYear);
   const [term, setTerm] = useState(1);
@@ -139,15 +140,11 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   }, [attendance, homework]);
 
   const filteredStudents = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
     return students.filter((student) => {
       if (grade !== "all" && Number(student.grade) !== Number(grade)) return false;
-      if (!keyword) return true;
-      return `${student.realName || ""} ${student.displayName || ""}`
-        .toLowerCase()
-        .includes(keyword);
+      return true;
     });
-  }, [students, search, grade]);
+  }, [students, grade]);
 
   const selectedStudent = students.find((student) => student.uid === studentId);
   const selectedGrade = Number(selectedStudent?.grade || 0);
@@ -404,15 +401,9 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
       <section className="lesson-layout">
         <aside className="student-picker">
           <div className="picker-heading"><div><span>STEP 1</span><h2>授業日と生徒を選択</h2></div><label>授業日<input disabled={saving} type="date" value={date} onChange={(e) => { if (!confirmSwitch()) return; setRecordReady(false); setDate(e.target.value); }} /></label></div>
-          <div className="picker-filters"><input
-            type="search"
-            placeholder="名前で検索"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select value={grade} onChange={(e) => setGrade(e.target.value)}>
+          <div className="picker-filters"><select value={grade} onChange={(e) => setGrade(e.target.value)}>
             <option value="all">全学年</option>
-            {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
+            {availableGrades.map((value) => (
               <option key={value} value={value}>{gradeLabel(value)}</option>
             ))}
           </select></div>
@@ -527,7 +518,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 />
               </fieldset>}
 
-              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{homework,wordTest:{status:wordStatus,correct:wordCorrect,total:wordTotal},late,forgot}} /></fieldset>}
+              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{grade:gradeLabel(selectedStudent?.grade)}} /></fieldset>}
 
               {!isHigh && <fieldset className="next-homework-fieldset" disabled={!assignmentReady || saving}>
                 <legend>今回出した宿題・次回確認</legend>

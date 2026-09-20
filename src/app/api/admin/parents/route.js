@@ -19,7 +19,7 @@ async function parentList() {
 }
 
 export async function GET(request) {
-  try { await requireAdmin(request); return Response.json({ parents: await parentList(), students: await studentList() }); }
+  try { await requireAdmin(request);const[parents,students]=await Promise.all([parentList(),studentList()]),linked=new Set(parents.flatMap(parent=>parent.childKeys||[]));return Response.json({parents,students,inviteStudents:students.filter(student=>!linked.has(student.key))}); }
   catch (error) { return Response.json({ error: error.message }, { status: error.status || 500 }); }
 }
 
@@ -34,8 +34,7 @@ export async function PATCH(request) {
     const old = await links.get(); const batch = adminDb.batch(); const now = FieldValue.serverTimestamp();
     old.docs.forEach(doc => { if (!childKeys.includes(doc.id)) batch.set(doc.ref, { active: false, updatedBy: admin.uid, updatedAt: now }, { merge: true }); });
     childKeys.forEach(key => batch.set(links.doc(key), { active: true, studentKey: key, updatedBy: admin.uid, updatedAt: now }, { merge: true }));
-    const tags=[...new Set((body.tags||[]).map(value=>String(value).trim()).filter(Boolean))].slice(0,30);if(tags.some(value=>value.length>40))throw new Error('タグは40文字以内で入力してください。');
-    batch.set(adminDb.collection('parentAccounts').doc(body.uid), { active: body.active !== false, tags, updatedBy: admin.uid, updatedAt: now }, { merge: true });
+    batch.set(adminDb.collection('parentAccounts').doc(body.uid), { active: body.active !== false, updatedBy: admin.uid, updatedAt: now }, { merge: true });
     await batch.commit(); try{await adminAuth.updateUser(body.uid, { disabled: body.active === false });}catch{throw new Error('子どもの紐付けは保存済みですが、ログイン状態の更新に失敗しました。同じ状態でもう一度保存してください。')}
     return Response.json({ saved: true });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }

@@ -14,8 +14,9 @@ export async function GET(request) {
     await requireAdmin(request);
     const year = new URL(request.url).searchParams.get('year');
     if (!validYear(year)) throw new Error('年度を確認してください。');
-    const [entries, profiles] = await Promise.all([calendarRef(year).get(), adminDb.collection('studentProfiles').get()]);
-    const schools = [...new Set(profiles.docs.map(doc => String(doc.data().schoolName || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ja'));
+    const [entries, profiles,users] = await Promise.all([calendarRef(year).get(), adminDb.collection('studentProfiles').get(),adminDb.collection('users').get()]);
+    const tagSchools=users.docs.flatMap(doc=>(doc.data().tags||[]).filter(tag=>/(小|中|高|小学校|中学校|高校)$/.test(String(tag))));
+    const schools = [...new Set([...tagSchools,...profiles.docs.map(doc => String(doc.data().schoolName || '').trim()).filter(Boolean)])].sort((a, b) => a.localeCompare(b, 'ja'));
     return Response.json({ entries: entries.docs.map(doc => ({ id: doc.id, ...doc.data(), updatedAt: null })).filter(item => item.active !== false), schools });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }
 }

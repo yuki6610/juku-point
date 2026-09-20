@@ -22,7 +22,7 @@ export async function GET(request) {
       ...elementary.docs.map(item => ({ key:`elementary_${item.id}`, source:'elementary', id:item.id, ...item.data() })),
     ].filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn').map(item => ({
       key:item.key, name:item.realName || item.displayName || item.name || '名前未設定', grade:Number(item.grade || 0),
-      schoolName:profileMap[item.key]?.schoolName || '', targetSchool:profileMap[item.key]?.targetSchool || '',
+      schoolTags:[...(item.tags||[])].filter(tag=>/(小|中|高|小学校|中学校|高校)$/.test(String(tag))).slice(0,5), targetSchool:profileMap[item.key]?.targetSchool || '',
       version:Number(profileMap[item.key]?.version||0), memo:profileMap[item.key]?.memo || '', materials:profileMap[item.key]?.materials || '',
       courseMaterials:profileMap[item.key]?.courseMaterials || '',
       sharedInfo:profileMap[item.key]?.sharedInfo || '',
@@ -37,7 +37,7 @@ export async function POST(request) {
     const admin = await requireAdmin(request), body = await request.json();
     if (!keyOk(body.key)) throw new Error('生徒情報が正しくありません。');
     const data = {
-      schoolName:clean(body.schoolName, 120), targetSchool:clean(body.targetSchool, 200), memo:clean(body.memo),
+      targetSchool:clean(body.targetSchool, 200), memo:clean(body.memo),
       materials:clean(body.materials, 1000), courseMaterials:clean(body.courseMaterials, 1000),
       sharedInfo:clean(body.sharedInfo, 3000),
       updatedBy:admin.uid, updatedAt:FieldValue.serverTimestamp(),

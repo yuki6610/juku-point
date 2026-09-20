@@ -33,12 +33,18 @@ test('teacher record can update the same summary used by the admin graphs, inclu
 });
 test('parent context only requests and exposes linked children submission status',async()=>{
   const paths=[];const data={'users/alice':{grade:8,realName:'Alice'},'scoreSubmissionTerms/2026_2/students/alice':{examReceived:true}};
-  const ref=path=>({collection:part=>ref(`${path}/${part}`),doc:part=>ref(`${path}/${part}`),get:async()=>{paths.push(path);if(path==='scoreSubmissionCalendars/2026/entries')return{docs:[]};return {exists:Object.hasOwn(data,path),data:()=>data[path]||{}}}});
+  const ref=path=>({collection:part=>ref(`${path}/${part}`),doc:part=>ref(`${path}/${part}`),where:()=>ref(path),get:async()=>{paths.push(path);if(path==='scoreSubmissionCalendars/2026/entries'||path==='users/alice/scores')return{docs:[]};return {exists:Object.hasOwn(data,path),data:()=>data[path]||{}}}});
   const context={Response,requireParent:async()=>({uid:'parent',role:'parent',profile:{displayName:'Parent'}}),linkedChildren:async()=>['user_alice'],adminDb:{collection:ref},readAcademicSettings:async()=>[],resolveAcademicTerm:()=>({id:'2026_2'}),japanDateId:()=> '2026-09-13',matchingSubmissionEntries,projectSubmissionStatus};
   vm.createContext(context);vm.runInContext(fs.readFileSync(new URL('../src/app/api/parent/context/route.js',import.meta.url),'utf8').replace(/^import .*\n/gm,'').replaceAll('export ',''),context);
   const result=await (await context.GET({})).json();assert.deepEqual(Object.keys(result.submissionStatus),['alice']);
   assert.equal(result.submissionStatus.alice.examReceived,true);
   assert.equal(paths.includes('scoreSubmissionTerms/2026_2/students'),false);
+});
+test('saved score data automatically satisfies its matching submission item',()=>{
+  const entries=[{id:'midterm',kind:'exam',testType:'中間',date:'2026-09-10'},{id:'report',kind:'internal',date:'2026-09-12'}];
+  const result=projectSubmissionStatus(entries,{itemStatuses:{midterm:{received:false}}},'2026-09-20',[{type:'exam',testType:'中間'},{type:'internal'}]);
+  assert.deepEqual(result.items.map(item=>item.status),['score','score']);
+  assert.equal(result.missingCount,0);assert.equal(result.examReceived,true);assert.equal(result.internalReceived,true);
 });
 test('parent score rejects blank marks and other children before writing',async()=>{
   const source=fs.readFileSync(new URL('../src/app/api/parent/scores/route.js',import.meta.url),'utf8');

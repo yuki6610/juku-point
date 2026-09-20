@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import { calculateSummary } from '../src/lib/behaviorSummary.mjs';
 import { DEFAULT_HOMEWORK_TEMPLATES, aggregateItemResults, homeworkValue, publicAssignment } from '../src/lib/homeworkModel.mjs';
 import { resolveAcademicTerm } from '../src/lib/academicCalendar.mjs';
+import { normalizeReportFacts } from '../src/lib/lessonReport.mjs';
 
 async function save(role,override={},initial={}) {
   const recordRoot='users/student000/lessonTerms/2026_2/records';
@@ -13,7 +14,7 @@ async function save(role,override={},initial={}) {
   const writes=[];
   const snapshot=path=>path.split('/').length%2?{docs:Object.entries(data).filter(([key])=>key.startsWith(`${path}/`)&&key.slice(path.length+1).indexOf('/')===-1).map(([key,value])=>({id:key.split('/').at(-1),data:()=>value}))}:{exists:Object.hasOwn(data,path),data:()=>data[path]};
   const ref=path=>({path,get parent(){return ref(path.split('/').slice(0,-1).join('/'))},collection:part=>ref(`${path}/${part}`),doc:part=>ref(`${path}/${part||'generated'}`),get:async()=>snapshot(path)});
-  const context={Response,console,DEFAULT_HOMEWORK_TEMPLATES,aggregateItemResults,homeworkValue,publicAssignment,calculateSummary,resolveAcademicTerm,japanDateId:()=> '2026-09-10',readAcademicSettings:async()=>[{year:2026,terms:{2:{start:'2026-09-03',end:'2026-12-26'}}}],requireStaff:async()=>({uid:role,role}),assertAssigned:()=>{},FieldValue:{serverTimestamp:()=>100},Timestamp:{fromDate:date=>date},adminDb:{collection:ref,runTransaction:async fn=>fn({get:async target=>{assert.equal(writes.length,0);return snapshot(target.path)},set:(target,value)=>writes.push({path:target.path,value}),update:(target,value)=>writes.push({path:target.path,value}),delete:target=>writes.push({path:target.path,deleted:true})})}};
+  const context={Response,console,DEFAULT_HOMEWORK_TEMPLATES,aggregateItemResults,homeworkValue,publicAssignment,normalizeReportFacts,calculateSummary,resolveAcademicTerm,japanDateId:()=> '2026-09-10',readAcademicSettings:async()=>[{year:2026,terms:{2:{start:'2026-09-03',end:'2026-12-26'}}}],requireStaff:async()=>({uid:role,role}),assertAssigned:()=>{},FieldValue:{serverTimestamp:()=>100},Timestamp:{fromDate:date=>date},adminDb:{collection:ref,runTransaction:async fn=>fn({get:async target=>{assert.equal(writes.length,0);return snapshot(target.path)},set:(target,value)=>writes.push({path:target.path,value}),update:(target,value)=>writes.push({path:target.path,value}),delete:target=>writes.push({path:target.path,deleted:true})})}};
   vm.createContext(context);
   for(const path of ['../src/lib/homeworkServer.js','../src/app/api/admin/lesson-records/route.js'])vm.runInContext(fs.readFileSync(new URL(path,import.meta.url),'utf8').replace(/^import .*\n/gm,'').replaceAll('export ',''),context);
   const response=await context.POST({json:async()=>({uid:'student000',date:'2026-09-10',termId:'2026_2',weekId:'2026-W37',commentIds:['focus'],record:{attendance:'present',homework:'submitted',wordTest:{status:'completed',correct:0,total:30},late:false,forgot:false,behaviorNote:'PRIVATE: classroom only',...override}})});
@@ -25,7 +26,7 @@ test('admin and teacher saves both update the shared behavior graph and parent p
     assert.equal(summary.attendance.absent,1);assert.equal(summary.attendance.ontime,1);assert.equal(summary.homework.submitted,1);
     assert.equal(summary.wordTest.completed,1);assert.equal(summary.wordTest.totalCorrect,0);
     const publication=writes.find(item=>item.path==='lessonPublic/user_student000/records/2026-09-10').value;
-    assert.equal(publication.comments[0].text,'集中して取り組めていました。');
+    assert.equal(publication.comments.length,0);
     assert.equal(JSON.stringify(publication).includes('PRIVATE'),false);
     assert.equal(writes.find(item=>item.path==='studentProfiles/user_student000').value.teacherMemo,'PRIVATE: classroom only');
   }

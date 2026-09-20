@@ -1,0 +1,3 @@
+import { adminAuth,adminDb } from '@/lib/firebaseAdmin';
+export const runtime='nodejs';export const dynamic='force-dynamic';
+export async function GET(request){try{const token=request.headers.get('authorization')||'';if(!token.startsWith('Bearer '))throw Object.assign(new Error('ログインしてください。'),{status:401});const{uid}=await adminAuth.verifyIdToken(token.slice(7),true),snapshot=await adminDb.collection('users').doc(uid).collection('mockScores').orderBy('examDate','desc').limit(100).get();return Response.json({items:snapshot.docs.map(doc=>({id:doc.id,...doc.data(),createdAt:undefined,updatedAt:undefined,updatedBy:undefined}))});}catch(error){return Response.json({error:error.message},{status:error.status||500})}}

@@ -41,7 +41,7 @@ export async function GET(request) {
     if (!elementary && Number(student.data().grade) >= 7) {
       const [status,calendar]=await Promise.all([adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(id).get(),adminDb.collection('scoreSubmissionCalendars').doc(String(selected.year)).collection('entries').get()]);
       const saved=status.data()||{},entries=matchingSubmissionEntries(calendar.docs.map(doc=>({id:doc.id,...doc.data()})),{grade:student.data().grade,schoolName:profile.data()?.schoolName||''},termId);
-      submissionStatus=projectSubmissionStatus(entries,saved,japanDateId());
+      submissionStatus=projectSubmissionStatus(entries,saved,japanDateId(),scores);
     }
     let entranceExams=[],latestJudgement=null,schoolComparisons=[];
     if(!elementary&&Number(student.data().grade)>=7){const latestExam=scores.find(item=>item.type==='exam'),latestInternal=scores.find(item=>item.type==='internal');if(latestExam&&latestInternal){const total=Number(latestExam.converted||0)+Number(latestInternal.total||0),schools=await adminDb.collection('schools').get();schoolComparisons=schools.docs.map(doc=>{const value=doc.data(),difference=total-Number(value.minScore||0);return{name:String(value.name||value.schoolName||'高校名未設定'),difference,label:difference>=20?'安全圏':difference>=0?'合格圏':difference>=-20?'努力圏':'要努力'}}).sort((a,b)=>b.difference-a.difference);const target=String(profile.data()?.targetSchool||'').trim();latestJudgement=schoolComparisons.find(item=>item.name===target)||null;}}

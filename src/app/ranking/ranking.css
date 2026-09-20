@@ -156,26 +156,49 @@
 
 .hall-card {
   margin-bottom: 24px;
-  padding: 22px;
-  color: #0f172a;
-  background: #f8fafc;
-  border-radius: 22px;
+  padding: clamp(20px, 4vw, 34px);
+  overflow: hidden;
+  color: #382b15;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255, 255, 255, .95), transparent 42%),
+    linear-gradient(135deg, #fff9e5, #f7e5a6 55%, #f2d681);
+  border: 1px solid #e7c65f;
+  border-radius: 26px;
+  box-shadow: 0 22px 55px rgba(126, 91, 18, .18);
 }
-.hall-card h2 { margin: 0; font-size: 18px; }
-.hall-podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+.hall-heading { text-align: center; }
+.hall-heading > span { color: #9b741b; font-size: 10px; font-weight: 950; letter-spacing: .28em; }
+.hall-card h2 { margin: 5px 0 0; font-size: clamp(20px, 4vw, 30px); }
+.hall-heading p { margin: 7px 0 0; color: #806a38; font-size: 13px; font-weight: 700; }
+.hall-podium { display: grid; grid-template-columns: repeat(3, 1fr); align-items: end; gap: 12px; margin-top: 24px; }
 .hall-first,.hall-second,.hall-third {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 120px;
-  padding: 15px;
-  background: #eef2f7;
-  border-radius: 15px;
+  justify-content: center;
+  min-height: 148px;
+  padding: 22px 12px 18px;
+  background: linear-gradient(160deg, rgba(255,255,255,.92), rgba(231,236,245,.9));
+  border: 1px solid rgba(131, 107, 54, .22);
+  border-radius: 20px 20px 8px 8px;
+  box-shadow: 0 12px 26px rgba(74, 55, 17, .12);
 }
-.hall-first { background: #fef3c7; }
-.hall-medal { font-size: 30px; }
+.hall-first { min-height: 190px; background: linear-gradient(160deg, #fffdf2, #ffd85e); border-color: #dbaa24; }
+.hall-third { min-height: 132px; background: linear-gradient(160deg, #fff9f4, #e9b58b); }
+.hall-first::after,.hall-second::after,.hall-third::after {
+  content: attr(data-rank);
+  position: absolute;
+  right: 12px;
+  bottom: -12px;
+  color: rgba(90, 63, 10, .1);
+  font-size: 78px;
+  font-weight: 950;
+}
+.hall-medal { position: relative; z-index: 1; font-size: 38px; filter: drop-shadow(0 5px 5px rgba(68,48,8,.16)); }
 .hall-name { margin-top: 7px; font-weight: 800; text-align: center; }
-.hall-score { margin-top: 5px; color: #64748b; font-weight: 700; }
+.hall-score { margin-top: 5px; color: #76581c; font-weight: 850; }
+.hall-empty { margin: 20px 0 0; color: #806a38; text-align: center; }
 
 .ranking-state {
   margin: 22px 0;
@@ -232,5 +255,11 @@
   .top-score { font-size: 13px; }
   .ranking-list { grid-template-columns: 1fr; }
   .hall-podium { gap: 6px; }
-  .hall-first,.hall-second,.hall-third { min-width: 0; padding: 12px 5px; }
+  .hall-first,.hall-second,.hall-third { min-width: 0; min-height: 125px; padding: 12px 5px; }
+  .hall-first { min-height: 150px; }
+  .hall-third { min-height: 112px; }
+  .hall-medal { font-size: 28px; }
+  .hall-name { font-size: 13px; }
+  .hall-score { font-size: 12px; }
 }
+.current-term-top3-title{margin:24px 0 12px;text-align:center;font-size:clamp(18px,3vw,25px);letter-spacing:.04em}

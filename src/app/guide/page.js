@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import "./guide.css";
 
 const guides = [
@@ -64,11 +63,7 @@ const guides = [
 ];
 
 export default function GuidePage() {
-  const [query, setQuery] = useState("");
-  const normalized = query.trim().toLowerCase();
-  const visibleGuides = guides.filter((guide) =>
-    `${guide.title} ${guide.summary}`.toLowerCase().includes(normalized)
-  );
+  const visibleGuides = guides;
 
   return (
     <main className="guide-shell">
@@ -76,21 +71,12 @@ export default function GuidePage() {
         <header className="guide-heading">
           <span>HELP CENTER</span>
           <h1>アプリの使い方</h1>
-          <p>知りたい項目を検索するか、一覧から選んでください。</p>
+          <p>一覧から知りたい項目を選んでください。</p>
         </header>
-
-        <label className="guide-search">
-          <span>⌕</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="例：ポイント、アバター、自習"
-          />
-        </label>
 
         <div className="guide-list">
           {visibleGuides.map((guide, index) => (
-            <details className="guide-section" key={guide.title} open={!query && index === 0}>
+            <details className="guide-section" key={guide.title} open={index === 0}>
               <summary>
                 <span className="guide-icon">{guide.icon}</span>
                 <span>

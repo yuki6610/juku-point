@@ -2,7 +2,7 @@ import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { DEFAULT_HOMEWORK_TEMPLATES, aggregateItemResults, homeworkValue, publicAssignment } from './homeworkModel.mjs';
 import { requireStaff } from './staffAccess';
-import { generateLessonReport } from './lessonReport.mjs';
+import { normalizeReportFacts } from './lessonReport.mjs';
 export async function requireHomeworkUser(request, admin = false) {
   const token = request.headers.get('authorization') || '';
   if (!token.startsWith('Bearer ')) throw new Error('ログインしてください。');
@@ -43,16 +43,9 @@ export async function readPublicHomeworkCompatible(key, limit = 150, before = nu
 export async function prepareHomeworkReview(transaction, { key, date, termId, uid, review, comments, attendance, learningRecord = {}, templates }) {
   const now = FieldValue.serverTimestamp();
   const lessonRef = adminDb.collection('lessonPublic').doc(key).collection('records').doc(date);
-  const oldLesson = await transaction.get(lessonRef);
-  const previousComments = oldLesson.data()?.comments || [];
-  const selectedComments = (comments || []).map(id => {
-    const previous = previousComments.find(item => item.id === id);
-    if (previous) return { id: previous.id, text: previous.text };
-    const item = templates.comments.find(item => item.id === id);
-    if (!item) throw new Error('コメントの選択肢が更新されています。再読み込みしてください。');
-    return { id: item.id, text: item.label };
-  });
-  if (selectedComments.length > 10 || new Set(comments || []).size !== selectedComments.length) throw new Error('コメントは重複なく10件以内で選択してください。');
+  // Legacy template comments are no longer generated or published. The editable
+  // API/manual lesson report below is the single parent-facing report source.
+  const selectedComments = [];
   let payload = null;
   if (review?.assignmentId) {
     const refs = homeworkRefs(key, review.assignmentId);
@@ -89,8 +82,9 @@ export async function prepareHomeworkReview(transaction, { key, date, termId, ui
         transaction.set(payload.privateRef.collection('reviewHistory').doc(), { ...payload.result, updatedBy: uid, updatedAt: now });
       }
       const wordTest = learningRecord.wordTest || {};
-      const hasReportInput = Boolean(String(learningRecord.learningContent || '').trim() || Object.keys(learningRecord.reportFacts || {}).length);
-      const lessonReport = hasReportInput ? generateLessonReport({ facts: learningRecord.reportFacts, learningContent: learningRecord.learningContent, homework: payload?.value || learningRecord.homework, wordTest, late: learningRecord.late, forgot: learningRecord.forgot }) : null;
+      const reportFacts = normalizeReportFacts(learningRecord.reportFacts);
+      const hasReportInput = Boolean(String(learningRecord.learningContent || '').trim() || reportFacts.extraNote);
+      const lessonReport = reportFacts.extraNote ? { version: 3, facts: reportFacts, text: reportFacts.extraNote, source: 'openai_or_manual' } : null;
       transaction.set(lessonRef, {
         date, termId, attendance,
         late: attendance === 'absent' ? false : learningRecord.late === true,

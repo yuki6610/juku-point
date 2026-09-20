@@ -4,6 +4,7 @@ import { readAcademicSettings } from '@/lib/academicCalendarServer';
 import { resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
 import { readAbsenceCandidates } from '@/lib/absenceCandidates';
 import { FieldValue } from 'firebase-admin/firestore';
+import { matchingSubmissionEntries, normalizeSchool, projectSubmissionStatus } from '@/lib/scoreSubmissionPlan.mjs';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export async function GET(request) {
     const weekday = new Date(`${date}T12:00:00+09:00`).getDay();
     const students = [...users.docs.map(doc => ({ key: `user_${doc.id}`, id: doc.id, source: 'user', ...doc.data() })), ...elementary.docs.map(doc => ({ key: `elementary_${doc.id}`, id: doc.id, source: 'elementary', ...doc.data() }))]
       .filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn')
-      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || []; return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), weekdays, scheduled: weekdays.map(Number).includes(weekday), lessonStartTime:data.lessonSchedule?.startTime||data.lessonStartTime||'', wordTestQuestionCount: Number(data.wordTestQuestionCount || (Number(data.grade) === 7 ? 20 : Number(data.grade) === 8 ? 30 : Number(data.grade) === 9 ? 50 : 20)), wordTestCurrentRange: data.wordTestCurrentRange || null }; })
+      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || []; return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), tags:Array.isArray(data.tags)?data.tags:[], weekdays, scheduled: weekdays.map(Number).includes(weekday), lessonStartTime:data.lessonSchedule?.startTime||data.lessonStartTime||'', wordTestQuestionCount: Number(data.wordTestQuestionCount || (Number(data.grade) === 7 ? 20 : Number(data.grade) === 8 ? 30 : Number(data.grade) === 9 ? 50 : 20)), wordTestCurrentRange: data.wordTestCurrentRange || null }; })
       .sort((a, b) => Number(b.scheduled)-Number(a.scheduled)||(a.lessonStartTime||'99:99').localeCompare(b.lessonStartTime||'99:99')||a.grade-b.grade||a.name.localeCompare(b.name,'ja'));
     const settings = await readAcademicSettings();
     const term = resolveAcademicTerm(settings, date);
@@ -37,9 +38,15 @@ export async function GET(request) {
     const selectedProfile = requested ? profileMap.get(requested) : null;
     const selectedStudent=requested?students.find(item=>item.key===requested):null;
     const absenceCandidates=selectedStudent?await readAbsenceCandidates({studentKey:requested,student:selectedStudent,year:term.year}):[];
-    const publicGuidance=value=>value ? { policy: String(value.memo || '').slice(0,2000), materials: String(value.materials || '').slice(0,1000), courseMaterials: String(value.courseMaterials || '').slice(0,1000), teacherMemo:String(value.teacherMemo||'').slice(0,2000), sharedInfo:String(value.sharedInfo||'').slice(0,3000) } : null;
-    const guidance = publicGuidance(selectedProfile);
-    const guidanceByStudent=Object.fromEntries(students.map(item=>[item.key,publicGuidance(profileMap.get(item.key))]).filter(([,value])=>value));
+    const statusTargets=students.filter(item=>item.source==='user'&&item.grade>=7&&item.grade<=9&&(item.scheduled||item.key===requested));
+    const calendar=statusTargets.length?await adminDb.collection('scoreSubmissionCalendars').doc(String(term.year)).collection('entries').get():{docs:[]};
+    const calendarEntries=calendar.docs.map(doc=>({id:doc.id,...doc.data()}));
+    const schoolNames=[...new Set(calendarEntries.map(item=>String(item.schoolName||'')).filter(Boolean))];
+    const statusPairs=await Promise.all(statusTargets.map(async item=>{const [scores,saved]=await Promise.all([adminDb.collection('users').doc(item.id).collection('scores').where('year','==',String(term.year)).where('term','==',`${term.term}学期`).get(),adminDb.collection('scoreSubmissionTerms').doc(term.id).collection('students').doc(item.id).get()]);const legacySchool=String(profileMap.get(item.key)?.schoolName||''),tagSchool=item.tags.find(tag=>schoolNames.some(name=>normalizeSchool(name)===normalizeSchool(tag))),schoolName=tagSchool||legacySchool;const entries=matchingSubmissionEntries(calendarEntries,{grade:item.grade,schoolName},term.id);return[item.key,projectSubmissionStatus(entries,saved.data()||{},date,scores.docs.map(doc=>doc.data()))] }));
+    const submissionByStudent=Object.fromEntries(statusPairs);
+    const publicGuidance=(value,submissionStatus)=>value||submissionStatus ? { policy: String(value?.memo || '').slice(0,2000), materials: String(value?.materials || '').slice(0,1000), courseMaterials: String(value?.courseMaterials || '').slice(0,1000), teacherMemo:String(value?.teacherMemo||'').slice(0,2000), sharedInfo:String(value?.sharedInfo||'').slice(0,3000), submissionStatus:submissionStatus||null } : null;
+    const guidance = publicGuidance(selectedProfile,submissionByStudent[requested]);
+    const guidanceByStudent=Object.fromEntries(students.map(item=>[item.key,publicGuidance(profileMap.get(item.key),submissionByStudent[item.key])]).filter(([,value])=>value));
     const existingDraft=requested&&drafts.docs.find(item=>item.id===requested)?.data()?.payload||null;
     return Response.json({ role: staff.role, displayName: staff.profile?.displayName || '管理者', date, weekday, term, students, inputStatus, draftStatus, existingRecord, existingDraft, guidance, guidanceByStudent, absenceCandidates });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }

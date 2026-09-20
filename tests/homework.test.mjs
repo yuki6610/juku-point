@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { DEFAULT_HOMEWORK_TEMPLATES as templates, aggregateItemResults, validateAssignment, validateTemplates, homeworkValue, normalizePageRange, publicAssignment } from '../src/lib/homeworkModel.mjs';
-import { generateLessonReport } from '../src/lib/lessonReport.mjs';
 
 const assignment = { assignedDate: '2026-09-12', dueDate: '2026-09-19', items: [{ materialId: 'new_math', range: 'P.20〜23' }, { materialId: 'new_english', range: 'P.10〜12' }] };
 test('multiple tasks form one set with fixed material snapshots', () => {
@@ -42,7 +41,7 @@ async function prepare(old = {}, input = {}) {
   const writes = [];
   let seq = 0;
   const ref = path => ({ path, collection: part => ref(`${path}/${part}`), doc: part => ref(`${path}/${part || `audit${++seq}`}`) });
-  const context = { FieldValue: { serverTimestamp: () => 123 }, adminDb: { collection: path => ref(path) }, aggregateItemResults, homeworkValue, publicAssignment, generateLessonReport, DEFAULT_HOMEWORK_TEMPLATES: templates };
+  const context = { FieldValue: { serverTimestamp: () => 123 }, adminDb: { collection: path => ref(path) }, aggregateItemResults, homeworkValue, publicAssignment, normalizeReportFacts: value => ({ focus:3, understanding:3, effort:3, questions:3, retry:3, attitude:3, subject:'', supplement:'', extraNote:String(value?.extraNote||'') }), DEFAULT_HOMEWORK_TEMPLATES: templates };
   vm.createContext(context);
   vm.runInContext(server.replace(/^import .*\n/gm, '').replaceAll('export ', ''), context);
   const transaction = {
@@ -73,10 +72,10 @@ test('later completion preserves original failure and gives no homework reward',
   assert.equal(publication.review.text, original.text);
   assert.equal(publication.laterCompletion.status, 'laterCompleted');
 });
-test('snapshotted text survives edits to templates', async () => {
+test('宿題結果文は維持し旧授業コメントは新規公開しない', async () => {
   const { writes } = await prepare({ review: { status: 'partial', date: '2026-09-19', text: '元の文', missingIds: [] } }, { comments: ['focus'], oldLesson: { comments: [{ id: 'focus', text: '元のコメント' }] } });
   assert.equal(writes.find(item => item.path.startsWith('homeworkPublic')).value.review.text, '元の文');
-  assert.equal(writes.find(item => item.path.startsWith('lessonPublic')).value.comments[0].text, '元のコメント');
+  assert.equal(writes.find(item => item.path.startsWith('lessonPublic')).value.comments.length, 0);
 });
 test('confirmed sets cannot be reassessed on another date or completed prematurely', async () => {
   await assert.rejects(prepare({ review: { status: 'missed', date: '2026-09-18' } }));
