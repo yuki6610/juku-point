@@ -6,6 +6,7 @@ import './lesson-hub.css';
 import './lesson-hub-improvements.css';
 const LearningRecordForm = dynamic(() => import('./LearningRecordForm'), { loading: () => <p>学習記録を読み込み中…</p> });
 const Attendance = dynamic(() => import('../lesson-attendance/LessonAttendanceManager'), { loading: () => <p>出欠情報を読み込み中…</p> });
+const LessonInputStatus = dynamic(() => import('./LessonInputStatus'), { loading: () => <p>入力状況を読み込み中…</p> });
 export default function LessonRecordsPage() {
   const params = useSearchParams();
   const [tab, setTab] = useState(params.get('tab') === 'attendance' ? 'attendance' : 'learning');
@@ -38,6 +39,6 @@ export default function LessonRecordsPage() {
       <button disabled={busy} aria-pressed={tab === 'attendance'} onClick={() => switchTab('attendance')}>出欠確認・照合・履歴修正</button>
       <a href="/admin/settings" onClick={event => { if (busy || (dirty && !window.confirm('未保存の入力があります。設定ページへ移動しますか？'))) event.preventDefault(); }}>曜日・授業設定</a>
     </nav>
-    {tab === 'learning' ? <LearningRecordForm isDirty={dirty} onDirtyChange={setDirty} onBusyChange={setBusy} /> : <Attendance recordsOnly onDirtyChange={setDirty} onBusyChange={setBusy} />}
+    {tab === 'learning' ? <><LessonInputStatus/><LearningRecordForm isDirty={dirty} onDirtyChange={setDirty} onBusyChange={setBusy} /></> : <Attendance recordsOnly onDirtyChange={setDirty} onBusyChange={setBusy} />}
   </div>;
 }

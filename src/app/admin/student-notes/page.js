@@ -7,7 +7,7 @@ import './student-notes.css';
 const gradeLabel = value => value <= 6 ? `小${value}` : value <= 9 ? `中${value-6}` : `高${value-9}`;
 const fields = [
   ['schoolName','学校名'],['targetSchool','志望校'],['memo','生徒メモ'],['materials','教材'],
-  ['courseMaterials','講習教材'],
+  ['courseMaterials','講習教材'],['sharedInfo','講師への共有事項'],
 ];
 
 export default function StudentNotesPage(){
@@ -16,7 +16,7 @@ export default function StudentNotesPage(){
   const token=async()=>auth.currentUser?.getIdToken();
   const load=async()=>{if(!edits.confirmDiscard())return;edits.markSaved();setNotice('');try{const response=await fetch('/api/admin/student-notes',{headers:{Authorization:`Bearer ${await token()}`}}),data=await response.json();if(!response.ok)throw new Error(data.error);setRows(data.rows||[])}catch(error){setNotice(error.message)}};
   useEffect(()=>{load()},[]);
-  const shown=useMemo(()=>rows.filter(row=>(grade==='all'||String(row.grade)===grade)&&(!search||`${row.name} ${row.schoolName} ${row.targetSchool} ${row.memo} ${row.teacherMemo}`.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>a.grade-b.grade||a.name.localeCompare(b.name,'ja')),[rows,search,grade]);
+  const shown=useMemo(()=>rows.filter(row=>(grade==='all'||String(row.grade)===grade)&&(!search||`${row.name} ${row.schoolName} ${row.targetSchool} ${row.memo} ${row.sharedInfo} ${row.teacherMemo}`.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>a.grade-b.grade||a.name.localeCompare(b.name,'ja')),[rows,search,grade]);
   const update=(key,field,value)=>setRows(old=>old.map(row=>row.key===key?{...row,[field]:value}:row));
   const save=async row=>{setSaving(row.key);setNotice('');try{const response=await fetch('/api/admin/student-notes',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${await token()}`},body:JSON.stringify(row)}),data=await response.json();if(!response.ok)throw new Error(data.error);setRows(old=>old.map(item=>item.key===row.key?{...item,version:data.version}:item));setNotice(`${row.name}さんのメモを保存しました。`)}catch(error){setNotice(error.message)}finally{setSaving('')}};
   return <main className="notes-page">

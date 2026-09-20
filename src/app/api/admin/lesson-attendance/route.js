@@ -156,12 +156,16 @@ export async function POST(request) {
         if (legacyHighRef) transaction.delete(legacyHighRef);
         transaction.delete(adminDb.collection('lessonPublic').doc(key).collection('records').doc(date));
         transaction.delete(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key));
+        transaction.delete(adminDb.collection('lessonDrafts').doc(date).collection('students').doc(key));
         transaction.delete(adminDb.collection('studentProfiles').doc(key).collection('teacherNotes').doc(date));
         if(assignmentSnap?.exists&&assignmentSnap.data().review?.date===date){const next={...assignmentSnap.data(),review:null,laterCompletion:null};transaction.set(assignmentRefs.privateRef,{review:null,laterCompletion:null,version:Number(assignmentSnap.data().version||1)+1,updatedBy:adminUid,updatedAt:now},{merge:true});transaction.set(assignmentRefs.publicRef,publicAssignment(next));}
         rewardRefs.forEach((ref,index)=>{if(rewardSnaps[index]?.exists&&(!rewardSnaps[index].data().sourceDate||rewardSnaps[index].data().sourceDate===date))transaction.delete(ref)});
         if(isMiddle&&termId&&rewardWeekId){transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${date}_homework`));transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${date}_homework_missed`));transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${rewardWeekId}_wordtest`));}
       } else {
-        transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key),{ studentKey:key,date,grade,updatedBy:adminUid,updatedAt:now },{ merge:true });
+        const missingFields=[];
+        if(status!=='absent'&&grade<10){if(!String(learningRecord?.learningContent||'').trim())missingFields.push('学習内容');if(!String(learningRecord?.reportFacts?.extraNote||'').trim())missingFields.push('授業報告')}
+        transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key),{ studentKey:key,date,grade,missingFields,updatedBy:adminUid,updatedAt:now },{ merge:true });
+        transaction.delete(adminDb.collection('lessonDrafts').doc(date).collection('students').doc(key));
         if (learningRecord) transaction.set(commonRef, { learningRecord: { ...learningRecord, date, termId, createdBy: old.learningRecord?.createdBy || adminUid, createdAt: old.learningRecord?.createdAt || now, updatedBy: adminUid, updatedAt: now } }, { merge: true });
         const teacherMemo = String(learningRecord?.behaviorNote || note || '').trim();
         transaction.set(adminDb.collection('studentProfiles').doc(key).collection('teacherNotes').doc(date),{date,note:teacherMemo,updatedBy:adminUid,updatedAt:now},{merge:true});
@@ -176,6 +180,16 @@ export async function POST(request) {
           else transaction.delete(legacyHighRef);
         }
       }
+
+      const attendanceChanges = {
+        status:{before:oldStatus||null,after:action==='delete'?null:status},
+        originalDate:{before:oldOriginal||null,after:action==='delete'||status!=='makeup'?null:originalDate||null},
+      };
+      if(JSON.stringify(oldLearning||null)!==JSON.stringify(action==='delete'?null:learningRecord||oldLearning||null))attendanceChanges.learningRecord={before:oldLearning||null,after:action==='delete'?null:learningRecord||oldLearning||null};
+      if (attendanceChanges.status.before !== attendanceChanges.status.after || attendanceChanges.originalDate.before !== attendanceChanges.originalDate.after) transaction.set(
+        adminDb.collection('lessonRecordAudit').doc(key).collection('entries').doc(),
+        { studentKey:key, date, termId, action:action==='delete'?'delete':(commonSnap.exists?'update':'create'), changes:attendanceChanges, changedBy:adminUid, changedAt:now }
+      );
 
       if (oldStatus === "makeup" && oldOriginal && originalSnap?.data()?.makeupDate === date && (action === "delete" || status !== "makeup" || originalDate !== oldOriginal)) {
         transaction.set(records.doc(oldOriginal), { makeupDate: null, makeupCompleted: false, updatedBy: adminUid, updatedAt: now }, { merge: true });

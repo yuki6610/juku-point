@@ -27,6 +27,8 @@ import "./edit-record.css";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const TEACHING_DAYS = [1, 2, 3, 4, 5, 6];
+const attendanceRecordCache=new Map();
+const RECORD_CACHE_MS=5*60*1000;
 const GRADE_FILTERS = [
   ["all", "全学年"],
   ["elementary", "小学生"],
@@ -255,6 +257,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
   const [gradeFilter, setGradeFilter] = useState("all");
   const [calendarDirty, setCalendarDirty] = useState(false);
   const [scheduleDrafts, setScheduleDrafts] = useState({});
+  const [scheduleTimeDrafts, setScheduleTimeDrafts] = useState({});
 
   const loadStudents = async () => {
     const [usersResult, elementaryResult] = await Promise.allSettled([
@@ -300,11 +303,13 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
     const monthEnd = academicRecordEnd;
     const entries = await Promise.all(
       targetStudents.map(async (student) => {
+        const cacheKey=`${year}:${studentKey(student)}`,cached=attendanceRecordCache.get(cacheKey);
+        if(cached&&Date.now()-cached.at<RECORD_CACHE_MS)return[studentKey(student),cached.records];
         if (isMiddleSchool(student)) {
           const [termSnapshots, directSnapshot] = await Promise.all([
             Promise.all(
               [1, 2, 3].map((term) =>
-                getDocs(collection(db, "users", student.id, "lessonTerms", `${year}_${term}`, "records"))
+                getDocsInDateRange(["users",student.id,"lessonTerms",`${year}_${term}`,"records"],termSettings?.[term]?.start||monthStart,termSettings?.[term]?.end||monthEnd)
               )
             ),
             getDocsInDateRange(["adminLessonAttendance", studentKey(student), "records"], monthStart, monthEnd),
@@ -330,7 +335,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
             if (!record.date || record.date < monthStart || record.date > monthEnd) return;
             mergeAttendanceRecord(mapped, record);
           });
-          return [studentKey(student), linkMakeupRecords(mapped)];
+          const linked=linkMakeupRecords(mapped);attendanceRecordCache.set(cacheKey,{at:Date.now(),records:linked});return [studentKey(student), linked];
         }
 
         const [snapshot, classAttendanceSnapshot] = await Promise.all([
@@ -360,7 +365,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
           if (!record.date || record.date < monthStart || record.date > monthEnd) return;
           mergeAttendanceRecord(mapped, record);
         });
-        return [studentKey(student), linkMakeupRecords(mapped)];
+        const linked=linkMakeupRecords(mapped);attendanceRecordCache.set(cacheKey,{at:Date.now(),records:linked});return [studentKey(student), linked];
       })
     );
     setRecords((current) => ({ ...current, ...Object.fromEntries(entries) }));
@@ -571,19 +576,21 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
     .filter((record) => record.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  const saveSchedule = async (student, weekdays) => {
+  const saveSchedule = async (student, weekdays, startTime) => {
     setBusy(true);
     try {
       const target = student.source === "elementary"
         ? doc(db, "adminStudents", student.id)
         : doc(db, "users", student.id);
       const previous=(student.lessonSchedule?.weekdays||student.weekdays||[]).map(Number),history={effectiveFrom:todayId(),weekdays:weekdays.map(Number),previousWeekdays:previous,updatedBy:auth.currentUser?.uid||null};
+      const normalizedTime=/^\d{2}:\d{2}$/.test(startTime||'')?startTime:'';
       await updateDoc(target, student.source === "elementary"
-        ? { weekdays, lessonScheduleHistory:arrayUnion(history), updatedAt: serverTimestamp() }
-        : { 'lessonSchedule.weekdays':weekdays, 'lessonSchedule.history':arrayUnion(history), updatedAt: serverTimestamp() });
+        ? { weekdays, lessonStartTime:normalizedTime||null, lessonScheduleHistory:arrayUnion({...history,startTime:normalizedTime}), updatedAt: serverTimestamp() }
+        : { 'lessonSchedule.weekdays':weekdays, 'lessonSchedule.startTime':normalizedTime||null, 'lessonSchedule.history':arrayUnion({...history,startTime:normalizedTime}), updatedAt: serverTimestamp() });
       await loadStudents();
       setScheduleDrafts((current) => { const next = { ...current }; delete next[studentKey(student)]; return next; });
-      setNotice("通塾曜日を保存しました。");
+      setScheduleTimeDrafts((current) => { const next = { ...current }; delete next[studentKey(student)]; return next; });
+      setNotice("通塾曜日と授業開始時刻を保存しました。");
     } catch (error) {
       console.error(error);
       setNotice("通塾曜日を保存できませんでした。管理者権限または通信状態を確認してください。");
@@ -697,7 +704,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "保存に失敗しました。");
-      await loadRecords();
+      attendanceRecordCache.delete(`${year}:${selectedKey}`);await loadRecords();
       onDirtyChange(false);
       setNotice(`${editingDate ? "出欠を修正" : "出欠を保存"}しました。${result.pointDelta ? ` 高校生のポイントを${result.pointDelta > 0 ? "+" : ""}${result.pointDelta}pt調整しました。` : ""}`);
       setNote("");
@@ -729,7 +736,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "削除に失敗しました。");
       await loadStudentRecords(selectedKey);
-      await loadRecords(visibleStudents);
+      attendanceRecordCache.delete(`${year}:${selectedKey}`);await loadRecords(visibleStudents);
       setNotice("出欠記録を削除しました。");
     } catch (error) {
       console.error(error);
@@ -965,14 +972,17 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
             const current = student.lessonSchedule?.weekdays || student.weekdays || [];
             const key = studentKey(student);
             const draft = scheduleDrafts[key] || current;
-            const changed = JSON.stringify(draft) !== JSON.stringify(current);
+            const currentTime=student.lessonSchedule?.startTime||student.lessonStartTime||'';
+            const timeDraft=scheduleTimeDrafts[key]??currentTime;
+            const changed = JSON.stringify(draft) !== JSON.stringify(current)||timeDraft!==currentTime;
             return <article key={studentKey(student)}>
               <div>
                 <strong>{student.name || student.realName || student.displayName}</strong>
                 <span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "生徒アカウント"}</span>
               </div>
               <div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={draft.includes(day) ? "active" : ""} disabled={busy} onClick={() => setScheduleDrafts((values) => ({ ...values, [key]: draft.includes(day) ? draft.filter((value) => value !== day) : [...draft, day].sort() }))}>{WEEKDAYS[day]}</button>)}</div>
-              <button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft)}>曜日を保存</button>
+              <label className="lesson-start-field">通常授業開始{student.source==='elementary'?<input type="time" value={timeDraft} onChange={event=>setScheduleTimeDrafts(values=>({...values,[key]:event.target.value}))}/>:<select value={timeDraft} onChange={event=>setScheduleTimeDrafts(values=>({...values,[key]:event.target.value}))}><option value="">未設定</option>{['13:20','15:00','16:40','18:20','20:00'].map(value=><option key={value} value={value}>{value}〜</option>)}</select>}</label>
+              <button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft,timeDraft)}>曜日・時刻を保存</button>
               <label className="lesson-start-field">
                 計算開始日
                 <input

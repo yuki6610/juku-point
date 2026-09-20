@@ -37,7 +37,7 @@ export async function GET(request) {
     const through=new Date(`${selected.end}T00:00:00Z`);through.setUTCDate(through.getUTCDate()+1);
     const assignments = (await readPublicHomeworkCompatible(studentKey, 300, through.toISOString().slice(0,10))).filter(item => item.review?.date >= selected.start && item.review?.date <= selected.end);
     let scores = [], submissionStatus = null;
-    if (!elementary) { const snapshot = await adminDb.collection('users').doc(id).collection('scores').get(); scores = snapshot.docs.map(doc => publicScore(doc.data(), doc.id)).filter(item => item && item.year === String(selected.year) && item.term === `${selected.term}学期`).sort((a,b)=>b.createdAt-a.createdAt); }
+    if (!elementary) { const ref=adminDb.collection('users').doc(id).collection('scores'),snapshots=await Promise.all([ref.where('year','==',String(selected.year)).get(),ref.where('year','==',Number(selected.year)).get()]),docs=new Map();snapshots.forEach(snapshot=>snapshot.docs.forEach(doc=>docs.set(doc.id,doc)));scores=[...docs.values()].map(doc => publicScore(doc.data(), doc.id)).filter(item => item && item.year === String(selected.year) && item.term === `${selected.term}学期`).sort((a,b)=>b.createdAt-a.createdAt); }
     if (!elementary && Number(student.data().grade) >= 7) {
       const [status,calendar]=await Promise.all([adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(id).get(),adminDb.collection('scoreSubmissionCalendars').doc(String(selected.year)).collection('entries').get()]);
       const saved=status.data()||{},entries=matchingSubmissionEntries(calendar.docs.map(doc=>({id:doc.id,...doc.data()})),{grade:student.data().grade,schoolName:profile.data()?.schoolName||''},termId);

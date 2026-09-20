@@ -1,0 +1,48 @@
+.teacher-filters.compact {
+  grid-template-columns: minmax(0, 1fr) 120px;
+}
+
+.teacher-student-select {
+  font-weight: 800;
+  background: #f8faff !important;
+  border-color: #bdcbed !important;
+}
+
+@media (max-width: 650px) {
+  .teacher-filters.compact {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.teacher-work-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 6px;
+  background: rgba(244, 247, 255, .96);
+  backdrop-filter: blur(12px);
+}
+.teacher-work-tabs button { min-height: 44px; border: 0; border-radius: 10px; font-weight: 850; color: #536178; background: #fff; }
+.teacher-work-tabs button.active { color: #fff; background: #536fc1; }
+.teacher-work-tabs b { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 4px; border-radius: 50%; background: #fff; color: #536fc1; }
+.teacher-assignment-panel { align-content: start; }
+.teacher-assignment-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.teacher-assignment-list > label { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px; border: 1px solid #dce4f0; border-radius: 12px; background: #f8fafc; }
+.teacher-assignment-list > label.selected { border-color: #8298dc; background: #eef2ff; }
+.teacher-assignment-list span { display: grid; }
+.teacher-assignment-list small { color: #728097; }
+.teacher-assignment-list b { color: #64748b; font-size: 11px; }
+.teacher-next-step { color: #fff; border-color: #536fc1 !important; background: #536fc1 !important; font-weight: 900; }
+.teacher-student-info-list details { border: 1px solid #dfe6f0; border-radius: 12px; overflow: hidden; }
+.teacher-student-info-list summary { display: flex; justify-content: space-between; align-items: center; padding: 13px; cursor: pointer; background: #f7f9fc; }
+.teacher-student-info-list details p { display: grid; gap: 4px; margin: 0; padding: 10px 13px; border-top: 1px solid #edf1f5; white-space: pre-wrap; }
+.teacher-student-info-list details p b { color: #536fc1; font-size: 11px; }
+
+@media (max-width: 650px) {
+  .teacher-work-tabs { margin: 0 -7px; }
+  .teacher-work-tabs button { padding: 7px 4px; font-size: 12px; }
+  .teacher-assignment-list { grid-template-columns: 1fr; }
+}

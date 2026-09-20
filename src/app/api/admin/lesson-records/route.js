@@ -33,6 +33,18 @@ function homeworkReward(status) {
   return 0;
 }
 
+const AUDIT_FIELDS = ["attendance", "originalLessonDate", "homework", "wordTest", "late", "forgot", "behaviorNote", "learningContent", "reportFacts", "homeworkReview", "commentIds"];
+function lessonChanges(before, after) {
+  return Object.fromEntries(AUDIT_FIELDS.filter((field) => JSON.stringify(before?.[field] ?? null) !== JSON.stringify(after?.[field] ?? null)).map((field) => [field, { before: before?.[field] ?? null, after: after?.[field] ?? null }]));
+}
+function requiredLessonFields(record, grade) {
+  if (record?.attendance === 'absent' || Number(grade) >= 10) return [];
+  const missing = [];
+  if (!String(record?.learningContent || '').trim()) missing.push('学習内容');
+  if (!String(record?.reportFacts?.extraNote || '').trim()) missing.push('授業報告');
+  return missing;
+}
+
 function applyExperience(user, delta) {
   let level = Math.max(1, Number(user.level || 1));
   let experience = Math.max(0, Number(user.experience || 0) + delta);
@@ -126,6 +138,11 @@ export async function POST(request) {
         updatedAt: now,
       };
       transaction.set(recordRef, savedRecord, { merge: true });
+      const changes = lessonChanges(oldRecord, savedRecord);
+      if (Object.keys(changes).length) transaction.set(
+        adminDb.collection('lessonRecordAudit').doc(`user_${uid}`).collection('entries').doc(),
+        { studentKey:`user_${uid}`, date, termId, action:oldRecordSnap.exists?'update':'create', changes, changedBy:adminUid, changedAt:now }
+      );
       const records=termRecords.docs.filter(item=>item.id!==date).map(item=>item.data());
       const [summaryYear,summaryTerm]=termId.split('_');
       transaction.set(userRef.collection('behaviorSummary').doc(termId),{...calculateSummary([...records,savedRecord],summaryYear,summaryTerm),updatedAt:now},{merge:true});
@@ -134,7 +151,8 @@ export async function POST(request) {
         teacherMemo:String(savedRecord.behaviorNote||'').trim().slice(0,5000), teacherMemoDate:date,
         teacherMemoBy:adminUid, teacherMemoUpdatedAt:now,
       }, { merge:true });
-      transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(`user_${uid}`),{ studentKey:`user_${uid}`,date,grade:Number(studentData.grade),updatedBy:adminUid,updatedAt:now },{ merge:true });
+      transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(`user_${uid}`),{ studentKey:`user_${uid}`,date,grade:Number(studentData.grade),missingFields:requiredLessonFields(savedRecord,studentData.grade),updatedBy:adminUid,updatedAt:now },{ merge:true });
+      transaction.delete(adminDb.collection('lessonDrafts').doc(date).collection('students').doc(`user_${uid}`));
       publication?.commit();
 
       let pointDelta = 0;

@@ -15,7 +15,7 @@ export async function homeworkTemplates() {
   const snapshot = await adminDb.collection('admin_data').doc('homeworkTemplates').get();
   if (!snapshot.exists) return DEFAULT_HOMEWORK_TEMPLATES;
   const templates = snapshot.data().templates;
-  return { ...templates, materials: (templates.materials || []).map(item => ({ ...item, subject: item.subject || DEFAULT_HOMEWORK_TEMPLATES.materials.find(value => value.id === item.id)?.subject || 'all' })) };
+  return { ...templates, materials: (templates.materials || []).map(item => { const fallback=DEFAULT_HOMEWORK_TEMPLATES.materials.find(value => value.id === item.id);const subjects=Array.isArray(item.subjects)&&item.subjects.length?item.subjects:[item.subject||fallback?.subject||fallback?.subjects?.[0]||'all'];return { ...item, subjects, subject:subjects[0], difficulty:Number(item.difficulty||fallback?.difficulty||3), ...(item.id==='other'?{customLabel:true}:{}) }; }) };
 }
 export function homeworkRefs(key, id) {
   if (!/^(user|elementary)_[A-Za-z0-9_-]{1,128}$/.test(key) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('生徒または課題IDが正しくありません。');

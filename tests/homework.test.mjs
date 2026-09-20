@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { DEFAULT_HOMEWORK_TEMPLATES as templates, aggregateItemResults, validateAssignment, validateTemplates, homeworkValue, publicAssignment } from '../src/lib/homeworkModel.mjs';
+import { DEFAULT_HOMEWORK_TEMPLATES as templates, aggregateItemResults, validateAssignment, validateTemplates, homeworkValue, normalizePageRange, publicAssignment } from '../src/lib/homeworkModel.mjs';
 import { generateLessonReport } from '../src/lib/lessonReport.mjs';
 
 const assignment = { assignedDate: '2026-09-12', dueDate: '2026-09-19', items: [{ materialId: 'new_math', range: 'P.20〜23' }, { materialId: 'new_english', range: 'P.10〜12' }] };
@@ -13,6 +13,13 @@ test('multiple tasks form one set with fixed material snapshots', () => {
   assert.equal(value.items[0].id, '0');
   assert.throws(() => validateAssignment({ ...assignment, dueDate: '2026-09-11' }, templates));
   assert.throws(() => validateAssignment({ ...assignment, items: [{ materialId: 'fake', range: '1' }] }, templates));
+});
+test('page ranges, custom homework and difficulty are normalized and snapshotted',()=>{
+  assert.equal(normalizePageRange('P.10～15、20 30-35'),'P.10〜15,20,30〜35');
+  const value=validateAssignment({...assignment,items:[{materialId:'other',subject:'arithmetic',customLabel:'計算プリント',range:'1-3',difficulty:4}]},templates);
+  assert.equal(value.items[0].materialLabel,'計算プリント');
+  assert.equal(value.items[0].range,'P.1〜3');
+  assert.equal(value.items[0].difficulty,4);
 });
 test('individual homework results use submitted / partial / missed aggregate rules', () => {
   assert.equal(homeworkValue('partial'), 'partial');

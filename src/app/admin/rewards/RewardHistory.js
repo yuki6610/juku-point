@@ -1,205 +1,24 @@
-'use client'
+'use client';
 
-import { useEffect, useState } from 'react'
-import { db } from '../../../firebaseConfig'
-import { collection, doc, getDocs, runTransaction, updateDoc } from 'firebase/firestore'
-import { historyMillis, mapInBatches, mergeRewardHistory } from '@/lib/historyCompatibility.mjs'
-import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import '../rewardHistory/rewardHistory.css'
+import { useEffect, useMemo, useState } from 'react';
+import { collection, doc, getDocs, runTransaction, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '@/firebaseConfig';
+import { historyMillis, mergeRewardHistory } from '@/lib/historyCompatibility.mjs';
+import '../rewardHistory/rewardHistory.css';
 
-export default function AdminRewardHistory() {
-  const [user, setUser] = useState(null)
-  const [history, setHistory] = useState([])
-  const [filteredHistory, setFilteredHistory] = useState([])
-  const [filterMode, setFilterMode] = useState('all') // all | unverified
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [visibleCount, setVisibleCount] = useState(50)
+const gradeLabel=value=>Number(value)<=6?`小${value}`:Number(value)<=9?`中${Number(value)-6}`:`高${Number(value)-9}`;
 
-  useEffect(() => {
-    const auth = getAuth()
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!currentUser) {
-        window.location.href = '/login'
-        return
-      }
-      setUser(currentUser)
-      await fetchAllHistories()
-    })
-    return () => unsubscribe()
-  }, [])
-
-  // 🔹 新形式のサブコレクションを優先し、旧配列形式も互換表示
-  const fetchAllHistories = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const users = await getDocs(collection(db, 'users'))
-      const lists = await mapInBatches(users.docs, async (student) => {
-        const data = student.data()
-        const identity = { userId: student.id, userName: data.realName || data.displayName || '未登録' }
-        // No orderBy: historical records without a date field must remain visible.
-        const snapshot = await getDocs(collection(db, 'users', student.id, 'rewardHistory'))
-        const modern = snapshot.docs.map((item) => ({ ...item.data(), ...identity, historyId: item.id, legacy: false }))
-        const legacy = (Array.isArray(data.rewardHistory) ? data.rewardHistory : []).map((item, index) => ({ ...item, ...identity, index, legacy: true }))
-        return mergeRewardHistory(modern, legacy)
-      })
-      const all = lists.flat()
-
-      // 日付順にソート（新しい順）
-      all.sort((a, b) => toMillis(b.date || b.createdAt) - toMillis(a.date || a.createdAt))
-      setHistory(all)
-      applyFilter(filterMode, all)
-    } catch (error) {
-      console.error('履歴読み込みエラー:', error)
-      setError(`交換履歴を取得できませんでした。再読み込みしてください。（${error.code || '通信エラー'}）`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 🔸 管理者が「確認済み」に変更
-  const handleVerify = async (item) => {
-    try {
-      if (!item.legacy && item.historyId) {
-        await updateDoc(doc(db, 'users', item.userId, 'rewardHistory', item.historyId), {
-          verified: true,
-          verifiedAt: new Date(),
-        })
-        alert('確認済みにしました ✅')
-        fetchAllHistories()
-        return
-      }
-
-      const userRef = doc(db, 'users', item.userId)
-      await runTransaction(db, async (transaction) => {
-        const snapshot = await transaction.get(userRef)
-        const list = snapshot.data()?.rewardHistory
-        const original = list?.[item.index]
-        if (!original || original.name !== item.name || Number(original.cost) !== Number(item.cost) || historyMillis(original.date) !== historyMillis(item.date)) {
-          throw new Error('履歴が変更されています。再読み込みしてください。')
-        }
-        const next = [...list]
-        next[item.index] = { ...original, verified: true, verifiedAt: new Date() }
-        transaction.update(userRef, { rewardHistory: next })
-      })
-
-      alert('確認済みにしました ✅')
-      fetchAllHistories()
-    } catch (error) {
-      console.error('確認処理エラー:', error)
-      setError(error.message || '確認状態を保存できませんでした。')
-    }
-  }
-
-  const toMillis = (value) => {
-    if (!value) return 0
-    if (typeof value.toDate === 'function') return value.toDate().getTime()
-    if (typeof value.seconds === 'number') return value.seconds * 1000
-    const date = new Date(value)
-    return Number.isNaN(date.getTime()) ? 0 : date.getTime()
-  }
-
-  // 🔹 フィルタ適用
-  const applyFilter = (mode, list = history) => {
-    if (mode === 'unverified') {
-      setFilteredHistory(list.filter((item) => !item.verified))
-    } else {
-      setFilteredHistory(list)
-    }
-  }
-
-  // 🔹 フィルタボタン切り替え
-  const handleFilterChange = (mode) => {
-    setVisibleCount(50)
-    setFilterMode(mode)
-    applyFilter(mode)
-  }
-
-  if (loading) return <p className="loading-text">読み込み中...</p>
-
-  return (
-    <div className="admin-history-container">
-      <h1 className="admin-history-title">🎁 交換履歴管理</h1>
-      <p className="history-range-note">旧形式を含む履歴を確認できます。表示は50件ずつです。</p>
-      {error && <p role="alert">{error}</p>}
-      <button onClick={fetchAllHistories}>再読み込み</button>
-
-      {/* 🔘 フィルタボタン */}
-      <div className="filter-buttons">
-        <button
-          className={`filter-button ${filterMode === 'all' ? 'active' : ''}`}
-          onClick={() => handleFilterChange('all')}
-        >
-          📋 全件表示
-        </button>
-        <button
-          className={`filter-button ${filterMode === 'unverified' ? 'active' : ''}`}
-          onClick={() => handleFilterChange('unverified')}
-        >
-          ⏳ 未確認のみ
-        </button>
-      </div>
-
-      {error ? null : filteredHistory.length === 0 ? (
-        <p className="no-history">該当する履歴がありません。</p>
-      ) : (
-        <table className="admin-history-table">
-          <thead>
-            <tr>
-              <th>生徒名</th>
-              <th>景品名</th>
-              <th>ポイント</th>
-              <th>交換日</th>
-              <th>確認状態</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredHistory.slice(0, visibleCount).map((item, i) => (
-              <tr key={i}>
-                <td>{item.userName}</td>
-                <td>{item.name}</td>
-                <td>{item.cost} pt</td>
-                <td>
-                  {item.date || item.createdAt
-                    ? new Date(toMillis(item.date || item.createdAt)).toLocaleDateString('ja-JP', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : '不明'}
-                </td>
-                <td>{item.verified ? '✅ 交換済み' : '⏳ 未交換'}</td>
-                <td>
-                  {!item.verified && (
-                    <button
-                      className="verify-button"
-                      onClick={() => handleVerify(item)}
-                    >
-                      確認する
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {!error && filteredHistory.length > visibleCount && <button onClick={() => setVisibleCount((count) => count + 50)}>さらに50件表示</button>}
-
-      {/* 🔙 戻るボタン */}
-      <div className="bottom-buttons">
-        <button
-          onClick={() => (window.location.href = '/admin')}
-          className="back-button"
-        >
-          🔙 管理ページに戻る
-        </button>
-      </div>
-    </div>
-  )
+export default function AdminRewardHistory(){
+  const [students,setStudents]=useState([]),[selected,setSelected]=useState(''),[history,setHistory]=useState([]),[filter,setFilter]=useState('all'),[loading,setLoading]=useState(false),[error,setError]=useState('');
+  useEffect(()=>onAuthStateChanged(auth,async user=>{if(!user){location.href='/login';return}try{const snapshot=await getDocs(collection(db,'users'));setStudents(snapshot.docs.map(item=>({id:item.id,...item.data()})).filter(item=>item.active!==false&&item.enrollmentStatus!=='withdrawn').sort((a,b)=>Number(a.grade)-Number(b.grade)||String(a.realName||a.displayName||'').localeCompare(String(b.realName||b.displayName||''),'ja')))}catch{setError('生徒一覧を取得できませんでした。')}}),[]);
+  const load=async uid=>{if(!uid){setHistory([]);return}setLoading(true);setError('');try{const student=students.find(item=>item.id===uid),identity={userId:uid,userName:student?.realName||student?.displayName||'未登録'},snapshot=await getDocs(collection(db,'users',uid,'rewardHistory')),modern=snapshot.docs.map(item=>({...item.data(),...identity,historyId:item.id,legacy:false})),legacy=(Array.isArray(student?.rewardHistory)?student.rewardHistory:[]).map((item,index)=>({...item,...identity,index,legacy:true})),merged=mergeRewardHistory(modern,legacy).sort((a,b)=>historyMillis(b.date||b.createdAt)-historyMillis(a.date||a.createdAt));setHistory(merged)}catch(error){setError(`交換履歴を取得できませんでした。（${error.code||'通信エラー'}）`)}finally{setLoading(false)}};
+  const choose=uid=>{setSelected(uid);setFilter('all');load(uid)};
+  const verify=async item=>{try{if(!item.legacy&&item.historyId){await updateDoc(doc(db,'users',item.userId,'rewardHistory',item.historyId),{verified:true,verifiedAt:new Date()})}else{const ref=doc(db,'users',item.userId);await runTransaction(db,async transaction=>{const snapshot=await transaction.get(ref),list=snapshot.data()?.rewardHistory,original=list?.[item.index];if(!original||original.name!==item.name||Number(original.cost)!==Number(item.cost)||historyMillis(original.date)!==historyMillis(item.date))throw new Error('履歴が変更されています。再読み込みしてください。');const next=[...list];next[item.index]={...original,verified:true,verifiedAt:new Date()};transaction.update(ref,{rewardHistory:next})})}await load(selected)}catch(error){setError(error.message||'確認状態を保存できませんでした。')}};
+  const visible=useMemo(()=>filter==='unverified'?history.filter(item=>!item.verified):history,[history,filter]);
+  return <div className="admin-history-container"><h1 className="admin-history-title">交換履歴管理</h1><p className="history-range-note">必要な生徒だけを読み込み、Firestoreの使用量を抑えます。</p>
+    <label className="history-student-select">生徒<select value={selected} onChange={event=>choose(event.target.value)}><option value="">生徒を選択してください</option>{students.map(item=><option key={item.id} value={item.id}>{gradeLabel(item.grade)}　{item.realName||item.displayName||'名前未設定'}</option>)}</select></label>
+    {selected&&<div className="filter-buttons"><button className={`filter-button ${filter==='all'?'active':''}`} onClick={()=>setFilter('all')}>全件</button><button className={`filter-button ${filter==='unverified'?'active':''}`} onClick={()=>setFilter('unverified')}>未確認のみ</button><button onClick={()=>load(selected)}>再読み込み</button></div>}
+    {error&&<p role="alert">{error}</p>}{loading?<p className="loading-text">読み込み中...</p>:!selected?<p className="no-history">確認する生徒を選択してください。</p>:!visible.length?<p className="no-history">該当する履歴はありません。</p>:<table className="admin-history-table"><thead><tr><th>生徒名</th><th>景品名</th><th>ポイント</th><th>交換日</th><th>確認状態</th><th>操作</th></tr></thead><tbody>{visible.map(item=><tr key={`${item.legacy?'legacy':item.historyId}-${item.index??''}`}><td>{item.userName}</td><td>{item.name}</td><td>{item.cost} pt</td><td>{item.date||item.createdAt?new Date(historyMillis(item.date||item.createdAt)).toLocaleString('ja-JP'):'不明'}</td><td>{item.verified?'交換済み':'未交換'}</td><td>{!item.verified&&<button className="verify-button" onClick={()=>verify(item)}>確認する</button>}</td></tr>)}</tbody></table>}
+  </div>;
 }

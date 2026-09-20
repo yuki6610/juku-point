@@ -201,6 +201,7 @@ export default function MyPage() {
   const assignedExamTags = examTypes.filter(([tag]) => data.courseTags?.includes(tag));
   const visibleExams = (assignedExamTags.length ? assignedExamTags : examTypes).filter(([,id])=>examDates[id]).map(([tag,id,label])=>({tag,id,label,date:examDates[id],days:Math.max(0,Math.ceil((new Date(`${examDates[id]}T00:00:00+09:00`).getTime()-Date.now())/86400000))}));
   const menuItems = [
+    { icon: "▦", label: "予定カレンダー", note: "授業・講習・行事", path: "/calendar", tone: "blue" },
     { icon: "◷", label: "自習を記録", note: "入退室・学習時間", path: "/checkin", tone: "blue" },
     { icon: "◇", label: "景品交換", note: "ポイントを使う", path: "/rewards", tone: "green" },
     { icon: "↗", label: "ランキング", note: "みんなの成長を見る", path: "/ranking", tone: "purple" },

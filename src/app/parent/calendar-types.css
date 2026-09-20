@@ -1,0 +1,2 @@
+.parent-calendar-legend .interview:before,.parent-calendar button span i.interview,.parent-day-detail i.interview{background:#df8094!important}
+.course-document-list{display:grid;gap:8px;margin-bottom:12px}.course-document-list button{display:flex;justify-content:space-between;gap:10px;padding:12px;border:1px solid #dce4ef;border-radius:11px;background:#f8faff;color:#344765}.course-document-list span{color:#6275c4}@media(max-width:650px){.course-document-list button{display:grid;text-align:left}}

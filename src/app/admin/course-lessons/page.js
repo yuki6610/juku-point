@@ -66,7 +66,7 @@ export default function CourseLessonsPage() {
   const [programs, setPrograms] = useState([]);
   const [programId, setProgramId] = useState("");
   const [assignments, setAssignments] = useState([]);
-  const [tab, setTab] = useState("instruction");
+  const [tab, setTab] = useState("operations");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
   const [showProgramForm, setShowProgramForm] = useState(false);
@@ -261,7 +261,7 @@ export default function CourseLessonsPage() {
 
   return (
     <main className="course-page">
-      <header className="course-header"><div><span>SEASONAL ASSIGNMENTS</span><h1>講習課題管理</h1><p>生徒別の宿題・単語テスト範囲を指示し、翌週の確認結果まで管理します。</p></div><div className="course-tabs"><button className={tab === "instruction" ? "active" : ""} onClick={() => setTab("instruction")}>指示を入力</button><button className={tab === "pending" ? "active" : ""} onClick={() => setTab("pending")}>確認待ち <b>{pending.length}</b></button><button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>確認履歴</button></div></header>
+      <header className="course-header"><div><span>SEASONAL COURSE</span><h1>講習管理</h1><p>申込、日程、授業配置、課題、進捗を機能別に管理します。</p></div><div className="course-tabs"><button className={tab === "operations" ? "active" : ""} onClick={() => setTab("operations")}>申込・日程</button><button className={tab === "instruction" ? "active" : ""} onClick={() => setTab("instruction")}>講習宿題</button><button className={tab === "pending" ? "active" : ""} onClick={() => setTab("pending")}>確認待ち <b>{pending.length}</b></button><button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>確認履歴</button></div></header>
 
       <section className="course-program-bar"><label>講習<select value={programId} onChange={(e) => setProgramId(e.target.value)}><option value="">講習を選択</option>{programs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{program && <div className="course-period"><strong>{formatDate(program.startDate)}〜{formatDate(program.endDate)}</strong><span>参加生徒 {participantIds.length}人</span></div>}{program && <button className="participant-button" onClick={() => setShowParticipants((value) => !value)}>参加生徒を設定</button>}<button className="new-program-button" onClick={() => setShowProgramForm((value) => !value)}>{showProgramForm ? "閉じる" : "新しい講習"}</button></section>
 
@@ -275,7 +275,7 @@ export default function CourseLessonsPage() {
 
       {program && tab === "history" && <section className="course-card"><div className="list-toolbar"><div><h2>確認履歴</h2><p>講習期間中に指示・確認した内容を保存します。</p></div><div><select value={gradeFilter} onChange={(e) => setGradeFilter(e.target.value)}><option value="all">全学年</option><option value="7">中1</option><option value="8">中2</option><option value="9">中3</option></select><select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}><option value="all">全生徒</option>{students.map((item) => <option key={item.uid} value={item.uid}>{studentName(item)}</option>)}</select></div></div><AssignmentList items={history} historyMode /></section>}
       {program && tab === "instruction" && <section className="course-card next-week-separated"><div className="section-heading"><div><span>NEXT WEEK</span><h2>次週の確認予定</h2><p>{formatDate(nextWeek.start)}〜{formatDate(nextWeek.end)}</p></div><strong>{dueNextWeek.length}件</strong></div><div className="next-week-columns"><section><div className="next-week-title homework"><h3>宿題</h3><span>{nextWeekHomework.length}件</span></div><AssignmentList items={nextWeekHomework} /></section><section><div className="next-week-title word"><h3>単語テスト</h3><span>{nextWeekWordTests.length}件</span></div><p className="word-rule">中1：20問　中2：30問　中3：50問</p><AssignmentList items={nextWeekWordTests} /></section></div></section>}
-      {program&&<CourseOperations programId={programId}/>} {notice && <p className="course-notice" role="status">{notice}</p>}
+      {program&&tab==='operations'&&<CourseOperations programId={programId}/>} {notice && <p className="course-notice" role="status">{notice}</p>}
     </main>
   );
 }

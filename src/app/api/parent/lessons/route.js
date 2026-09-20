@@ -14,7 +14,7 @@ const PAGE_SIZE = 20;
 export async function GET(request) {
   try {
     const parent = await requireParent(request), params = new URL(request.url).searchParams;
-    const studentKey = normalizeStudentKey(params.get('student')), after = params.get('after');
+    const studentKey = normalizeStudentKey(params.get('student')), after = params.get('after'),summary=params.get('detail')==='summary';
     if (after && !/^\d{4}-\d{2}-\d{2}$/.test(after)) throw new Error('続きを取得する位置が正しくありません。');
     if (!(await linkedChildren(parent.uid, parent.role === 'admin')).includes(studentKey)) return Response.json({ error: 'この生徒の情報を閲覧する権限がありません。' }, { status: 403 });
     const elementary = studentKey.startsWith('elementary_'), id = studentKey.replace(/^(user|elementary)_/, '');
@@ -37,7 +37,7 @@ export async function GET(request) {
       snapshots.forEach((snapshot,index)=>snapshot.docs.forEach(doc=>entries.push({id:doc.id,data:doc.data(),source:sources[index][0]})));
       if(mergeParentLessons(entries).size>PAGE_SIZE)break;
     }
-    const homework=await readPublicHomeworkCompatible(studentKey,500,after);
+    const homework=await readPublicHomeworkCompatible(studentKey,summary?60:500,after);
     const ordered=[...mergeParentLessons(entries).values()].sort((a,b)=>b.date.localeCompare(a.date));
     const page = ordered.slice(0, PAGE_SIZE);
     const lessons = page.map(data => ({ ...data,

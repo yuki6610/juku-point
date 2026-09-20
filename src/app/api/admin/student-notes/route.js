@@ -25,6 +25,7 @@ export async function GET(request) {
       schoolName:profileMap[item.key]?.schoolName || '', targetSchool:profileMap[item.key]?.targetSchool || '',
       version:Number(profileMap[item.key]?.version||0), memo:profileMap[item.key]?.memo || '', materials:profileMap[item.key]?.materials || '',
       courseMaterials:profileMap[item.key]?.courseMaterials || '',
+      sharedInfo:profileMap[item.key]?.sharedInfo || '',
       teacherMemo:profileMap[item.key]?.teacherMemo || '', teacherMemoDate:profileMap[item.key]?.teacherMemoDate || '',
     }));
     return Response.json({ rows });
@@ -38,6 +39,7 @@ export async function POST(request) {
     const data = {
       schoolName:clean(body.schoolName, 120), targetSchool:clean(body.targetSchool, 200), memo:clean(body.memo),
       materials:clean(body.materials, 1000), courseMaterials:clean(body.courseMaterials, 1000),
+      sharedInfo:clean(body.sharedInfo, 3000),
       updatedBy:admin.uid, updatedAt:FieldValue.serverTimestamp(),
     };
     const ref=adminDb.collection('studentProfiles').doc(body.key);const version=await adminDb.runTransaction(async tx=>{const old=await tx.get(ref);const current=Number(old.data()?.version||0);if(Number(body.version||0)!==current)throw new Error('他の画面でメモが更新されました。入力内容を控え、最新に更新してください。');tx.set(ref,{...data,version:current+1},{merge:true});return current+1;});

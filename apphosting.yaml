@@ -2,7 +2,8 @@
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
   minInstances: 0
-  # maxInstances: 100
+  # 60人規模では3インスタンスで十分。異常アクセス時のCloud Run費用上限を抑える。
+  maxInstances: 3
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512
