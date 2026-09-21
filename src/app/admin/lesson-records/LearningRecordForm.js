@@ -64,6 +64,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const [wordTotal, setWordTotal] = useState("20");
   const [wordRangeMode, setWordRangeMode] = useState("same");
   const [wordRange, setWordRange] = useState(null);
+  const [nextWordRange, setNextWordRange] = useState(null);
   const [late, setLate] = useState(false);
   const [forgot, setForgot] = useState(false);
   const [behaviorNote, setBehaviorNote] = useState("");
@@ -151,9 +152,10 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const isElementary = selectedGrade >= 1 && selectedGrade <= 6;
   const isHigh = selectedGrade >= 10 && selectedGrade <= 12;
   const wordRangeBase = selectedStudent?.wordTestCurrentRange || { start: 1, end: Number(selectedStudent?.wordTestQuestionCount || wordTotal || 20) };
+  const currentWordRange = wordRange || wordRangeBase;
   const wordRangeChoices = {
-    same: wordRangeBase,
-    next: { start: Number(wordRangeBase.end) + 1, end: Number(wordRangeBase.end) + Number(wordTotal || selectedStudent?.wordTestQuestionCount || 20) },
+    same: currentWordRange,
+    next: { start: Number(currentWordRange.end) + 1, end: Number(currentWordRange.end) + Number(wordTotal || selectedStudent?.wordTestQuestionCount || 20) },
   };
   useEffect(() => { if (isHigh) setHomeworkReady(true); }, [isHigh]);
   const materials = (assignmentData?.templates?.materials || []).filter(item => !item.audience || item.audience === 'all' || item.audience === (isElementary ? 'elementary' : 'middle'));
@@ -195,7 +197,8 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     setWordCorrect("");
     setWordTotal(String(selectedStudent?.wordTestQuestionCount || 20));
     const total = Number(selectedStudent?.wordTestQuestionCount || 20), current = selectedStudent?.wordTestCurrentRange;
-    setWordRangeMode("same"); setWordRange(current || { start: 1, end: total });
+    const initialRange = current || { start: 1, end: total };
+    setWordRangeMode("same"); setWordRange(initialRange); setNextWordRange(initialRange);
     setLate(false);
     setForgot(false);
     setBehaviorNote("");
@@ -233,8 +236,10 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     setWordStatus(record.wordTest?.status || "notScheduled");
     setWordCorrect(String(record.wordTest?.correct ?? ""));
     setWordTotal(String(record.wordTest?.total ?? selectedStudent?.wordTestQuestionCount ?? 20));
-    setWordRange(record.wordTest?.range || selectedStudent?.wordTestCurrentRange || { start:1, end:Number(record.wordTest?.total ?? selectedStudent?.wordTestQuestionCount ?? 20) });
-    setWordRangeMode("same");
+    const savedRange = record.wordTest?.range || selectedStudent?.wordTestCurrentRange || { start:1, end:Number(record.wordTest?.total ?? selectedStudent?.wordTestQuestionCount ?? 20) };
+    setWordRange(savedRange);
+    setNextWordRange(record.wordTest?.nextRange || savedRange);
+    setWordRangeMode(record.wordTest?.nextRangeMode || "same");
     setLate(Boolean(record.late));
     setForgot(Boolean(record.forgot));
     setBehaviorNote(record.behaviorNote || "");
@@ -248,7 +253,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     return () => { loadVersion.current++; };
   }, [studentId, date, termId]);
 
-  useEffect(()=>{const key=`${studentId}:${date}`;if(params.get('draft')!=='1'||!studentId||!date||!recordReady||!assignmentReady||draftApplied.current===key)return;draftApplied.current=key;auth.currentUser?.getIdToken().then(token=>fetch(`/api/teacher/context?date=${date}&student=${encodeURIComponent(studentId)}`,{headers:{Authorization:`Bearer ${token}`}})).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error);const value=data.existingDraft;if(!value)return;setHomeworkReview(value.reviewId?{assignmentId:value.reviewId,itemResults:value.itemResults||{},status:'pending'}:null);setCommentIds(value.commentIds||[]);setAttendance(value.attendance||'present');setOriginalLessonDate(value.originalDate||'');setHomework(value.homework||'none');setWordCorrect(String(value.wordCorrect??''));setWordTotal(String(value.wordTotal??selectedStudent?.wordTestQuestionCount??20));setWordRange(value.wordRange||null);setWordRangeMode(value.wordRangeMode||'same');setLate(value.late===true);setForgot(value.forgot===true);setBehaviorNote(value.note||'');setLearningContent(value.learningContent||'');setReportFacts(value.reportFacts||{});if(Array.isArray(value.nextItems)&&value.nextItems.length)setNextItems(value.nextItems);if(value.dueDate)setDueDate(value.dueDate);if(value.nextId)setAssignmentId(value.nextId);setAssignmentVersion(value.nextVersion??null);onDirtyChange(true);setNotice('講師の一時保存を読み込みました。確認して保存してください。')}).catch(error=>setNotice(error.message))},[studentId,date,recordReady,assignmentReady,params,selectedStudent,onDirtyChange]);
+  useEffect(()=>{const key=`${studentId}:${date}`;if(params.get('draft')!=='1'||!studentId||!date||!recordReady||!assignmentReady||draftApplied.current===key)return;draftApplied.current=key;auth.currentUser?.getIdToken().then(token=>fetch(`/api/teacher/context?date=${date}&student=${encodeURIComponent(studentId)}`,{headers:{Authorization:`Bearer ${token}`}})).then(async response=>{const data=await response.json();if(!response.ok)throw new Error(data.error);const value=data.existingDraft;if(!value)return;setHomeworkReview(value.reviewId?{assignmentId:value.reviewId,itemResults:value.itemResults||{},status:'pending'}:null);setCommentIds(value.commentIds||[]);setAttendance(value.attendance||'present');setOriginalLessonDate(value.originalDate||'');setHomework(value.homework||'none');setWordCorrect(String(value.wordCorrect??''));setWordTotal(String(value.wordTotal??selectedStudent?.wordTestQuestionCount??20));setWordRange(value.wordRange||null);setNextWordRange(value.nextWordRange||value.wordRange||null);setWordRangeMode(value.wordRangeMode||'same');setLate(value.late===true);setForgot(value.forgot===true);setBehaviorNote(value.note||'');setLearningContent(value.learningContent||'');setReportFacts(value.reportFacts||{});if(Array.isArray(value.nextItems)&&value.nextItems.length)setNextItems(value.nextItems);if(value.dueDate)setDueDate(value.dueDate);if(value.nextId)setAssignmentId(value.nextId);setAssignmentVersion(value.nextVersion??null);onDirtyChange(true);setNotice('講師の一時保存を読み込みました。確認して保存してください。')}).catch(error=>setNotice(error.message))},[studentId,date,recordReady,assignmentReady,params,selectedStudent,onDirtyChange]);
 
   const saveRecord = async () => {
     if (!recordReady || !homeworkReady || !assignmentReady || !selectedStudent || saving) return;
@@ -328,6 +333,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 ? Number(wordTotal || 0)
                 : null,
             ...((wordStatus === "completed" || wordStatus === "makeup") && wordRange ? { range: wordRange } : {}),
+            ...((wordStatus === "completed" || wordStatus === "makeup") && nextWordRange ? { nextRange: nextWordRange, nextRangeMode: wordRangeMode } : {}),
           },
           late: attendance === "absent" ? false : late,
           forgot: attendance === "absent" ? false : forgot,
@@ -344,7 +350,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
       if (wordStatus === "completed" || wordStatus === "makeup") {
         setStudents((current) => current.map((student) =>
           student.uid === studentId
-            ? { ...student, wordTestQuestionCount: Number(wordTotal), ...(wordRange ? { wordTestCurrentRange:wordRange } : {}) }
+            ? { ...student, wordTestQuestionCount: Number(wordTotal), ...(nextWordRange ? { wordTestCurrentRange:nextWordRange } : {}) }
             : student
         ));
       }
@@ -497,8 +503,8 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                     <label>問題数<input type="number" min="1" value={wordTotal} onChange={(e) => setWordTotal(e.target.value)} /></label>
                   </div>
                 )}
-                {(wordStatus === "completed" || wordStatus === "makeup") && <label>出題範囲<select value={wordRangeMode} onChange={event=>{const mode=event.target.value;setWordRangeMode(mode);if(mode!=='custom')setWordRange(wordRangeChoices[mode]);}}><option value="same">前回と同じ：No.{wordRangeChoices.same.start}〜{wordRangeChoices.same.end}</option><option value="next">次の範囲：No.{wordRangeChoices.next.start}〜{wordRangeChoices.next.end}</option><option value="custom">範囲を手入力・修正</option></select></label>}
-                {(wordStatus === "completed" || wordStatus === "makeup") && wordRangeMode==='custom' && <div className="next-number-range"><input aria-label="単語テスト開始番号" type="number" min="1" value={wordRange?.start||''} onChange={event=>setWordRange(old=>({start:Number(event.target.value),end:Number(old?.end||event.target.value)}))}/><b>〜</b><input aria-label="単語テスト終了番号" type="number" min="1" value={wordRange?.end||''} onChange={event=>setWordRange(old=>({start:Number(old?.start||event.target.value),end:Number(event.target.value)}))}/></div>}
+                {(wordStatus === "completed" || wordStatus === "makeup") && <><div className="word-range-current"><b>今回の出題範囲</b><span>No.{wordRange?.start || wordRangeBase.start}〜{wordRange?.end || wordRangeBase.end}</span><div className="next-number-range"><input aria-label="今回の単語テスト開始番号" type="number" min="1" value={wordRange?.start||''} onChange={event=>{const next={start:Number(event.target.value),end:Number(wordRange?.end||event.target.value)};setWordRange(next);if(wordRangeMode==='same')setNextWordRange(next)}}/><b>〜</b><input aria-label="今回の単語テスト終了番号" type="number" min="1" value={wordRange?.end||''} onChange={event=>{const next={start:Number(wordRange?.start||event.target.value),end:Number(event.target.value)};setWordRange(next);if(wordRangeMode==='same')setNextWordRange(next)}}/></div></div><label>次回の出題範囲<select value={wordRangeMode} onChange={event=>{const mode=event.target.value;setWordRangeMode(mode);if(mode!=='custom')setNextWordRange(wordRangeChoices[mode]);}}><option value="same">今回と同じ：No.{wordRangeChoices.same.start}〜{wordRangeChoices.same.end}</option><option value="next">次へ進む：No.{wordRangeChoices.next.start}〜{wordRangeChoices.next.end}</option><option value="custom">範囲を手入力・修正</option></select></label></>}
+                {(wordStatus === "completed" || wordStatus === "makeup") && wordRangeMode==='custom' && <div className="next-number-range"><input aria-label="次回の単語テスト開始番号" type="number" min="1" value={nextWordRange?.start||''} onChange={event=>setNextWordRange(old=>({start:Number(event.target.value),end:Number(old?.end||event.target.value)}))}/><b>〜</b><input aria-label="次回の単語テスト終了番号" type="number" min="1" value={nextWordRange?.end||''} onChange={event=>setNextWordRange(old=>({start:Number(old?.start||event.target.value),end:Number(event.target.value)}))}/></div>}
                 {(wordStatus === "completed" || wordStatus === "makeup") && (
                   <p className="word-total-hint">問題数はこの生徒の次回入力にも引き継がれます。</p>
                 )}

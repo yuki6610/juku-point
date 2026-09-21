@@ -89,6 +89,8 @@ export async function POST(request) {
     }
     const wordRange = record?.wordTest?.range;
     if (wordRange && (!Number.isInteger(Number(wordRange.start)) || !Number.isInteger(Number(wordRange.end)) || Number(wordRange.start) < 1 || Number(wordRange.end) < Number(wordRange.start))) throw new ApiError('単語テストの範囲が正しくありません。', 400);
+    const nextWordRange = record?.wordTest?.nextRange;
+    if (nextWordRange && (!Number.isInteger(Number(nextWordRange.start)) || !Number.isInteger(Number(nextWordRange.end)) || Number(nextWordRange.start) < 1 || Number(nextWordRange.end) < Number(nextWordRange.start))) throw new ApiError('次回の単語テスト範囲が正しくありません。', 400);
 
     const userRef = adminDb.collection("users").doc(uid);
     const eventTimestamp = Timestamp.fromDate(new Date(`${date}T12:00:00+09:00`));
@@ -260,7 +262,7 @@ export async function POST(request) {
         totalWordTestScore: Math.max(0, Number(user.totalWordTestScore || 0) + wordScoreDelta),
         ...(selectedTerm.id===currentTerm.id?{termWordScore:Math.max(0,Number(user.termWordScore||0)+wordScoreDelta),termHomeworkCount:Math.max(0,Number(user.termHomeworkCount||0)+homeworkCountDelta),termWordTestCount:Math.max(0,Number(user.termWordTestCount||0)+wordTestCountDelta)}:{}),
         ...(wordCompleted ? { wordTestQuestionCount: total } : {}),
-        ...(wordCompleted && wordRange ? { wordTestCurrentRange: { start:Number(wordRange.start), end:Number(wordRange.end) } } : {}),
+        ...(wordCompleted && (nextWordRange || wordRange) ? { wordTestCurrentRange: { start:Number((nextWordRange || wordRange).start), end:Number((nextWordRange || wordRange).end) } } : {}),
         lastUpdated: now,
       });
       return { rewards, pointDelta, expDelta, levelUps: nextExp.levelUps };

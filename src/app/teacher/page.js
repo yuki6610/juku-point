@@ -98,6 +98,7 @@ export default function TeacherPage() {
   const [wordCorrect, setWordCorrect] = useState(""),
     [wordTotal, setWordTotal] = useState(""),
     [wordRange, setWordRange] = useState(null),
+    [nextWordRange, setNextWordRange] = useState(null),
     [wordRangeMode, setWordRangeMode] = useState("same");
   const [learningContent, setLearningContent] = useState(""),
     [reportFacts, setReportFacts] = useState({});
@@ -229,6 +230,14 @@ export default function TeacherPage() {
           student?.wordTestCurrentRange ??
           null,
       );
+      setNextWordRange(
+        value.nextWordRange ??
+          value.wordTest?.nextRange ??
+          value.wordRange ??
+          value.wordTest?.range ??
+          student?.wordTestCurrentRange ??
+          null,
+      );
       setWordRangeMode(value.wordRangeMode || "same");
       setLearningContent(value.learningContent || "");
       setReportFacts(value.reportFacts || {});
@@ -344,6 +353,7 @@ export default function TeacherPage() {
           wordCorrect,
           wordTotal,
           wordRange,
+          nextWordRange,
           wordRangeMode,
           learningContent,
           reportFacts,
@@ -370,6 +380,7 @@ export default function TeacherPage() {
     wordCorrect,
     wordTotal,
     wordRange,
+    nextWordRange,
     wordRangeMode,
     learningContent,
     reportFacts,
@@ -423,6 +434,7 @@ export default function TeacherPage() {
     wordCorrect,
     wordTotal,
     wordRange,
+    nextWordRange,
     wordRangeMode,
     learningContent,
     reportFacts,
@@ -551,6 +563,7 @@ export default function TeacherPage() {
                   correct: wordCorrect,
                   total: wordTotal,
                   ...(wordRange ? { range: wordRange } : {}),
+                  ...(nextWordRange ? { nextRange: nextWordRange, nextRangeMode: wordRangeMode } : {}),
                 }
               : { status: "notScheduled" }
           : { status: "notScheduled", correct: null, total: null },
@@ -1119,7 +1132,7 @@ export default function TeacherPage() {
                   className="teacher-word-details"
                   open={wordCorrect !== ""}
                 >
-                  <summary>単語テストを入力</summary>
+                  <summary>単語テストを入力{student?.wordTestCurrentRange ? `（No.${student.wordTestCurrentRange.start}〜${student.wordTestCurrentRange.end}）` : ''}</summary>
                   <div className="teacher-word">
                     <label>
                       正答数
@@ -1145,13 +1158,21 @@ export default function TeacherPage() {
                   </div>
                   {wordCorrect !== "" && (
                     <>
+                      <div className="teacher-word-range-current">
+                        <b>今回の出題範囲</b>
+                        <div className="number-range">
+                          <input aria-label="今回の開始番号" type="number" min="1" value={wordRange?.start || ""} onChange={(e)=>{const next={start:Number(e.target.value),end:Number(wordRange?.end||e.target.value)};setWordRange(next);if(wordRangeMode==='same')setNextWordRange(next)}}/>
+                          <b>〜</b>
+                          <input aria-label="今回の終了番号" type="number" min="1" value={wordRange?.end || ""} onChange={(e)=>{const next={start:Number(wordRange?.start||e.target.value),end:Number(e.target.value)};setWordRange(next);if(wordRangeMode==='same')setNextWordRange(next)}}/>
+                        </div>
+                      </div>
                       <label>
-                        出題範囲
+                        次回の出題範囲
                         <select
                           value={wordRangeMode}
                           onChange={(e) => {
                             const mode = e.target.value,
-                              current = student.wordTestCurrentRange || {
+                              current = wordRange || student.wordTestCurrentRange || {
                                 start: 1,
                                 end: Number(
                                   wordTotal ||
@@ -1161,7 +1182,7 @@ export default function TeacherPage() {
                               };
                             setWordRangeMode(mode);
                             if (mode !== "custom")
-                              setWordRange(
+                              setNextWordRange(
                                 mode === "next"
                                   ? {
                                       start: Number(current.end) + 1,
@@ -1173,8 +1194,8 @@ export default function TeacherPage() {
                               );
                           }}
                         >
-                          <option value="same">前回と同じ</option>
-                          <option value="next">次の範囲</option>
+                          <option value="same">今回と同じ：No.{wordRange?.start || student.wordTestCurrentRange?.start || 1}〜{wordRange?.end || student.wordTestCurrentRange?.end || wordTotal}</option>
+                          <option value="next">次へ進む：No.{Number(wordRange?.end || student.wordTestCurrentRange?.end || 0)+1}〜{Number(wordRange?.end || student.wordTestCurrentRange?.end || 0)+Number(wordTotal || 20)}</option>
                           <option value="custom">手入力・修正</option>
                         </select>
                       </label>
@@ -1184,9 +1205,9 @@ export default function TeacherPage() {
                             aria-label="開始番号"
                             type="number"
                             min="1"
-                            value={wordRange?.start || ""}
+                            value={nextWordRange?.start || ""}
                             onChange={(e) =>
-                              setWordRange((old) => ({
+                              setNextWordRange((old) => ({
                                 start: Number(e.target.value),
                                 end: Number(old?.end || e.target.value),
                               }))
@@ -1197,9 +1218,9 @@ export default function TeacherPage() {
                             aria-label="終了番号"
                             type="number"
                             min="1"
-                            value={wordRange?.end || ""}
+                            value={nextWordRange?.end || ""}
                             onChange={(e) =>
-                              setWordRange((old) => ({
+                              setNextWordRange((old) => ({
                                 start: Number(old?.start || e.target.value),
                                 end: Number(e.target.value),
                               }))
