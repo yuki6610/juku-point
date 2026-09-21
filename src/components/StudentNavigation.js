@@ -18,7 +18,7 @@ const moreItems = [
   { path: "/homework", label: "宿題", note: "出された課題と確認結果" },
   { path: "/ranking", label: "ランキング", note: "みんなの学習成果" },
   { path: "/student/scores", label: "成績・志望校", note: "成績入力と高校比較", middleOnly: true },
-  { path: "/student/mock-scores", label: "模試成績", note: "受験した模試の結果", middleOnly: true },
+  { path: "/student/mock-scores", label: "模試成績", note: "受験した模試の結果", middleOnly: true, requiredTag: "模試受験" },
   { path: "/schools", label: "高校情報", note: "通学・部活動・学校の特徴", middleOnly: true },
   { path: "/behavior", label: "生活態度", note: "学期の記録", middleOnly: true },
   { path: "/summer", label: "夏期イベント", note: "期間限定イベント", requiredTag: "summer_course" },
@@ -43,7 +43,7 @@ export default function StudentNavigation() {
   const isHighSchool = Number(profile?.grade) >= 10 && Number(profile?.grade) <= 12;
   const visibleMoreItems = moreItems.filter((item) => {
     if (item.middleOnly && !(Number(profile?.grade) >= 7 && Number(profile?.grade) <= 9)) return false;
-    if (item.requiredTag && !profile?.courseTags?.includes(item.requiredTag)) return false;
+    if (item.requiredTag && ![...(profile?.tags||[]),...(profile?.courseTags||[])].includes(item.requiredTag)) return false;
     return true;
   });
   const moreActive = visibleMoreItems.some(

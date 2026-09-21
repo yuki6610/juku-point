@@ -137,7 +137,7 @@ export default function MyPage() {
             displayName: d.displayName || '', grade: d.grade || 0, points: d.points || 0,
             termPoints: d.termPoints || 0, totalEarnedPoints: d.totalEarnedPoints || 0,
             experience: d.experience || 0, level: d.level || 1, avatarUrl: d.avatarUrl || '',
-            avatarVersion: d.avatarVersion || 0, courseTags: d.courseTags || [],
+            avatarVersion: d.avatarVersion || 0, courseTags: d.courseTags || [], tags: d.tags || [],
           }));
           if (Number(d.grade) === 9) {
             const month = new Date().getMonth() + 1;
@@ -201,7 +201,7 @@ export default function MyPage() {
   const assignedExamTags = examTypes.filter(([tag]) => data.courseTags?.includes(tag));
   const visibleExams = (assignedExamTags.length ? assignedExamTags : examTypes).filter(([,id])=>examDates[id]).map(([tag,id,label])=>({tag,id,label,date:examDates[id],days:Math.max(0,Math.ceil((new Date(`${examDates[id]}T00:00:00+09:00`).getTime()-Date.now())/86400000))}));
   const menuItems = [
-    { icon: "▦", label: "予定カレンダー", note: "授業・講習・行事", path: "/calendar", tone: "blue" },
+    { icon: "▦", label: "授業カレンダー", note: "授業・講習・行事", path: "/calendar", tone: "blue" },
     { icon: "◷", label: "自習を記録", note: "入退室・学習時間", path: "/checkin", tone: "blue" },
     { icon: "◇", label: "景品交換", note: "ポイントを使う", path: "/rewards", tone: "green" },
     ...(data?.grade >= 7 && data?.grade <= 9 ? [{ icon: "↗", label: "ランキング", note: "今学期の中学生トップ3", path: "/ranking", tone: "purple" }] : []),
@@ -209,7 +209,7 @@ export default function MyPage() {
       ? []
       : [
           { icon: "✓", label: "成績・志望校", note: "テスト結果を記録", path: "/student/scores", tone: "pink" },
-          { icon: "◎", label: "模試成績", note: "受験結果を確認", path: "/student/mock-scores", tone: "purple" },
+          ...(data?.tags?.includes("模試受験") ? [{ icon: "◎", label: "模試成績", note: "受験結果を確認", path: "/student/mock-scores", tone: "purple" }] : []),
           { icon: "◎", label: "生活態度", note: "日々の振り返り", path: "/behavior", tone: "teal" },
         ]),
     ...(data?.courseTags?.includes("summer_course")
