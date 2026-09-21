@@ -8,7 +8,6 @@ import ExamSettings from './ExamSettings';
 import ParentPortalSettings from './ParentPortalSettings';
 import ParentEventSettings from './ParentEventSettings';
 import InterviewSettings from './InterviewSettings';
-import LessonReportSettings from './LessonReportSettings';
 
 export default function AdminSettingsPage() {
   const [tab, setTab] = useState('lessons');
@@ -18,7 +17,7 @@ export default function AdminSettingsPage() {
     <nav className="attendance-tabs" aria-label="教室設定">{tabs.map(([id,label])=><button type="button" key={id} className={tab===id?'active':''} aria-pressed={tab===id} onClick={()=>setTab(id)}>{label}</button>)}</nav>
     {tab==='lessons'&&<LessonAttendanceManager settingsOnly />}
     {tab==='exam'&&<ExamSettings />}
-    {tab==='homework'&&<><HomeworkTemplates /><LessonReportSettings /></>}
+    {tab==='homework'&&<HomeworkTemplates />}
     {tab==='events'&&<><ParentEventSettings /><InterviewSettings /></>}
     {tab==='portal'&&<ParentPortalSettings />}
     {tab==='accounts'&&<><TeacherManager /><ParentManager /></>}

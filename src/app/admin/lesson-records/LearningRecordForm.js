@@ -518,7 +518,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 />
               </fieldset>}
 
-              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{grade:gradeLabel(selectedStudent?.grade)}} /></fieldset>}
+              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{grade:gradeLabel(selectedStudent?.grade)}} studentKey={selectedStudent?.uid || ''} lessonDate={date} /></fieldset>}
 
               {!isHigh && <fieldset className="next-homework-fieldset" disabled={!assignmentReady || saving}>
                 <legend>今回出した宿題・次回確認</legend>

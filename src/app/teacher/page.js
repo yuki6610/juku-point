@@ -1239,6 +1239,8 @@ export default function TeacherPage() {
                 context={{
                   grade: gradeLabel(student?.grade),
                 }}
+                studentKey={studentKey}
+                lessonDate={date}
               />
               <label className="teacher-private-note">
                 教室内メモ<small>管理者・講師だけが確認します</small>

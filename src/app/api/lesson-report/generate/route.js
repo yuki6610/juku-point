@@ -1,22 +1,58 @@
-import { requireStaff } from '@/lib/staffAccess';
-import { buildLessonReportInput, normalizeLessonReportAiInput } from '@/lib/lessonReportAi.mjs';
+import { FieldPath } from 'firebase-admin/firestore';
+import { assertAssigned, normalizeStudentKey, requireStaff } from '@/lib/staffAccess';
+import { buildLessonReportInput, LESSON_REPORT_RATING_LABELS, normalizeLessonReportAiInput } from '@/lib/lessonReportAi.mjs';
+import { normalizeReportFacts } from '@/lib/lessonReport.mjs';
 import { adminDb } from '@/lib/firebaseAdmin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+
+async function readSubjectHistory(studentKey, subject, lessonDate) {
+  if (!studentKey || !subject) return [];
+  const records = adminDb.collection('lessonPublic').doc(studentKey).collection('records');
+  let query = records.where('lessonReport.facts.subject', '==', subject);
+  if (validDate(lessonDate)) query = query.where(FieldPath.documentId(), '<', lessonDate);
+  let snapshot;
+  try {
+    snapshot = await query.orderBy(FieldPath.documentId(), 'desc').limit(3).get();
+  } catch (error) {
+    // 複合インデックスが未準備でも生成を止めず、直近分を安全に絞り込む。
+    let fallback = records;
+    if (validDate(lessonDate)) fallback = fallback.where(FieldPath.documentId(), '<', lessonDate);
+    snapshot = await fallback.orderBy(FieldPath.documentId(), 'desc').limit(60).get();
+  }
+  const history = [];
+  for (const document of snapshot.docs) {
+    const report = document.data()?.lessonReport;
+    const facts = normalizeReportFacts(report?.facts || {});
+    if (facts.subject !== subject || !String(report?.text || '').trim()) continue;
+    const ratings = Object.fromEntries(Object.entries(LESSON_REPORT_RATING_LABELS).map(([key, label]) => [label, facts[key]]));
+    history.push({ date: document.id, report: String(report.text).trim().slice(0, 2000), ratings });
+    if (history.length === 3) break;
+  }
+  return history;
+}
+
 export async function POST(request) {
   try {
-    await requireStaff(request);
+    const staff = await requireStaff(request);
     if (!process.env.OPENAI_API_KEY) {
       return Response.json({ error: '授業報告生成のAPIキーが設定されていません。' }, { status: 503 });
     }
 
-    const settings = await adminDb.collection('admin_data').doc('lessonReportSettings').get();
-    const data = normalizeLessonReportAiInput(await request.json(), settings.data()?.ratingTexts);
+    const body = await request.json();
+    const studentKey = normalizeStudentKey(body.studentKey);
+    assertAssigned(staff, studentKey, body.lessonDate);
+    const data = normalizeLessonReportAiInput(body);
     if (!data.learningContent) {
       return Response.json({ error: '学習内容を入力してから生成してください。' }, { status: 400 });
     }
+    if (!data.subject) {
+      return Response.json({ error: '教科を選択してから生成してください。' }, { status: 400 });
+    }
+    data.history = await readSubjectHistory(studentKey, data.subject, body.lessonDate);
 
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
