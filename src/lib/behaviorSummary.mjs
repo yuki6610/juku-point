@@ -10,6 +10,7 @@ export const calculateSummary = (records, year, term) => {
       averageRate: 0,
     },
     forgot: 0,
+    attitude: { count: 0, total: 0, average: null },
     lessonCount: 0,
   };
 
@@ -38,6 +39,8 @@ export const calculateSummary = (records, year, term) => {
     } else if (record.wordTest?.status === "pending") {
       summary.wordTest.pending += 1;
     }
+    const attitude=Number(record.reportFacts?.attitude);
+    if(Number.isInteger(attitude)&&attitude>=1&&attitude<=5){summary.attitude.count+=1;summary.attitude.total+=attitude;}
   });
 
   summary.wordTest.averageRate =
@@ -46,6 +49,7 @@ export const calculateSummary = (records, year, term) => {
           (summary.wordTest.totalCorrect / summary.wordTest.totalQuestions) * 1000
         ) / 10
       : 0;
+  summary.attitude.average=summary.attitude.count?Math.round(summary.attitude.total/summary.attitude.count*10)/10:null;
 
   const homeworkTotal =
     summary.homework.submitted + summary.homework.partial + summary.homework.missed;

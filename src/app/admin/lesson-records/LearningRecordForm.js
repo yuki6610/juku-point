@@ -68,6 +68,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const [late, setLate] = useState(false);
   const [forgot, setForgot] = useState(false);
   const [behaviorNote, setBehaviorNote] = useState("");
+  const [nextLessonNote, setNextLessonNote] = useState("");
   const [learningContent, setLearningContent] = useState("");
   const [reportFacts, setReportFacts] = useState({});
   const [saving, setSaving] = useState(false);
@@ -151,6 +152,8 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const selectedGrade = Number(selectedStudent?.grade || 0);
   const isElementary = selectedGrade >= 1 && selectedGrade <= 6;
   const isHigh = selectedGrade >= 10 && selectedGrade <= 12;
+  const elementaryEnglish=isElementary&&(Object.values(selectedStudent?.lessonSchedule?.slots||selectedStudent?.lessonScheduleSlots||{}).some(slot=>String(slot?.subject||'').toLowerCase().includes('english')||String(slot?.subject||'').includes('英語'))||nextItems.some(item=>item.subject==='english'));
+  const wordEnabled=isMiddleStudent(selectedStudent)||elementaryEnglish;
   const wordRangeBase = selectedStudent?.wordTestCurrentRange || { start: 1, end: Number(selectedStudent?.wordTestQuestionCount || wordTotal || 20) };
   const currentWordRange = wordRange || wordRangeBase;
   const wordRangeChoices = {
@@ -177,7 +180,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
         if (existing) {
           setAssignmentId(existing.id);
           setAssignmentVersion(existing.version);
-          setNextItems(existing.items.map(item => ({ subject:item.subject || value.templates.materials.find(material=>material.id===item.materialId)?.subject || 'all', materialId: item.materialId, range: item.range, customLabel:item.customLabel||'', difficulty:Number(item.difficulty||3) })));
+          setNextItems(existing.items.map(item => ({ subject:item.subject || value.templates.materials.find(material=>material.id===item.materialId)?.subject || 'all', materialId: item.materialId, range: item.range, note:item.note||'', customLabel:item.customLabel||'', difficulty:Number(item.difficulty||3) })));
           setDueDate(existing.dueDate);
         }
         setAssignmentReady(true);
@@ -202,6 +205,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     setLate(false);
     setForgot(false);
     setBehaviorNote("");
+    setNextLessonNote("");
     setLearningContent(""); setReportFacts({});
   };
 
@@ -263,9 +267,10 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     } catch (error) { return setNotice(error.message); }
     if (!studentId || !date) return setNotice("生徒と授業日を選択してください。");
     if (!attendance) return setNotice('出席・欠席・振替出席のいずれかを選択してください。');
-    const validNextItems = isHigh ? [] : nextItems.filter(item => item.materialId || item.range.trim());
+    let validNextItems = isHigh ? [] : nextItems.filter(item => item.materialId || item.range.trim());
+    if(wordEnabled&&attendance!=="absent"&&["completed","makeup"].includes(wordStatus)&&nextWordRange&&!validNextItems.some(item=>item.materialId==='words'))validNextItems=[...validNextItems,{subject:'english',materialId:'words',range:`${nextWordRange.start}-${nextWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
     const oldAssignment = assignmentData?.items?.find(item => item.id === assignmentId);
-    const signature=items=>JSON.stringify(items.map(item => [item.subject,item.materialId,item.customLabel||'',item.range,Number(item.difficulty||3)]));
+    const signature=items=>JSON.stringify(items.map(item => [item.subject,item.materialId,item.customLabel||'',item.range,item.note||'',Number(item.difficulty||3)]));
     const unchangedAssignment = oldAssignment && oldAssignment.dueDate === dueDate && signature(oldAssignment.items) === signature(validNextItems);
     try {
       if (oldAssignment && !validNextItems.length) throw new Error('登録済みの宿題は空欄で削除できません。');
@@ -293,7 +298,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
         const response = await fetch('/api/admin/lesson-attendance', {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: 'save', student: { id: selectedStudent.id, source: selectedStudent.source, grade: selectedStudent.grade }, date, status: attendance, originalDate: originalLessonDate, note: behaviorNote, homeworkReview, commentIds,
-            learningRecord: { homework: attendance === 'absent' ? 'notEvaluated' : homework, wordTest: { status: wordStatus, correct: wordCorrect, total: wordTotal }, late: attendance !== 'absent' && late, forgot: attendance !== 'absent' && forgot, behaviorNote, learningContent, reportFacts } }),
+            nextLessonNote, learningRecord: { homework: attendance === 'absent' ? 'notEvaluated' : homework, wordTest: { status: wordStatus, correct: wordCorrect, total: wordTotal, ...(["completed","makeup"].includes(wordStatus)&&wordRange?{range:wordRange}:{}), ...(["completed","makeup"].includes(wordStatus)&&nextWordRange?{nextRange:nextWordRange,nextRangeMode:wordRangeMode}:{}) }, late: attendance !== 'absent' && late, forgot: attendance !== 'absent' && forgot, behaviorNote, nextLessonNote, learningContent, reportFacts } }),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || '保存できませんでした。');
@@ -340,6 +345,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
           behaviorNote: behaviorNote.trim(),
           learningContent: learningContent.trim(),
           reportFacts,
+          nextLessonNote,
           },
         }),
       });
@@ -440,7 +446,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 </div>
                 <strong className="selected-date">{date}</strong>
               </div>
-              {isElementary && <p>小学生は出欠と宿題を記録します。単語テスト・生活態度・ポイント付与はありません。</p>}
+              {isElementary && <p>小学生は出欠と宿題を記録します。英語受講者は単語テストも記録できますが、ポイント・経験値は付きません。</p>}
               {isHigh && <p>高校生は出席状況のみを記録します。宿題・単語テスト・生活態度は表示しません。</p>}
 
               <fieldset>
@@ -489,7 +495,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 </>}
               </fieldset>}
 
-              {isMiddleStudent(selectedStudent) && <fieldset>
+              {wordEnabled && <fieldset>
                 <legend>単語テスト（週1回）</legend>
                 <select value={wordStatus} onChange={(e) => setWordStatus(e.target.value)}>
                   {WORD_OPTIONS.map(([value, label]) => (
@@ -510,7 +516,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 )}
               </fieldset>}
 
-              {isMiddleStudent(selectedStudent) && <fieldset className={attendance === "absent" ? "disabled-section" : ""}>
+              {!isHigh && <fieldset className={attendance === "absent" ? "disabled-section" : ""}>
                 <legend>生活態度</legend>
                 <div className="check-row">
                   <label><input type="checkbox" checked={late} disabled={attendance === "absent"} onChange={(e) => setLate(e.target.checked)} />遅刻</label>
@@ -524,7 +530,9 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 />
               </fieldset>}
 
-              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{grade:gradeLabel(selectedStudent?.grade)}} studentKey={selectedStudent?.uid || ''} lessonDate={date} /></fieldset>}
+              {!isHigh&&<fieldset><legend>次回授業への引き継ぎ</legend><textarea rows="2" maxLength="1000" value={nextLessonNote} onChange={event=>setNextLessonNote(event.target.value)} placeholder="例：次回P.46から（保護者には表示されません）" /></fieldset>}
+
+              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{grade:gradeLabel(selectedStudent?.grade),subject:(selectedStudent?.lessonSchedule?.slots||selectedStudent?.lessonScheduleSlots||{})[String(new Date(`${date}T12:00:00+09:00`).getDay())]?.subject||''}} studentKey={selectedStudent?.uid || ''} lessonDate={date} /></fieldset>}
 
               {!isHigh && <fieldset className="next-homework-fieldset" disabled={!assignmentReady || saving}>
                 <legend>今回出した宿題・次回確認</legend>

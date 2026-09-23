@@ -1,10 +1,9 @@
 const LABELS = {
-  focus: '集中度', understanding: '理解度', attitude: '学習態度',
-  effort: '取り組み方', questions: '質問', retry: '解き直し',
+  focus: '集中度', understanding: '理解度', attitude: '学習態度', questions: '質問',
 };
 
 const clean = (value, max = 500) => String(value ?? '').trim().slice(0, max);
-const rating = value => Math.min(5, Math.max(1, Number(value) || 3));
+const rating = value => { const number=Number(value);return Number.isInteger(number)&&number>=1&&number<=5?number:null; };
 
 export function normalizeLessonReportAiInput(body = {}) {
   const sourceFacts = body.facts && typeof body.facts === 'object' ? body.facts : {};
@@ -14,7 +13,7 @@ export function normalizeLessonReportAiInput(body = {}) {
     grade: clean(sourceContext.grade, 20),
     subject: clean(sourceFacts.subject, 30),
     supplement: clean(sourceFacts.supplement, 500),
-    ratings: Object.fromEntries(Object.entries(LABELS).map(([key, label]) => [label, rating(sourceFacts[key])])),
+    ratings: Object.fromEntries(Object.entries(LABELS).map(([key, label]) => [label, rating(sourceFacts[key])]).filter(([,value])=>value!==null)),
   };
 }
 

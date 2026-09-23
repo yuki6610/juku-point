@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react'
 import RewardCatalog from './RewardCatalog'
 import RewardHistory from './RewardHistory'
-import GachaManagement from './GachaManagement'
 import './rewards-hub.css'
 
 const TABS = [
   { id: 'catalog', label: '景品・在庫', note: '景品の登録、価格、在庫' },
   { id: 'exchange', label: '通常交換', note: '交換結果と引き渡し' },
-  { id: 'gacha', label: 'ガチャ', note: '抽選結果と引き渡し' },
 ]
 
 export default function RewardsHubPage() {
@@ -31,7 +29,7 @@ export default function RewardsHubPage() {
         <div>
           <span>REWARD OPERATIONS</span>
           <h1>ポイント・景品管理</h1>
-          <p>景品在庫、通常交換、ガチャの受け渡しを一か所で管理します。</p>
+          <p>景品在庫と通常交換を一か所で管理します。</p>
         </div>
       </header>
       <nav className="rewards-hub-tabs" aria-label="景品管理メニュー">
@@ -44,7 +42,6 @@ export default function RewardsHubPage() {
       <section className="rewards-hub-content">
         {tab === 'catalog' && <RewardCatalog />}
         {tab === 'exchange' && <RewardHistory />}
-        {tab === 'gacha' && <GachaManagement />}
       </section>
     </div>
   )

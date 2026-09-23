@@ -18,7 +18,6 @@ const PUBLIC_FIELDS = [
   "selfStudyCount",
   "termHomeworkCount",
   "homeworkCount",
-  "termRewardsCount",
 ];
 
 export async function GET(request) {
@@ -49,7 +48,6 @@ export async function GET(request) {
         const source = snapshot.data();
         const user = { id: snapshot.id };
         for (const field of PUBLIC_FIELDS) user[field] = source[field] ?? null;
-        user.rewardCount = Math.max(Array.isArray(source.rewardHistory)?source.rewardHistory.length:0,Object.values(source.rewardCounts||{}).reduce((sum,value)=>sum+Number(value||0),0));
         return user;
       });
 

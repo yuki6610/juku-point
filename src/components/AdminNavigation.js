@@ -20,7 +20,7 @@ const groups = [{
       { path: "/admin/mock-scores", icon: "◎", label: "模試成績" },
       { path: "/admin/schools", icon: "校", label: "高校情報" },
       { path: "/admin/point-history", icon: "P", label: "ポイント履歴", keywords: "獲得 減点 累計 学期" },
-      { path: "/admin/rewards", icon: "◇", label: "景品・交換管理", keywords: "引き渡し ガチャ 在庫 食事券" },
+      { path: "/admin/rewards", icon: "◇", label: "景品・交換管理", keywords: "引き渡し 在庫 食事券" },
       { path: "/admin/feedback", icon: "!", label: "バグ報告" },
     ],
   }];

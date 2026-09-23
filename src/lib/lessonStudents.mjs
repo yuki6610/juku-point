@@ -18,5 +18,6 @@ export function learningFields(record) {
   const range = record?.wordTest?.range;
   const normalizedRange = range && Number.isInteger(Number(range.start)) && Number.isInteger(Number(range.end)) && Number(range.start) > 0 && Number(range.end) >= Number(range.start)
     ? { start: Number(range.start), end: Number(range.end) } : null;
-  return { homework, wordTest: { status, correct: completed ? correct : null, total: completed ? total : null, ...(normalizedRange ? { range: normalizedRange } : {}) }, late: record.late === true, forgot: record.forgot === true, behaviorNote: String(record.behaviorNote || '').trim().slice(0, 5000), learningContent: String(record.learningContent || '').trim().slice(0, 500), reportFacts: record.reportFacts && typeof record.reportFacts === 'object' ? record.reportFacts : {} };
+  const forgotItems=Array.isArray(record.forgotItems)?[...new Set(record.forgotItems.filter(item=>['workbook','stationery','other'].includes(item)))]:record.forgot===true?['other']:[];
+  return { homework, wordTest: { status, correct: completed ? correct : null, total: completed ? total : null, ...(normalizedRange ? { range: normalizedRange } : {}) }, late: record.late === true, forgot: forgotItems.length>0, forgotItems,forgotOther:String(record.forgotOther||'').trim().slice(0,200), behaviorNote: String(record.behaviorNote || '').trim().slice(0, 5000), learningContent: String(record.learningContent || '').trim().slice(0, 500), reportFacts: record.reportFacts && typeof record.reportFacts === 'object' ? record.reportFacts : {} };
 }

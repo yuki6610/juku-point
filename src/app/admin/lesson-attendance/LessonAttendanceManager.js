@@ -241,7 +241,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
   const [gradeFilter, setGradeFilter] = useState("all");
   const [calendarDirty, setCalendarDirty] = useState(false);
   const [scheduleDrafts, setScheduleDrafts] = useState({});
-  const [scheduleTimeDrafts, setScheduleTimeDrafts] = useState({});
+  const [scheduleSlotDrafts, setScheduleSlotDrafts] = useState({});
 
   const loadStudents = async () => {
     const [usersResult, elementaryResult] = await Promise.allSettled([
@@ -560,21 +560,22 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
     .filter((record) => record.date)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  const saveSchedule = async (student, weekdays, startTime) => {
+  const saveSchedule = async (student, weekdays, slots) => {
     setBusy(true);
     try {
       const target = student.source === "elementary"
         ? doc(db, "adminStudents", student.id)
         : doc(db, "users", student.id);
       const previous=(student.lessonSchedule?.weekdays||student.weekdays||[]).map(Number),history={effectiveFrom:todayId(),weekdays:weekdays.map(Number),previousWeekdays:previous,updatedBy:auth.currentUser?.uid||null};
-      const normalizedTime=/^\d{2}:\d{2}$/.test(startTime||'')?startTime:'';
+      const normalizedSlots=Object.fromEntries(weekdays.map(day=>{const slot=slots?.[day]||{};return[String(day),{startTime:/^\d{2}:\d{2}$/.test(slot.startTime||'')?slot.startTime:'',subject:String(slot.subject||'').trim().slice(0,30)}]}));
+      const normalizedTime=normalizedSlots[String(weekdays[0])]?.startTime||'';
       await updateDoc(target, student.source === "elementary"
-        ? { weekdays, lessonStartTime:normalizedTime||null, lessonScheduleHistory:arrayUnion({...history,startTime:normalizedTime}), updatedAt: serverTimestamp() }
-        : { 'lessonSchedule.weekdays':weekdays, 'lessonSchedule.startTime':normalizedTime||null, 'lessonSchedule.history':arrayUnion({...history,startTime:normalizedTime}), updatedAt: serverTimestamp() });
+        ? { weekdays, lessonStartTime:normalizedTime||null, lessonScheduleSlots:normalizedSlots, lessonScheduleHistory:arrayUnion({...history,startTime:normalizedTime,slots:normalizedSlots}), updatedAt: serverTimestamp() }
+        : { 'lessonSchedule.weekdays':weekdays, 'lessonSchedule.startTime':normalizedTime||null, 'lessonSchedule.slots':normalizedSlots, 'lessonSchedule.history':arrayUnion({...history,startTime:normalizedTime,slots:normalizedSlots}), updatedAt: serverTimestamp() });
       await loadStudents();
       setScheduleDrafts((current) => { const next = { ...current }; delete next[studentKey(student)]; return next; });
-      setScheduleTimeDrafts((current) => { const next = { ...current }; delete next[studentKey(student)]; return next; });
-      setNotice("通塾曜日と授業開始時刻を保存しました。");
+      setScheduleSlotDrafts((current) => { const next = { ...current }; delete next[studentKey(student)]; return next; });
+      setNotice("曜日ごとの通常授業時刻と教科を保存しました。");
     } catch (error) {
       console.error(error);
       setNotice("通塾曜日を保存できませんでした。管理者権限または通信状態を確認してください。");
@@ -957,16 +958,17 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
             const key = studentKey(student);
             const draft = scheduleDrafts[key] || current;
             const currentTime=student.lessonSchedule?.startTime||student.lessonStartTime||'';
-            const timeDraft=scheduleTimeDrafts[key]??currentTime;
-            const changed = JSON.stringify(draft) !== JSON.stringify(current)||timeDraft!==currentTime;
+            const currentSlots=student.lessonSchedule?.slots||student.lessonScheduleSlots||Object.fromEntries(current.map(day=>[String(day),{startTime:currentTime,subject:''}]));
+            const slotsDraft=scheduleSlotDrafts[key]||currentSlots;
+            const changed = JSON.stringify(draft) !== JSON.stringify(current)||JSON.stringify(slotsDraft)!==JSON.stringify(currentSlots);
             return <article key={studentKey(student)}>
               <div>
                 <strong>{student.name || student.realName || student.displayName}</strong>
                 <span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "生徒アカウント"}</span>
               </div>
               <div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={draft.includes(day) ? "active" : ""} disabled={busy} onClick={() => setScheduleDrafts((values) => ({ ...values, [key]: draft.includes(day) ? draft.filter((value) => value !== day) : [...draft, day].sort() }))}>{WEEKDAYS[day]}</button>)}</div>
-              <label className="lesson-start-field">通常授業開始{student.source==='elementary'?<input type="time" value={timeDraft} onChange={event=>setScheduleTimeDrafts(values=>({...values,[key]:event.target.value}))}/>:<select value={timeDraft} onChange={event=>setScheduleTimeDrafts(values=>({...values,[key]:event.target.value}))}><option value="">未設定</option>{['13:20','15:00','16:40','18:20','20:00'].map(value=><option key={value} value={value}>{value}〜</option>)}</select>}</label>
-              <button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft,timeDraft)}>曜日・時刻を保存</button>
+              <div className="weekday-lesson-slots">{draft.map(day=>{const slot=slotsDraft[String(day)]||{startTime:'',subject:''};const patch=values=>setScheduleSlotDrafts(all=>({...all,[key]:{...slotsDraft,[String(day)]:{...slot,...values}}}));return <div key={day}><b>{WEEKDAYS[day]}曜</b><input aria-label={`${WEEKDAYS[day]}曜の開始時刻`} type="time" value={slot.startTime||''} onChange={event=>patch({startTime:event.target.value})}/><input aria-label={`${WEEKDAYS[day]}曜の教科`} placeholder="教科" value={slot.subject||''} onChange={event=>patch({subject:event.target.value})}/></div>})}</div>
+              <button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft,slotsDraft)}>曜日・時刻・教科を保存</button>
               <label className="lesson-start-field">
                 計算開始日
                 <input

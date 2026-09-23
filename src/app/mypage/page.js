@@ -44,7 +44,6 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [showAvatar, setShowAvatar] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
-  const [gachaAccess, setGachaAccess] = useState({ eligible: false, pendingCount: 0 });
   const [examDates, setExamDates] = useState({});
   const [studentEvents,setStudentEvents]=useState([]);
 
@@ -107,11 +106,6 @@ export default function MyPage() {
         if (cachedSnap.exists()) showCachedProfile(cachedSnap.data());
       } catch {}
 
-      currentUser.getIdToken().then((token) =>
-        fetch("/api/gacha/eligibility", { headers: { Authorization: `Bearer ${token}` } })
-      ).then((response) => response.ok ? response.json() : null)
-        .then((result) => result && setGachaAccess(result))
-        .catch(() => {});
       currentUser.getIdToken().then(token=>fetch('/api/student/events',{headers:{Authorization:`Bearer ${token}`}})).then(response=>response.ok?response.json():null).then(result=>result&&setStudentEvents(result.items||[])).catch(()=>{});
 
       try {
@@ -214,19 +208,6 @@ export default function MyPage() {
         ]),
     ...(data?.courseTags?.includes("summer_course")
       ? [{ icon: "☀", label: "夏期イベント", note: "期間限定イベント", path: "/summer", tone: "gold" }]
-      : []),
-    ...(gachaAccess.eligible
-      ? [{
-          icon: "☆",
-          label: "ガチャ",
-          note: gachaAccess.pendingCount > 0
-            ? `受け取り待ち ${gachaAccess.pendingCount}件`
-            : gachaAccess.adminPreview
-              ? "管理者の動作確認"
-              : "500ptで必ず当たる",
-          path: "/gacha",
-          tone: "gold",
-        }]
       : []),
     { icon: "P", label: "ポイント履歴", note: "獲得・利用履歴", path: "/points", tone: "cyan" },
     { icon: "⚙", label: "設定", note: "名前・アバター", path: "/settings", tone: "gray" },

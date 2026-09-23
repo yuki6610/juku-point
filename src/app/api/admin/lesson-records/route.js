@@ -140,6 +140,8 @@ export async function POST(request) {
         updatedAt: now,
       };
       transaction.set(recordRef, savedRecord, { merge: true });
+      const handoffText=String(record.nextLessonNote||'').trim().slice(0,1000);
+      if(handoffText)transaction.set(adminDb.collection('lessonHandoffs').doc(`user_${uid}`),{text:handoffText,sourceDate:date,createdBy:adminUid,createdAt:now});
       const changes = lessonChanges(oldRecord, savedRecord);
       if (Object.keys(changes).length) transaction.set(
         adminDb.collection('lessonRecordAudit').doc(`user_${uid}`).collection('entries').doc(),

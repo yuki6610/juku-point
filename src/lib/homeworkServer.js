@@ -15,7 +15,7 @@ export async function homeworkTemplates() {
   const snapshot = await adminDb.collection('admin_data').doc('homeworkTemplates').get();
   if (!snapshot.exists) return DEFAULT_HOMEWORK_TEMPLATES;
   const templates = snapshot.data().templates;
-  return { ...templates, materials: (templates.materials || []).map(item => { const fallback=DEFAULT_HOMEWORK_TEMPLATES.materials.find(value => value.id === item.id);const subjects=Array.isArray(item.subjects)&&item.subjects.length?item.subjects:[item.subject||fallback?.subject||fallback?.subjects?.[0]||'all'];return { ...item, subjects, subject:subjects[0], difficulty:Number(item.difficulty||fallback?.difficulty||3), ...(item.id==='other'?{customLabel:true}:{}) }; }) };
+  return { ...templates, materials: (templates.materials || []).map(item => { const fallback=DEFAULT_HOMEWORK_TEMPLATES.materials.find(value => value.id === item.id);let subjects=Array.isArray(item.subjects)&&item.subjects.length?item.subjects:[item.subject||fallback?.subject||fallback?.subjects?.[0]||'all'];if(item.id==='elementary_text'&&!subjects.includes('english'))subjects=[...subjects,'english'];return { ...item, audience:['words','new_english'].includes(item.id)?'all':item.audience, subjects, subject:subjects[0], difficulty:Number(item.difficulty||fallback?.difficulty||3), ...(item.id==='other'?{customLabel:true}:{}) }; }) };
 }
 export function homeworkRefs(key, id) {
   if (!/^(user|elementary)_[A-Za-z0-9_-]{1,128}$/.test(key) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('生徒または課題IDが正しくありません。');
@@ -84,20 +84,22 @@ export async function prepareHomeworkReview(transaction, { key, date, termId, ui
       const wordTest = learningRecord.wordTest || {};
       const reportFacts = normalizeReportFacts(learningRecord.reportFacts);
       const hasReportInput = Boolean(String(learningRecord.learningContent || '').trim() || reportFacts.extraNote);
-      const lessonReport = reportFacts.extraNote ? { version: 3, facts: reportFacts, text: reportFacts.extraNote, source: 'openai_or_manual' } : null;
+      const lessonReport = reportFacts.extraNote ? { version: 3, text: reportFacts.extraNote, source: 'approved_lesson_report' } : null;
       transaction.set(lessonRef, {
         date, termId, attendance,
         late: attendance === 'absent' ? false : learningRecord.late === true,
         forgot: attendance === 'absent' ? false : learningRecord.forgot === true,
+        forgotItems:attendance==='absent'?[]:(learningRecord.forgotItems||[]),
+        forgotOther:attendance==='absent'?'':String(learningRecord.forgotOther||'').slice(0,200),
         wordTest: ['completed', 'makeup'].includes(wordTest.status)
           ? { status: wordTest.status, correct: Number(wordTest.correct), total: Number(wordTest.total), ...(wordTest.range ? { range: wordTest.range } : {}) }
           : { status: wordTest.status || 'notScheduled' },
         comments: selectedComments,
         homeworkResult: payload?.result || null,
         learningContent: hasReportInput ? String(learningRecord.learningContent || '').trim().slice(0, 500) : null,
-        lessonReport: hasReportInput ? lessonReport : null,
         updatedAt: now,
       }, { merge: true });
+      if(lessonReport)transaction.set(adminDb.collection('lessonReportSubmissions').doc(key).collection('items').doc(date),{studentKey:key,date,termId,text:lessonReport.text,status:'pending',submittedBy:uid,submittedAt:now,updatedAt:now},{merge:true});
     },
   };
 }

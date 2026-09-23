@@ -25,7 +25,7 @@ export async function POST(request){try{
       tx.update(item.ref,{...next,termPointsSeason:current.id});
     });
     const hall={season:oldId,createdAt:FieldValue.serverTimestamp()};
-    for(const [category,field] of Object.entries({points:'termPoints',studyHours:'termStudyMinutes',wordTotal:'termWordScore',selfStudyCount:'termSelfStudyCount',homeworkCount:'termHomeworkCount',rewardsCount:'termRewardsCount'}))hall[category]={top3:[...archived].filter(item=>item.active!==false&&item.enrollmentStatus!=='withdrawn').sort((a,b)=>b[field]-a[field]).slice(0,3).map((item,index)=>({rank:index+1,uid:item.id,displayName:item.displayName||'',points:item[field],level:item.level||1}))};
+    for(const [category,field] of Object.entries({points:'termPoints',studyHours:'termStudyMinutes',wordTotal:'termWordScore',selfStudyCount:'termSelfStudyCount',homeworkCount:'termHomeworkCount'}))hall[category]={top3:[...archived].filter(item=>item.active!==false&&item.enrollmentStatus!=='withdrawn').sort((a,b)=>b[field]-a[field]).slice(0,3).map((item,index)=>({rank:index+1,uid:item.id,displayName:item.displayName||'',points:item[field],level:item.level||1}))};
     tx.set(adminDb.collection('hallOfFame').doc(oldId),hall);
     tx.set(seasonRef,{lastResetSeason:current.id,updatedAt:FieldValue.serverTimestamp()},{merge:true});
     return {started:true};

@@ -167,6 +167,8 @@ export async function POST(request) {
         transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key),{ studentKey:key,date,grade,missingFields,updatedBy:adminUid,updatedAt:now },{ merge:true });
         transaction.delete(adminDb.collection('lessonDrafts').doc(date).collection('students').doc(key));
         if (learningRecord) transaction.set(commonRef, { learningRecord: { ...learningRecord, date, termId, createdBy: old.learningRecord?.createdBy || adminUid, createdAt: old.learningRecord?.createdAt || now, updatedBy: adminUid, updatedAt: now } }, { merge: true });
+        const handoffText=String(body.nextLessonNote||body.learningRecord?.nextLessonNote||'').trim().slice(0,1000);
+        if(handoffText)transaction.set(adminDb.collection('lessonHandoffs').doc(key),{text:handoffText,sourceDate:date,createdBy:adminUid,createdAt:now});
         const teacherMemo = String(learningRecord?.behaviorNote || note || '').trim();
         transaction.set(adminDb.collection('studentProfiles').doc(key).collection('teacherNotes').doc(date),{date,note:teacherMemo,updatedBy:adminUid,updatedAt:now},{merge:true});
         if (date>=String(memoProfile.data()?.teacherMemoDate||'')) transaction.set(adminDb.collection('studentProfiles').doc(key), {

@@ -22,7 +22,6 @@ const PUBLIC_FIELDS = [
   "selfStudyCount",
   "termHomeworkCount",
   "homeworkCount",
-  "termRewardsCount",
 ];
 
 export default function RankingPage() {
@@ -148,9 +147,6 @@ export default function RankingPage() {
           const source = snapshot.data();
           const user = { id: snapshot.id };
           for (const field of PUBLIC_FIELDS) user[field] = source[field] ?? null;
-          user.rewardCount = Array.isArray(source.rewardHistory)
-            ? source.rewardHistory.length
-            : 0;
           return user;
         });
 
@@ -212,15 +208,6 @@ export default function RankingPage() {
               ? (b.termHomeworkCount ?? 0) - (a.termHomeworkCount ?? 0)
               : (b.homeworkCount ?? 0) - (a.homeworkCount ?? 0)
           );
-          break;
-
-        case "rewardsCount":
-          list.forEach((u) => {
-            u._rewardCount =
-              mode === "term" ? (u.termRewardsCount ?? 0) : (u.rewardCount ?? 0);
-          });
-
-          list.sort((a, b) => (b._rewardCount ?? 0) - (a._rewardCount ?? 0));
           break;
 
         default:
@@ -292,9 +279,6 @@ export default function RankingPage() {
             ? `${u.termHomeworkCount ?? 0} 回`
             : `${u.homeworkCount ?? 0} 回`;
 
-        case "rewardsCount":
-          return `${u._rewardCount ?? 0} 回`;
-
         default:
           return "";
       }
@@ -321,10 +305,6 @@ export default function RankingPage() {
           return "回";
 
         case "homeworkCount":
-
-          return "回";
-
-        case "rewardsCount":
 
           return "回";
 
@@ -390,12 +370,6 @@ export default function RankingPage() {
               {mode === "term" ? "✏️ 単語得点" : "✏️ 単語テスト総得点"}
             </button>
 
-            <button
-              className={category === "rewardsCount" ? "active" : ""}
-              onClick={() => setCategory("rewardsCount")}
-            >
-              🎁 景品交換回数
-            </button>
           </div>
           </section>
 

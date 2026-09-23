@@ -72,6 +72,11 @@ export default function BehaviorSummary({ uid, year, term }) {
           <div className="info-label">単語テスト平均正答率</div>
           <div className="info-value">{averageWordTestScore} %</div>
         </div>
+        <div className="info-card">
+          <div className="info-label">学習態度平均</div>
+          <div className="info-value">{summary.attitude?.average ?? '未評価'}{summary.attitude?.average != null ? ' / 5' : ''}</div>
+          <small>{summary.attitude?.count || 0}回の選択済み評価のみ集計</small>
+        </div>
       </div>
     </div>
   )

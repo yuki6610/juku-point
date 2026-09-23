@@ -94,7 +94,10 @@ export default function TeacherPage() {
     [commentIds, setCommentIds] = useState([]),
     [late, setLate] = useState(false),
     [forgot, setForgot] = useState(false),
-    [note, setNote] = useState("");
+    [forgotItems,setForgotItems]=useState([]),
+    [forgotOther,setForgotOther]=useState(""),
+    [note, setNote] = useState(""),
+    [nextLessonNote, setNextLessonNote] = useState("");
   const [wordCorrect, setWordCorrect] = useState(""),
     [wordTotal, setWordTotal] = useState(""),
     [wordRange, setWordRange] = useState(null),
@@ -216,7 +219,10 @@ export default function TeacherPage() {
       setCommentIds(value.commentIds || []);
       setLate(value.late === true);
       setForgot(value.forgot === true);
+      setForgotItems(value.forgotItems|| (value.forgot?['other']:[]));
+      setForgotOther(value.forgotOther||"");
       setNote(value.note ?? value.behaviorNote ?? "");
+      setNextLessonNote(value.nextLessonNote || "");
       setWordCorrect(value.wordCorrect ?? value.wordTest?.correct ?? "");
       setWordTotal(
         value.wordTotal ??
@@ -300,6 +306,7 @@ export default function TeacherPage() {
                     "all",
                   materialId: item.materialId,
                   range: item.range,
+                  note: item.note || "",
                   customLabel: item.customLabel || "",
                   difficulty: Number(item.difficulty || 3),
                 })),
@@ -312,6 +319,7 @@ export default function TeacherPage() {
           local = JSON.parse(localStorage.getItem(key) || "null");
         } catch {}
         apply(local || value.existingDraft || record);
+        if(value.nextLessonNote?.text)setNotice(`次回授業メモ：${value.nextLessonNote.text}`);
         setDirty(Boolean(local || value.existingDraft));
         setHomeworkData(homeworkValue);
         setDraftLoadedKey(key);
@@ -376,7 +384,10 @@ export default function TeacherPage() {
     commentIds,
     late,
     forgot,
+    forgotItems,
+    forgotOther,
     note,
+    nextLessonNote,
     wordCorrect,
     wordTotal,
     wordRange,
@@ -418,6 +429,8 @@ export default function TeacherPage() {
   const reviewAssignment = pending.find((item) => item.id === reviewId);
   const isMiddle = student?.grade >= 7 && student?.grade <= 9,
     isElementary = student?.grade >= 1 && student?.grade <= 6;
+  const elementaryEnglish=isElementary&&(String(student?.lessonSubject||'').toLowerCase().includes('english')||String(student?.lessonSubject||'').includes('英語')||nextItems.some(item=>item.subject==='english'));
+  const wordEnabled=isMiddle||elementaryEnglish;
   const materials = (homeworkData?.templates?.materials || []).filter(
     (item) =>
       !item.audience ||
@@ -430,7 +443,10 @@ export default function TeacherPage() {
     commentIds,
     late,
     forgot,
+    forgotItems,
+    forgotOther,
     note,
+    nextLessonNote,
     wordCorrect,
     wordTotal,
     wordRange,
@@ -495,10 +511,12 @@ export default function TeacherPage() {
         reviewStatus === "pending"
       )
         throw new Error("各宿題を「提出・途中・未提出」から選択してください。");
-      const validItems =
+      let validItems =
         student.grade >= 10
           ? []
           : nextItems.filter((item) => item.materialId || item.range.trim());
+      const automaticWordRange=nextWordRange||wordRange||student.wordTestCurrentRange||{start:1,end:Number(wordTotal||20)};
+      if(wordEnabled&&attendance!=="absent"&&wordCorrect!==""&&!validItems.some(item=>item.materialId==='words'))validItems=[...validItems,{subject:'english',materialId:'words',range:`${automaticWordRange.start}-${automaticWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
       const oldAssignment = homeworkData.items.find(
         (item) => item.id === assignmentId,
       );
@@ -509,6 +527,7 @@ export default function TeacherPage() {
             item.materialId,
             item.customLabel || "",
             item.range,
+            item.note || "",
             Number(item.difficulty || 3),
           ]),
         );
@@ -535,7 +554,7 @@ export default function TeacherPage() {
         ? { assignmentId: reviewId, status: reviewStatus, itemResults }
         : null;
       if (
-        isMiddle &&
+        wordEnabled &&
         attendance !== "absent" &&
         wordCorrect !== "" &&
         (!Number.isInteger(Number(wordCorrect)) ||
@@ -554,7 +573,7 @@ export default function TeacherPage() {
                 ? "submitted"
                 : reviewStatus
               : homework,
-        wordTest: isMiddle
+        wordTest: wordEnabled
           ? attendance === "absent"
             ? { status: "pending" }
             : wordCorrect !== ""
@@ -567,11 +586,14 @@ export default function TeacherPage() {
                 }
               : { status: "notScheduled" }
           : { status: "notScheduled", correct: null, total: null },
-        late: isMiddle && attendance !== "absent" && late,
-        forgot: isMiddle && attendance !== "absent" && forgot,
+        late: student.grade < 10 && attendance !== "absent" && late,
+        forgot: student.grade < 10 && attendance !== "absent" && forgot,
+        forgotItems:student.grade<10&&attendance!=="absent"?forgotItems:[],
+        forgotOther:forgotItems.includes('other')?forgotOther:'',
         behaviorNote: note,
         learningContent,
         reportFacts,
+        nextLessonNote,
       };
       if (attendance === "makeup" && !originalDate)
         throw new Error("振替元の授業日を入力してください。");
@@ -587,6 +609,7 @@ export default function TeacherPage() {
             commentIds,
             record: {
               ...learningRecord,
+              nextLessonNote,
               attendance,
               originalLessonDate: originalDate,
             },
@@ -605,6 +628,7 @@ export default function TeacherPage() {
             date,
             status: attendance,
             originalDate,
+            nextLessonNote,
             ...(isElementary
               ? { note, learningRecord, homeworkReview, commentIds }
               : {}),
@@ -885,10 +909,10 @@ export default function TeacherPage() {
                       {info.courseMaterials}
                     </p>
                   )}
-                  {info.submissionStatus?.items?.length > 0 && (
+                  {info.submissionStatus?.items?.some(entry=>entry.status==='missing') && (
                     <div className="teacher-submission-status">
                       <b>成績資料</b>
-                      {info.submissionStatus.items.map((entry) => (
+                      {info.submissionStatus.items.filter(entry=>entry.status==='missing').map((entry) => (
                         <span
                           key={entry.id}
                           className={
@@ -911,8 +935,19 @@ export default function TeacherPage() {
             })}
           </section>
         )}
+        {student && homeworkData && (
+          <div className="teacher-selected-student">
+            <strong>{student.realName || student.name}</strong>
+            <small>
+              {student.lessonStartTime
+                ? `${student.lessonStartTime}開始 · `
+                : ""}
+              {gradeLabel(student.grade)} · {date}
+            </small>
+          </div>
+        )}
         {activeTab === "report" && student && homeworkData && (
-          <section>
+          <section className="teacher-attendance-section">
             <h2>出席状況</h2>
             <div className="teacher-attendance">
               {[
@@ -957,17 +992,6 @@ export default function TeacherPage() {
             )}
           </section>
         )}
-        {student && homeworkData && (
-          <div className="teacher-selected-student">
-            <strong>{student.realName || student.name}</strong>
-            <small>
-              {student.lessonStartTime
-                ? `${student.lessonStartTime}開始 · `
-                : ""}
-              {gradeLabel(student.grade)} · {date}
-            </small>
-          </div>
-        )}
         {student &&
           context?.guidance &&
           (context.guidance.policy ||
@@ -975,7 +999,7 @@ export default function TeacherPage() {
             context.guidance.courseMaterials ||
             context.guidance.teacherMemo ||
             context.guidance.sharedInfo ||
-            context.guidance.submissionStatus?.items?.length) && (
+            context.guidance.submissionStatus?.items?.some(entry=>entry.status==='missing')) && (
             <details className="teacher-guidance" open>
               <summary>教室メモ・共有事項</summary>
               {context.guidance.sharedInfo && (
@@ -1003,10 +1027,10 @@ export default function TeacherPage() {
                   <strong>講習教材</strong> {context.guidance.courseMaterials}
                 </p>
               )}
-              {context.guidance.submissionStatus?.items?.length > 0 && (
+              {context.guidance.submissionStatus?.items?.some(entry=>entry.status==='missing') && (
                 <div className="teacher-submission-status">
                   <b>成績資料</b>
-                  {context.guidance.submissionStatus.items.map((entry) => (
+                  {context.guidance.submissionStatus.items.filter(entry=>entry.status==='missing').map((entry) => (
                     <span
                       key={entry.id}
                       className={
@@ -1021,6 +1045,8 @@ export default function TeacherPage() {
               )}
             </details>
           )}
+        {student&&context?.nextLessonNote?.text&&<aside className="teacher-guidance"><strong>次回授業メモ</strong><p>{context.nextLessonNote.text}</p><small>表示後に引継ぎDBから自動消去されました。</small></aside>}
+        {student&&context?.academicRecords&&<details className="teacher-guidance"><summary>成績・模試・高校判定</summary><div className="teacher-score-summary">{context.academicRecords.scores?.map(item=><article key={item.id}><b>{item.year} {item.term} {item.type==='internal'?'内申':item.testType||'テスト'}</b><span>{item.type==='internal'?`内申換算 ${item.internalTotal??'未登録'}`:`合計 ${item.examTotal??'未登録'}点`}</span></article>)}{context.academicRecords.mockScores?.map(item=><article key={item.id}><b>{item.examName}</b><span>偏差値 {item.overallDeviation??'未登録'}・判定 {item.judgement||'未登録'}</span></article>)}{context.academicRecords.judgments?.map(item=><article key={item.id}><b>{item.name}</b><span>{item.label}（基準差 {item.difference>=0?'+':''}{item.difference}）</span></article>)}{!context.academicRecords.scores?.length&&!context.academicRecords.mockScores?.length&&<p>登録済みの成績はありません。</p>}</div></details>}
         {student && homeworkData && student.grade < 10 && (
           <>
             <section>
@@ -1091,15 +1117,7 @@ export default function TeacherPage() {
               )}
               {!reviewId &&
                 attendance !== "absent" &&
-                (homework === "none" ? (
-                  <button
-                    type="button"
-                    className="homework-review-toggle"
-                    onClick={() => setHomework("submitted")}
-                  >
-                    宿題の提出状況を入力
-                  </button>
-                ) : (
+                homework !== "none" && (
                   <div className="manual-homework-wrap">
                     <div className="teacher-attendance manual-homework">
                       {Object.entries(ITEM_RESULT_LABELS).map(
@@ -1123,11 +1141,11 @@ export default function TeacherPage() {
                       今回は宿題なし
                     </button>
                   </div>
-                ))}
+                )}
               {attendance === "absent" && (
                 <p>欠席のため宿題の判定は保留にします。</p>
               )}
-              {isMiddle && (
+              {wordEnabled && (
                 <details
                   className="teacher-word-details"
                   open={wordCorrect !== ""}
@@ -1232,7 +1250,7 @@ export default function TeacherPage() {
                   )}
                 </details>
               )}
-              {isMiddle && (
+              {student.grade<10 && (
                 <div className="teacher-checks">
                   <label>
                     <input
@@ -1242,38 +1260,13 @@ export default function TeacherPage() {
                     />
                     遅刻
                   </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={forgot}
-                      onChange={(e) => setForgot(e.target.checked)}
-                    />
-                    忘れ物
-                  </label>
+                  {[['workbook','ワーク'],['stationery','筆記用具'],['other','その他']].map(([id,label])=><label key={id}><input type="checkbox" checked={forgotItems.includes(id)} onChange={()=>{setForgotItems(old=>{const next=old.includes(id)?old.filter(value=>value!==id):[...old,id];setForgot(next.length>0);return next})}}/>{label}</label>)}
+                  {forgotItems.includes('other')&&<input aria-label="その他の忘れ物" placeholder="その他の内容" value={forgotOther} onChange={event=>setForgotOther(event.target.value)}/>}
                 </div>
               )}
-              <LessonReportFields
-                learningContent={learningContent}
-                onLearningContentChange={setLearningContent}
-                value={reportFacts}
-                onChange={setReportFacts}
-                context={{
-                  grade: gradeLabel(student?.grade),
-                }}
-                studentKey={studentKey}
-                lessonDate={date}
-              />
-              <label className="teacher-private-note">
-                教室内メモ<small>管理者・講師だけが確認します</small>
-                <textarea
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="保護者には表示されません"
-                />
-              </label>
             </section>
             <section>
-              <h2>今回出した宿題</h2>
+              <h2>次回までの宿題</h2>
               <p className="teacher-help">
                 通常は次回授業で確認します。教材、範囲、難易度を入力してください。
               </p>
@@ -1334,6 +1327,38 @@ export default function TeacherPage() {
             >
               一時保存
             </button>
+          </div>
+        )}
+        {student && homeworkData && student.grade < 10 && (
+          <section className="teacher-report-section">
+            <LessonReportFields
+              learningContent={learningContent}
+              onLearningContentChange={setLearningContent}
+              value={reportFacts}
+              onChange={setReportFacts}
+              context={{
+                grade: gradeLabel(student?.grade),
+                subject: student?.lessonSubject || "",
+              }}
+              studentKey={studentKey}
+              lessonDate={date}
+            />
+            <label className="teacher-private-note">
+              次回授業メモ<small>次の通常授業で講師に一度だけ表示します</small>
+              <textarea value={nextLessonNote} maxLength="1000" onChange={(e)=>setNextLessonNote(e.target.value)} placeholder="例：次回P.46から" />
+            </label>
+            <label className="teacher-private-note">
+              教室内メモ<small>管理者・講師だけが確認します</small>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="保護者には表示されません"
+              />
+            </label>
+          </section>
+        )}
+        {student && (
+          <div className="teacher-final-save-action">
             <button
               className="teacher-save"
               disabled={

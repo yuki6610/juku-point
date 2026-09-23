@@ -29,7 +29,6 @@ export default function RewardCatalog() {
     category: 'snack',
     requiredTag: 'none',
     description: '',
-    gachaEligible: true,
   })
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -77,7 +76,6 @@ export default function RewardCatalog() {
       requiredTag:
         newReward.requiredTag === 'none' ? null : newReward.requiredTag,
       description: newReward.description || '',
-      gachaEligible: Boolean(newReward.gachaEligible),
       createdAt: new Date(),
     })
 
@@ -90,7 +88,6 @@ export default function RewardCatalog() {
       category: 'snack',
       requiredTag: 'none',
       description: '',
-      gachaEligible: true,
     })
 
     fetchRewards()
@@ -102,8 +99,7 @@ export default function RewardCatalog() {
   const openEditModal = (reward) => {
     setEditReward({
       ...reward,
-      requiredTag: reward.requiredTag ?? 'none', // ← ここを修正
-      gachaEligible: reward.gachaEligible !== false,
+      requiredTag: reward.requiredTag ?? 'none',
     })
     setModalOpen(true)
   }
@@ -128,7 +124,6 @@ export default function RewardCatalog() {
           ? null
           : editReward.requiredTag,
       description: editReward.description || '',
-      gachaEligible: Boolean(editReward.gachaEligible),
     })
 
     setModalOpen(false)
@@ -233,11 +228,6 @@ export default function RewardCatalog() {
             className="description-input"
           ></textarea>
 
-          <label className="gacha-eligible-field">
-            <input type="checkbox" checked={newReward.gachaEligible} onChange={(e) => setNewReward({ ...newReward, gachaEligible: e.target.checked })} />
-            ガチャの抽選対象にする
-          </label>
-
           <button className="add-button" onClick={addReward}>
             ➕ 追加
           </button>
@@ -262,7 +252,6 @@ export default function RewardCatalog() {
             <p>在庫：{r.stock}</p>
             <p>上限：{r.limit === 0 ? 'なし' : `${r.limit}回`}</p>
             <p>カテゴリ：{r.category}</p>
-            <p>ガチャ：{r.gachaEligible === false ? '対象外' : '対象'}</p>
             <p>
               講習限定：
               {r.requiredTag
@@ -358,11 +347,6 @@ export default function RewardCatalog() {
               <option value="stationery">文房具</option>
               <option value="limited">限定</option>
             </select>
-
-            <label className="gacha-eligible-field">
-              <input type="checkbox" checked={editReward.gachaEligible !== false} onChange={(e) => setEditReward({ ...editReward, gachaEligible: e.target.checked })} />
-              ガチャの抽選対象にする
-            </label>
 
             <select
               value={editReward.requiredTag ?? 'none'}

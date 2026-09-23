@@ -83,7 +83,7 @@ const menuGroups = [
       },
       {
         title: "景品・交換管理",
-        desc: "在庫、通常交換、ガチャの引き渡しを一元管理",
+        desc: "在庫と通常交換の引き渡しを一元管理",
         icon: "◇",
         path: "/admin/rewards",
         tone: "mint",

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 import { SCORE_TEST_TYPES } from "@/lib/scoreSubmissionPlan.mjs";
 import ParentServices from "./ParentServices";
@@ -35,15 +35,6 @@ async function parentApi(path, options = {}) {
 }
 const attendanceLabel = { present: "出席", absent: "欠席", makeup: "振替" };
 const SUBJECTS = ["国語", "社会", "数学", "理科", "英語"];
-const gradeLabel = (value) =>
-  Number(value) <= 6
-    ? `小${Number(value)}`
-    : Number(value) <= 9
-      ? `中${Number(value) - 6}`
-      : Number(value) <= 12
-        ? `高${Number(value) - 9}`
-        : "学年未設定";
-
 export default function ParentPage() {
   const [data, setData] = useState(null),
     [student, setStudent] = useState(""),
@@ -287,22 +278,6 @@ export default function ParentPage() {
                 : "情報を確認しています…"}
           </p>
         </div>
-        <div>
-          <button
-            onClick={() =>
-              (location.href = `/parent/feedback?student=${encodeURIComponent(student)}`)
-            }
-          >
-            バグ報告
-          </button>
-          <button
-            onClick={() =>
-              signOut(auth).then(() => (location.href = "/parent/login"))
-            }
-          >
-            ログアウト
-          </button>
-        </div>
       </header>
       <aside className="beta-notice" role="note">
         <b>BETA</b>
@@ -415,7 +390,6 @@ export default function ParentPage() {
                   busy={busy}
                   onRead={() => setNewsVersion((value) => value + 1)}
                 />
-                <ParentRecent child={child} lessons={lessons} busy={busy} />
               </div>
               <div
                 id="parent-panel-lessons"
@@ -558,65 +532,6 @@ const filterPortal = (portal, child) => {
     documents: (portal?.documents || []).filter(visible),
   };
 };
-function ParentRecent({ child, lessons, busy }) {
-  const latest = lessons?.lessons?.[0];
-  if (busy && !lessons)
-    return (
-      <section className="parent-recent" aria-busy="true">
-        <h2>最近の授業</h2>
-        <p>授業の様子を読み込み中です…</p>
-      </section>
-    );
-  if (!latest) return null;
-  const reviewed = latest.reviewedHomework || [];
-  const homework = reviewed.length
-    ? reviewed
-        .map((item) =>
-          item.review?.date === latest.date
-            ? item.review?.text
-            : item.laterCompletion?.text,
-        )
-        .filter(Boolean)
-        .join("／")
-    : homeworkStatus[latest.homework] || "記録なし";
-  const word =
-    latest.wordTest && ["completed", "makeup"].includes(latest.wordTest.status)
-      ? `${latest.wordTest.correct} / ${latest.wordTest.total}問`
-      : "今回は実施なし";
-  return (
-    <section className="parent-recent">
-      <div className="parent-section-heading">
-        <div>
-          <small>RECENT LESSON</small>
-          <h2>最近の授業</h2>
-        </div>
-        <span>{latest.date.replaceAll("-", " / ")}</span>
-      </div>
-      <div className="parent-recent-grid">
-        <div>
-          <span>出席</span>
-          <strong>{attendanceLabel[latest.attendance] || "記録なし"}</strong>
-        </div>
-        <div>
-          <span>前回の宿題</span>
-          <strong>{homework}</strong>
-        </div>
-        {Number(child?.grade) >= 7 && (
-          <div>
-            <span>単語テスト</span>
-            <strong>{word}</strong>
-          </div>
-        )}
-      </div>
-      {(latest.lessonReport?.text || latest.comments?.[0]?.text) && (
-        <p className="parent-recent-comment">
-          講師からの報告：{latest.lessonReport?.text || latest.comments[0].text}
-        </p>
-      )}
-      <a href="#lessons">授業日の詳しい記録を見る →</a>
-    </section>
-  );
-}
 function ParentOverview({ child, lessons, portal, report, submission, busy, onRead }) {
   portal = filterPortal(portal, child);
   const homework = lessons?.homework || [],
@@ -626,7 +541,6 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
           !item.review || ["pending", "absent"].includes(item.review.status),
       )
       .sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || "")),
-    latest = lessons?.lessons?.[0],
     unread = portal ? unreadAnnouncementCount(portal) : 0;
   const today = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Tokyo",
@@ -667,7 +581,6 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
           <small>HOME</small>
           <h2>{child?.name}さんの授業報告</h2>
         </div>
-        <span>{gradeLabel(child?.grade)}</span>
       </div>
       {allClear && (
         <div className="parent-all-clear">
@@ -724,13 +637,6 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
                 {nextDate?.replaceAll("-", " / ") || "未設定"}
               </strong>
               <em>{nextDate ? "予定を確認 →" : "教室へご確認ください"}</em>
-            </a>
-            <a href="#lessons">
-              <span>直近授業</span>
-              <strong className="overview-date">
-                {latest?.date?.replaceAll("-", " / ") || "記録なし"}
-              </strong>
-              <em>授業の様子を見る →</em>
             </a>
             <a href="#announcements">
               <span>未読のお知らせ</span>
