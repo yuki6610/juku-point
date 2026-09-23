@@ -272,25 +272,6 @@ export default function ParentPage() {
         }
       }}
     >
-      <header>
-        <div>
-          <small>PARENT PORTAL</small>
-          <h1>保護者マイページ</h1>
-          <p>
-            {child
-              ? `${child.name}さんの授業報告や予定をご確認いただけます`
-              : data
-                ? `${data.parent.displayName} 様`
-                : "情報を確認しています…"}
-          </p>
-        </div>
-      </header>
-      <aside className="beta-notice" role="note">
-        <b>BETA</b>
-        <span>
-          現在開発中です。仕様・機能・画面は予告なく変更される場合があります。
-        </span>
-      </aside>
       {error && (
         <p className="parent-alert" role="alert">
           {error}
@@ -427,6 +408,7 @@ export default function ParentPage() {
                   <SchoolComparisons
                     items={report?.schoolComparisons || []}
                     target={report?.targetSchool}
+                    status={report?.judgementStatus}
                   />
                 )}
               </div>
@@ -585,16 +567,10 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
       <div className="parent-section-heading">
         <div>
           <small>HOME</small>
-          <h2>{child?.name}さんの授業報告</h2>
+          <h2>お知らせ</h2>
         </div>
       </div>
-      {allClear && (
-        <div className="parent-all-clear">
-          <strong>確認が必要な項目はありません</strong>
-          <span>新しい連絡があると、この場所に表示されます。</span>
-        </div>
-      )}
-      <div className="parent-action-list">
+      <div className="parent-action-list" hidden>
         {actions.map((item) => (
           <a className="score-bring-alert" href="#services" key={item.id}>
             <strong>{item.title}</strong>
@@ -636,7 +612,7 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
         <p>読み込み中…</p>
       ) : (
         <>
-          <div className="parent-overview-grid">
+          <div className="parent-overview-grid" hidden>
             <a href="#calendar">
               <span>次回授業</span>
               <strong className="overview-date">
@@ -654,7 +630,7 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
             </a>
           </div>
           <ParentAnnouncements portal={portal} child={child} onRead={onRead} />
-          {nextHomework && (
+          {false && nextHomework && (
             <article className="parent-next-homework">
               <header>
                 <div>
@@ -673,7 +649,7 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
               ))}
             </article>
           )}
-          {Number(child?.grade) >= 7 && latestScore && (
+          {false && Number(child?.grade) >= 7 && latestScore && (
             <article className="parent-latest-score">
               <span>最近の成績</span>
               <strong>
@@ -683,7 +659,7 @@ function ParentOverview({ child, lessons, portal, report, submission, busy, onRe
               <a href="#report">学期レポートで確認 →</a>
             </article>
           )}
-          {Number(child?.grade) === 9 && (
+          {false && Number(child?.grade) === 9 && (
             <div className="parent-exam-overview">
               {(report?.entranceExams || []).map((item) => (
                 <article key={item.id}>
@@ -1561,12 +1537,12 @@ function Summary({ title, value, unit, note }) {
     </article>
   );
 }
-function SchoolComparisons({ items, target }) {
+function SchoolComparisons({ items, target, status }) {
   if (!items.length)
     return (
       <section>
         <p className="parent-judge-empty">
-          志望校判定にはテストと通知表の両方が必要です。
+          {status || '判定には追加情報が必要です。'}
         </p>
       </section>
     );

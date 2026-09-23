@@ -285,6 +285,7 @@
   color: #5b4bb2;
   background: #efedff;
 }
+.student-tag-chip{display:inline-flex;align-items:center;min-height:24px;padding:3px 8px;color:#35657b;background:#eaf7f5;border-radius:999px;font-size:11px;font-weight:800}
 
 .student-detail-panel {
   position: sticky;

@@ -479,7 +479,7 @@ export default function StudentsPage() {
                 <div className="row-badges">
                   {Number(student.yellowCard || 0) > 0 && <span className="yellowcard-badge">⚠ {student.yellowCard}</span>}
                   {student.isBanned && <span className="ban-badge">出禁</span>}
-                  {(student.courseTags || []).length > 0 && <span className="course-badge">講習</span>}
+                  {[...(student.tags || []), ...(student.courseTags || [])].slice(0, 3).map((tag) => <span className="student-tag-chip" key={tag}>{courseTagLabel[tag] || tag}</span>)}
                 </div>
               </button>
             ))}
