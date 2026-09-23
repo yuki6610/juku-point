@@ -17,6 +17,6 @@ export function schoolDeviationFromTopPercent(value){
 export function normalizeTopPercent(value){
   if(value===null||value===undefined||String(value).trim()==='')return null;
   const percentile=Math.round(Number(value)*10)/10;
-  if(!Number.isFinite(percentile)||percentile<=0||percentile>=100)throw new Error('学年上位％は0より大きく100未満で入力してください。');
+  if(!Number.isFinite(percentile)||percentile<=0||percentile>=100)throw new Error('5計％は0より大きく100未満で入力してください。');
   return percentile;
 }

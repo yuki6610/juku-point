@@ -36,6 +36,7 @@
 .teacher-assignment-list span { display: grid; }
 .teacher-assignment-list small { color: #728097; }
 .teacher-assignment-list b { color: #64748b; font-size: 11px; }
+.teacher-assigned-students{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:10px 0}.teacher-assigned-students>span{color:#64748b;font-size:12px;font-weight:850}.teacher-assigned-students button{display:grid;gap:1px;padding:7px 10px;text-align:left;color:#40536e;background:#edf2ff;border:1px solid #cbd7fb;border-radius:10px;cursor:pointer}.teacher-assigned-students small{color:#667da8;font-size:10px}.teacher-info-score-action{padding:12px;border-top:1px solid #edf1f5}.teacher-info-score-action>button{padding:9px 12px;color:#fff;background:#536fc1;border:0;border-radius:9px;font-weight:800;cursor:pointer}.teacher-info-score-action .staff-score-entry{margin-top:12px;padding-top:12px;border-top:1px dashed #cbd5e1}
 .teacher-next-step { color: #fff; border-color: #536fc1 !important; background: #536fc1 !important; font-weight: 900; }
 .teacher-student-info-list details { border: 1px solid #dfe6f0; border-radius: 12px; overflow: hidden; }
 .teacher-student-info-list summary { display: flex; justify-content: space-between; align-items: center; padding: 13px; cursor: pointer; background: #f7f9fc; }

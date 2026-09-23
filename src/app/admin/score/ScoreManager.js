@@ -356,7 +356,7 @@ export default function ScoreManager() {
           ))}
         </div>
 
-        <label>学年上位％（任意）<input type="number" min="0.1" max="99.9" step="0.1" inputMode="decimal" value={gradePercentile} onChange={e=>setGradePercentile(e.target.value)} placeholder="例：10"/><small>{gradePercentile?`校内推定偏差値 ${schoolDeviationFromTopPercent(gradePercentile)??'入力値を確認'}`:'入力すると校内推定偏差値を算出します'}</small></label>
+        <label>5計％（任意）<input type="number" min="0.1" max="99.9" step="0.1" inputMode="decimal" value={gradePercentile} onChange={e=>setGradePercentile(e.target.value)} placeholder="例：10"/><small>{gradePercentile?`校内推定偏差値 ${schoolDeviationFromTopPercent(gradePercentile)??'入力値を確認'}`:'入力すると校内推定偏差値を算出します'}</small></label>
 
         <p>5計:{examTotal}点 / 換算:{examConverted}点</p>
 
@@ -466,7 +466,7 @@ export default function ScoreManager() {
                     {MAIN.map(subject=><div key={subject}><span>{subject}</span><strong>{s.exam?.[subject]??'-'}<small>点</small></strong></div>)}
                   </div>
                   <div className="score-calculation"><span>志望校判定用の換算点</span><strong>{Number(s.examConverted)||0}点</strong></div>
-                  {s.gradePercentile!=null&&<div className="score-calculation"><span>学年上位 {s.gradePercentile}%</span><strong>校内推定偏差値 {s.schoolEstimatedDeviation}</strong></div>}
+                  {s.gradePercentile!=null&&<div className="score-calculation"><span>5計 {s.gradePercentile}%</span><strong>校内推定偏差値 {s.schoolEstimatedDeviation}</strong></div>}
                 </>
               ) : (
                 <>

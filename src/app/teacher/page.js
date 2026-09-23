@@ -34,6 +34,7 @@ const gradeLabel = (value) =>
         : "学年未設定";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const blankHomeworkItem = () => ({ subject:"all", materialId:"", range:"", note:"", customLabel:"", difficulty:3 });
+const monthDay = value => /^\d{4}-(\d{2})-(\d{2})$/.test(value||'') ? `${Number(value.slice(5,7))}/${Number(value.slice(8,10))}` : value;
 const submissionLabel = (status) =>
   status === "score"
     ? "提出（成績登録済み）"
@@ -122,6 +123,7 @@ export default function TeacherPage() {
     [notice, setNotice] = useState(""),
     [saving, setSaving] = useState(false);
   const [nextLessonItems,setNextLessonItems]=useState([blankHomeworkItem()]);
+  const [scoreStudentKey,setScoreStudentKey]=useState("");
   const [draftLoadedKey, setDraftLoadedKey] = useState("");
   const [homework, setHomework] = useState("none"),
     [assignmentId, setAssignmentId] = useState(""),
@@ -746,12 +748,6 @@ export default function TeacherPage() {
         >
           生徒情報
         </button>
-        <button
-          className={activeTab === "scores" ? "active" : ""}
-          onClick={() => openTab("scores")}
-        >
-          成績入力
-        </button>
       </nav>
       <fieldset
         className="teacher-edit-fields"
@@ -823,15 +819,16 @@ export default function TeacherPage() {
                 ))}
               </select>
             </div>
+            {assignedStudents.length > 0 && <div className="teacher-assigned-students"><span>選択中</span>{assignedStudents.map(item=><button type="button" key={item.key} onClick={()=>toggleAssigned(item.key)}><strong>{item.name}</strong><small>選択を外す</small></button>)}</div>}
             <div className="teacher-assignment-list">
-              {filteredStudents.map((item) => (
+              {filteredStudents.filter(item=>!assignedKeys.includes(item.key)).map((item) => (
                 <label
                   key={item.key}
-                  className={assignedKeys.includes(item.key) ? "selected" : ""}
+                  className=""
                 >
                   <input
                     type="checkbox"
-                    checked={assignedKeys.includes(item.key)}
+                    checked={false}
                     onChange={() => toggleAssigned(item.key)}
                   />
                   <span>
@@ -957,6 +954,7 @@ export default function TeacherPage() {
                       ))}
                     </div>
                   )}
+                  {item.key.startsWith('user_') && Number(item.grade) >= 7 && Number(item.grade) <= 9 && <div className="teacher-info-score-action"><button type="button" onClick={()=>setScoreStudentKey(current=>current===item.key?'':item.key)}>{scoreStudentKey===item.key?'成績入力を閉じる':'この生徒の成績を入力'}</button>{scoreStudentKey===item.key&&<StaffScoreEntry studentKey={item.key} students={context?.students||[]}/>}</div>}
                   {!Object.values(info).some(Boolean) && (
                     <p>登録された共有情報はありません。</p>
                   )}
@@ -965,7 +963,6 @@ export default function TeacherPage() {
             })}
           </section>
         )}
-        {activeTab === 'scores' && <StaffScoreEntry students={context?.students||[]} />}
         {student && homeworkData && (
           <div className="teacher-selected-student">
             <strong>{student.realName || student.name}</strong>
@@ -1103,7 +1100,7 @@ export default function TeacherPage() {
                       <option value="">宿題なし・今回は確認しない</option>
                       {pending.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.dueDate}予定：
+                          {monthDay(item.dueDate)}予定：
                           {item.items
                             .map((row) => `${row.materialLabel} ${row.range}`)
                             .join("／")}

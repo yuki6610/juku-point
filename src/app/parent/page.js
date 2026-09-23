@@ -1187,7 +1187,7 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
                     </label>
                   ))}
                 </div>
-                <label>学年上位％（任意）<input type="number" min="0.1" max="99.9" step="0.1" inputMode="decimal" value={gradePercentile} onChange={event=>setGradePercentile(event.target.value)} placeholder="例：10"/><small>{gradePercentile?`校内推定偏差値 ${schoolDeviationFromTopPercent(gradePercentile)??'入力値を確認'}`:'入力すると校内推定偏差値を算出します'}</small></label>
+                <label>5計％（任意）<input type="number" min="0.1" max="99.9" step="0.1" inputMode="decimal" value={gradePercentile} onChange={event=>setGradePercentile(event.target.value)} placeholder="例：10"/><small>{gradePercentile?`校内推定偏差値 ${schoolDeviationFromTopPercent(gradePercentile)??'入力値を確認'}`:'入力すると校内推定偏差値を算出します'}</small></label>
               </>
             ) : (
               <>

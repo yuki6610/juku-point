@@ -364,7 +364,7 @@ export default function StudentScoresPage() {
               </div>
 
               <label className="school-percentile-field">
-                <span>学年上位％（任意）</span>
+                <span>5計％（任意）</span>
                 <div><input type="number" min="0.1" max="99.9" step="0.1" inputMode="decimal" value={gradePercentile} onChange={event=>setGradePercentile(event.target.value)} placeholder="例：10"/><small>％</small></div>
                 <small>{gradePercentile?`校内推定偏差値 ${schoolDeviationFromTopPercent(gradePercentile)??'入力値を確認'}`:'入力すると校内推定偏差値を算出します'}</small>
               </label>
@@ -476,7 +476,7 @@ export default function StudentScoresPage() {
                         {gradeLabel(score.grade)} {score.term}{" "}
                         {score.type === "exam" ? score.testType : "内申点"}
                       </strong>
-                      <small>{score.year || "年度不明"}年度{score.gradePercentile!=null?`・学年上位 ${score.gradePercentile}%・校内推定偏差値 ${score.schoolEstimatedDeviation}`:''}</small>
+                      <small>{score.year || "年度不明"}年度{score.gradePercentile!=null?`・5計 ${score.gradePercentile}%・校内推定偏差値 ${score.schoolEstimatedDeviation}`:''}</small>
                     </div>
                     <b>
                       {score.type === "exam" ? `${score.examTotal}点` : `${score.internalTotal}点`}
