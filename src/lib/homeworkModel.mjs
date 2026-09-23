@@ -9,15 +9,19 @@ export const materialSubjects = material => Array.isArray(material?.subjects) &&
 export const materialMatchesSubject = (material, subject) => materialSubjects(material).includes('all') || materialSubjects(material).includes(subject);
 export function normalizePageRange(value) {
   const raw=String(value||'').trim();
-  const normalized = raw.replace(/^[PpＰ]\.?\s*/, '').replace(/[、，\s]+/g, ',').replace(/[~〜～]+/g, '-').replace(/-+/g, '-').replace(/,+/g, ',').replace(/^,|,$/g, '');
+  const normalizeNumbers=segment=>{
+    const normalized=segment.replace(/^[PpＰ]\.?\s*/, '').replace(/[、，.\s]+/g, ',').replace(/[~〜～]+/g, '-').replace(/-+/g, '-').replace(/,+/g, ',').replace(/^,|,$/g, '');
+    if (!/^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$/.test(normalized)) return segment;
+    for (const part of normalized.split(',')) { const [start,end] = part.split('-').map(Number); if (start < 1 || (end && end < start)) throw new Error('ページ範囲の開始・終了を確認してください。'); }
+    return `P.${normalized.replaceAll('-', '〜')}`;
+  };
+  const normalized = raw.replace(/^[PpＰ]\.?\s*/, '').replace(/[、，.\s]+/g, ',').replace(/[~〜～]+/g, '-').replace(/-+/g, '-').replace(/,+/g, ',').replace(/^,|,$/g, '');
   if (!normalized) return '';
   if (!/^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$/.test(normalized)) {
-    // ページ番号だけの入力は従来どおり自動変換する。日本語を含む範囲・指示はそのまま保存する。
-    const mixed=raw.replace(/[~～]/g,'〜').replace(/\s+/g,' ').trim();
-    return /^\d/.test(mixed)?`P.${mixed.replace(/-/g,'〜')}`:mixed;
+    // 日本語は保持し、入力位置にかかわらず数字のページ指定だけを自動変換する。
+    return raw.replace(/(?:[PpＰ]\.?\s*)?\d+(?:(?:\s*[-~〜～、，,.]\s*)\d+)*/g, normalizeNumbers).replace(/\s+/g,' ').trim();
   }
-  for (const part of normalized.split(',')) { const [start,end] = part.split('-').map(Number); if (start < 1 || (end && end < start)) throw new Error('ページ範囲の開始・終了を確認してください。'); }
-  return `P.${normalized.replaceAll('-', '〜')}`;
+  return normalizeNumbers(raw);
 }
 export const RESULT_LABELS = { submitted: '全部提出', partial: '一部未実施', missed: '全部未実施', pending: '未確認', absent: '欠席で保留', none: '宿題なし', laterCompleted: '後日完了' };
 export const ITEM_RESULT_LABELS = { submitted: '提出', partial: '途中', missed: '未提出' };
