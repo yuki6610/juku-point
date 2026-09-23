@@ -107,11 +107,17 @@ export async function POST(request) {
       const linkedMakeup = oldMakeupDate ? await transaction.get(records.doc(oldMakeupDate)) : null;
       const originalSnap = oldOriginal ? await transaction.get(records.doc(oldOriginal)) : null;
       const requestedOriginal = action === 'save' && status === 'makeup' ? await transaction.get(records.doc(originalDate)) : null;
-      const requestedOriginalTerm = requestedOriginal ? termIdForDate(originalDate, terms, Number(year)) : null;
-      const originalLesson = requestedOriginal && !requestedOriginal.exists && isMiddle && requestedOriginalTerm
+      let requestedOriginalTerm = null;
+      if (requestedOriginal && isMiddle) {
+        try { requestedOriginalTerm = resolveAcademicTerm(settings, originalDate).id; } catch {}
+      }
+      // 共通出欠レコードが空のまま残っている旧データでも、学期側の欠席記録を参照する。
+      const originalLesson = requestedOriginal && isMiddle && requestedOriginalTerm
         ? await transaction.get(userRef.collection('lessonTerms').doc(requestedOriginalTerm).collection('records').doc(originalDate)) : null;
       if (requestedOriginal) {
-        const originalData = requestedOriginal.exists ? requestedOriginal.data() : originalLesson?.data();
+        const commonOriginal=requestedOriginal.exists?requestedOriginal.data():null;
+        const commonStatus=commonOriginal?.status || commonOriginal?.attendance;
+        const originalData=commonStatus?commonOriginal:originalLesson?.data();
         if (!['absent', '欠席'].includes(originalData?.status || originalData?.attendance)) {
           throw new ApiError('振替元の欠席記録が見つかりません。欠席日を確認してください。', 409);
         }

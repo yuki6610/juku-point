@@ -17,7 +17,6 @@ export default function HomeworkAssignmentRow({ item, materials, elementary=fals
     </select>
     {(material?.customLabel||material?.id==='other')&&<label className="custom-homework-name"><span>宿題名</span><input aria-label="その他の宿題名" placeholder="例：計算プリント（自由に変更できます）" value={item.customLabel||''} onChange={event=>patch({customLabel:event.target.value})}/></label>} 
     <input aria-label={material?.rangeType==='number'?'番号範囲':'ページ・範囲・内容'} inputMode="text" placeholder={material?.rangeType==='number'?'例：101-150':material?.customLabel?'ページがない場合は空欄':'例：10-15、漢字練習'} value={item.range||''} onChange={event=>patch({range:event.target.value})}/>
-    <input aria-label="宿題の備考" maxLength="300" placeholder="備考（任意）" value={item.note||''} onChange={event=>patch({note:event.target.value})}/>
     <select className="homework-difficulty" aria-label="宿題の難易度" value={item.difficulty||material?.difficulty||3} onChange={event=>patch({difficulty:Number(event.target.value)})}>{Object.entries(DIFFICULTY_LABELS).map(([value,label])=><option key={value} value={value}>★{value} {label}</option>)}</select>
     <button type="button" disabled={removeDisabled} onClick={onRemove}>削除</button>
   </div>;

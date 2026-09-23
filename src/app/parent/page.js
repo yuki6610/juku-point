@@ -1413,37 +1413,6 @@ function LessonCard({ item }) {
           <p>{item.learningContent}</p>
         </div>
       )}
-      {!item.reviewedHomework.length &&
-        ["submitted", "partial", "missed"].includes(item.homework) && (
-          <div className="parent-record-block">
-            <h3>前回の宿題状況</h3>
-            <p>
-              {
-                { submitted: "提出", partial: "途中", missed: "未提出" }[
-                  item.homework
-                ]
-              }
-            </p>
-          </div>
-        )}
-      {item.reviewedHomework.length > 0 && (
-        <div className="parent-record-block">
-          <h3>前回の宿題状況</h3>
-          {item.reviewedHomework.map((homework) => (
-            <div key={homework.id}>
-              {homework.items.map((row) => (
-                <small key={row.id}>
-                  {row.materialLabel}：{row.range}
-                  {homework.review?.date === item.date &&
-                  homework.review?.itemResults?.[row.id]
-                    ? ` ／ ${{ submitted: "提出", partial: "途中", missed: "未提出" }[homework.review.itemResults[row.id]] || ""}`
-                    : ""}
-                </small>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
       {item.assignedHomework.length > 0 && (
         <div className="parent-record-block current">
           <h3>今回出された宿題</h3>
@@ -1502,12 +1471,6 @@ function TermReport({ child, report, term, setTerm, busy }) {
         summary && (
           <>
             <div className="parent-summary-grid">
-              <Summary
-                title="宿題提出率"
-                value={summary.homework.rate}
-                unit="%"
-                note={`提出 ${summary.homework.submitted}／一部 ${summary.homework.partial}／未実施 ${summary.homework.missed}`}
-              />
               {middle && (
                 <Summary
                   title="単語テスト平均"

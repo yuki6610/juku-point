@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { homeworkApi } from "@/lib/homeworkClient";
 import {
   DIFFICULTY_LABELS,
-  RESULT_LABELS,
   materialSubjects,
 } from "@/lib/homeworkModel.mjs";
 import "../lesson-records/homework.css";
@@ -58,11 +57,7 @@ export default function HomeworkTemplates() {
       );
       setTemplates(data.templates);
       edits.markSaved();
-      setNotice(
-        action === "materials"
-          ? "教材だけを保存しました。"
-          : "宿題の提出結果表示を保存しました。",
-      );
+      setNotice("教材を保存しました。");
     } catch (error) {
       setNotice(error.message);
     } finally {
@@ -111,7 +106,7 @@ export default function HomeworkTemplates() {
               <option value="all">全教科</option>
               <option value="japanese">国語</option>
               <option value="arithmetic">算数</option>
-              <option value="math">数学</option>
+              {item.audience !== "elementary" && <option value="math">数学</option>}
               <option value="english">英語</option>
               <option value="science">理科</option>
               <option value="social">社会</option>
@@ -187,33 +182,6 @@ export default function HomeworkTemplates() {
           onClick={() => save("materials")}
         >
           {busy === "materials" ? "保存中…" : "教材を保存"}
-        </button>
-      </fieldset>
-      <fieldset disabled={Boolean(busy)}>
-        <legend>宿題の提出結果表示</legend>
-        {Object.entries(RESULT_LABELS).map(([id, label]) => (
-          <label key={id}>
-            {label}
-            <input
-              style={{ width: "100%" }}
-              value={templates.results[id]}
-              maxLength={300}
-              onChange={(e) =>
-                setTemplates((old) => ({
-                  ...old,
-                  results: { ...old.results, [id]: e.target.value },
-                }))
-              }
-            />
-          </label>
-        ))}
-        <button
-          type="button"
-          className="template-save-primary"
-          disabled={Boolean(busy)}
-          onClick={() => save("texts")}
-        >
-          {busy === "texts" ? "保存中…" : "提出結果表示を保存"}
         </button>
       </fieldset>
     </section>

@@ -28,6 +28,10 @@ import { availableStudentGrades } from "@/lib/studentFilterOptions.mjs";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const TEACHING_DAYS = [1, 2, 3, 4, 5, 6];
+const SUBJECT_OPTIONS = [
+  ["japanese", "国語"], ["arithmetic", "算数"], ["math", "数学"], ["english", "英語"], ["science", "理科"], ["social", "社会"], ["other", "その他"],
+];
+const subjectCodeFor = value => SUBJECT_OPTIONS.find(([, label]) => label === String(value || '').trim())?.[0] || (value ? 'other' : '');
 const attendanceRecordCache=new Map();
 const RECORD_CACHE_MS=5*60*1000;
 const pad = (value) => String(value).padStart(2, "0");
@@ -513,12 +517,12 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
     const terms = [1, 2, 3].map((term) => {
       const setting = termSettings?.[term];
       if (!setting?.start || !setting?.end) {
-        return { term, planned: 0, actual: 0, absent: 0, balance: 0 };
+        return { term, planned: 0, actual: 0, absent: 0, makeup: 0, pending: 0, balance: 0 };
       }
       const start = lessonStartDate && lessonStartDate > setting.start ? lessonStartDate : setting.start;
       const end = setting.end;
       if (start > end) {
-        return { term, planned: 0, actual: 0, absent: 0, balance: 0 };
+        return { term, planned: 0, actual: 0, absent: 0, makeup: 0, pending: 0, balance: 0 };
       }
       const countScheduledLessons = (rangeEnd) => Object.keys(calendar).filter((id) => {
         const weekday = new Date(`${id}T00:00:00`).getDay();
@@ -540,6 +544,8 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
         ["present", "makeup"].includes(record.status)
       ).length;
       const termAbsent = termRecords.filter((record) => record.status === "absent").length;
+      const termMakeup = termRecords.filter((record) => record.status === "makeup").length;
+      const termPending = termRecords.filter((record) => record.status === "absent" && !isMakeupResolved(record, ownRecords)).length;
       return {
         term,
         planned: duePlanned,
@@ -548,6 +554,8 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
         actual: dueActual,
         totalActual: termActual,
         absent: termAbsent,
+        makeup: termMakeup,
+        pending: termPending,
         balance: duePlanned - dueActual,
       };
     });
@@ -567,7 +575,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
         ? doc(db, "adminStudents", student.id)
         : doc(db, "users", student.id);
       const previous=(student.lessonSchedule?.weekdays||student.weekdays||[]).map(Number),history={effectiveFrom:todayId(),weekdays:weekdays.map(Number),previousWeekdays:previous,updatedBy:auth.currentUser?.uid||null};
-      const normalizedSlots=Object.fromEntries(weekdays.map(day=>{const slot=slots?.[day]||{};return[String(day),{startTime:/^\d{2}:\d{2}$/.test(slot.startTime||'')?slot.startTime:'',subject:String(slot.subject||'').trim().slice(0,30)}]}));
+      const normalizedSlots=Object.fromEntries(weekdays.map(day=>{const slot=slots?.[day]||{},subjectCode=SUBJECT_OPTIONS.some(([id])=>id===slot.subjectCode)?slot.subjectCode:subjectCodeFor(slot.subject),subject=subjectCode&&subjectCode!=='other'?(SUBJECT_OPTIONS.find(([id])=>id===subjectCode)?.[1]||''):String(slot.subject||'').trim().slice(0,30);return[String(day),{weekday:Number(day),startTime:/^\d{2}:\d{2}$/.test(slot.startTime||'')?slot.startTime:'',subjectCode:subjectCode||null,subject}]}));
       const normalizedTime=normalizedSlots[String(weekdays[0])]?.startTime||'';
       await updateDoc(target, student.source === "elementary"
         ? { weekdays, lessonStartTime:normalizedTime||null, lessonScheduleSlots:normalizedSlots, lessonScheduleHistory:arrayUnion({...history,startTime:normalizedTime,slots:normalizedSlots}), updatedAt: serverTimestamp() }
@@ -865,7 +873,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
           </div>
           <div className="attendance-table-wrap">
             <table>
-              <thead><tr><th>生徒</th><th>通塾曜日</th><th>学期別（今日まで）予定 / 実施</th><th>欠席</th><th>振替</th><th>状態</th><th>学期別（トータル）予定 / 実施</th></tr></thead>
+              <thead><tr><th>生徒</th><th>通塾曜日</th><th>学期別（今日まで）予定 / 実施</th><th>学期別の欠席 / 振替</th><th>状態</th><th>学期別（トータル）予定 / 実施</th></tr></thead>
               <tbody>{summaries.map((item) => (
                 <tr key={item.key} onClick={() => { setSelectedKey(item.key); setTab("record"); }}>
                   <td><strong>{item.student.name || item.student.realName || item.student.displayName}</strong><small>{gradeLabel(item.student.grade)}</small></td>
@@ -880,11 +888,9 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
                       ))}
                     </div>
                   </td>
-                  <td><strong className="attendance-number">{item.absent}</strong></td>
                   <td>
-                    <div className="makeup-status compact">
-                      <strong>{item.makeup}</strong>
-                      {item.pending > 0 && <small>未{item.pending}</small>}
+                    <div className="term-counts">
+                      {item.terms.map((term) => <span key={term.term} className={term.pending ? "needs-check" : ""}>{term.term}学期 <strong>欠{term.absent} / 振{term.makeup}</strong>{term.pending > 0 && <small>未{term.pending}</small>}</span>)}
                     </div>
                   </td>
                   <td><span className={item.pending ? "status-pending" : item.terms.some((term) => term.balance > 0) || item.missing ? "status-warning" : "status-ok"}>{item.pending ? `振替待ち ${item.pending}件` : item.terms.some((term) => term.balance > 0) ? "学期差分あり" : item.missing ? `${item.missing}件 要確認` : "正常"}</span></td>
@@ -924,7 +930,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
                   <button key={value} className={status === value ? "active" : ""} onClick={() => setStatus(value)}>{label}</button>
                 )}
               </div>
-              {status === "makeup" && <label>振替元の欠席日<select value={originalDate} onChange={(event) => setOriginalDate(event.target.value)}><option value="">選択してください</option>{Object.values(selectedRecords).filter((record) => record.status === "absent" && (!record.makeupDate || record.makeupDate === editingDate)).map((record) => <option key={record.date} value={record.date}>{record.date}</option>)}</select></label>}
+              {status === "makeup" && <label>振替元の欠席日<select value={originalDate} onChange={(event) => setOriginalDate(event.target.value)}><option value="">選択してください</option>{Object.values(selectedRecords).filter((record) => record.status === "absent" && (!isMakeupResolved(record, selectedRecords) || record.makeupDate === editingDate)).map((record) => <option key={record.date} value={record.date}>{record.date}</option>)}</select></label>}
               <label>メモ（任意）<textarea value={note} onChange={(event) => setNote(event.target.value)} rows="3" /></label>
               <div className="record-form-actions"><button className="primary-action" disabled={busy} onClick={saveAttendance}>{busy ? "保存中…" : editingDate ? "修正内容を保存" : "記録を保存"}</button>{editingDate && <button type="button" className="record-cancel" disabled={busy} onClick={cancelEdit}>修正をやめる</button>}</div>
               <div className="recent-records">
@@ -948,7 +954,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
 
       {tab === "students" && (
         <section className="attendance-section">
-          <p>通塾曜日・計算開始日は生徒ごとの共通設定です。年度別の授業日は「学期・年間授業日」で設定します。</p>
+          <p>通塾曜日・開始時間・教科を、曜日ごとの授業枠として保存します。保存した授業枠は、今後のシフト機能と授業カレンダーの共通データとして利用します。</p>
           <div className="schedule-heading">
             <div><h2>通塾曜日を設定</h2><p>小学生と、既存アカウントを持つ中学生・高校生が自動で表示されます。</p></div>
             <button onClick={() => router.push("/admin/students")}>生徒管理を開く</button>
@@ -967,7 +973,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
                 <span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "生徒アカウント"}</span>
               </div>
               <div className="schedule-weekdays"><span>通塾曜日</span><div className="weekday-picker">{TEACHING_DAYS.map((day) => <button type="button" key={day} className={draft.includes(day) ? "active" : ""} disabled={busy} onClick={() => setScheduleDrafts((values) => ({ ...values, [key]: draft.includes(day) ? draft.filter((value) => value !== day) : [...draft, day].sort() }))}>{WEEKDAYS[day]}</button>)}</div></div>
-              <div className="weekday-lesson-slots">{draft.map(day=>{const slot=slotsDraft[String(day)]||{startTime:'',subject:''};const patch=values=>setScheduleSlotDrafts(all=>({...all,[key]:{...slotsDraft,[String(day)]:{...slot,...values}}}));return <div className="lesson-slot-row" key={day}><b>{WEEKDAYS[day]}曜日</b><label><span>開始時間</span><input aria-label={`${WEEKDAYS[day]}曜の開始時刻`} type="time" value={slot.startTime||''} onChange={event=>patch({startTime:event.target.value})}/></label><label><span>教科</span><input aria-label={`${WEEKDAYS[day]}曜の教科`} placeholder="例：数学" value={slot.subject||''} onChange={event=>patch({subject:event.target.value})}/></label></div>})}{!draft.length&&<p>通塾曜日を選択すると、時間と教科の入力欄が表示されます。</p>}</div>
+              <div className="weekday-lesson-slots">{draft.map(day=>{const slot=slotsDraft[String(day)]||{startTime:'',subject:'',subjectCode:''},subjectCode=slot.subjectCode||subjectCodeFor(slot.subject),patch=values=>setScheduleSlotDrafts(all=>({...all,[key]:{...slotsDraft,[String(day)]:{...slot,...values}}}));return <div className="lesson-slot-row" key={day}><b>{WEEKDAYS[day]}曜日</b><label><span>開始時間</span><input aria-label={`${WEEKDAYS[day]}曜の開始時刻`} type="time" value={slot.startTime||''} onChange={event=>patch({startTime:event.target.value})}/></label><label><span>教科</span><select aria-label={`${WEEKDAYS[day]}曜の教科`} value={subjectCode} onChange={event=>{const nextCode=event.target.value,defaultSubject=SUBJECT_OPTIONS.find(([id])=>id===nextCode)?.[1]||'';patch({subjectCode:nextCode,subject:nextCode==='other'?slot.subject:defaultSubject})}}><option value="">選択してください</option>{SUBJECT_OPTIONS.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>{subjectCode==='other'&&<label className="lesson-subject-other"><span>その他の教科</span><input aria-label={`${WEEKDAYS[day]}曜のその他の教科`} value={slot.subject||''} maxLength="30" onChange={event=>patch({subject:event.target.value})}/></label>}</div>})}{!draft.length&&<p>通塾曜日を選択すると、時間と教科の入力欄が表示されます。</p>}</div>
               <div className="schedule-card-actions"><label className="lesson-start-field">計算開始日<input type="date" defaultValue={getLessonStartDate(student)} disabled={busy} onBlur={(event) => saveLessonStartDate(student, event.target.value)}/></label><button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft,slotsDraft)}>曜日・時間・教科を保存</button></div>
             </article>;
           })}</div>
