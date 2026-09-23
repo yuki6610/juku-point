@@ -33,6 +33,7 @@ const gradeLabel = (value) =>
         ? `高${Number(value) - 9}`
         : "学年未設定";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const blankHomeworkItem = () => ({ subject:"all", materialId:"", range:"", note:"", customLabel:"", difficulty:3 });
 const submissionLabel = (status) =>
   status === "score"
     ? "提出（成績登録済み）"
@@ -120,6 +121,7 @@ export default function TeacherPage() {
     [dueDate, setDueDate] = useState(""),
     [notice, setNotice] = useState(""),
     [saving, setSaving] = useState(false);
+  const [nextLessonItems,setNextLessonItems]=useState([blankHomeworkItem()]);
   const [draftLoadedKey, setDraftLoadedKey] = useState("");
   const [homework, setHomework] = useState("none"),
     [assignmentId, setAssignmentId] = useState(""),
@@ -230,6 +232,7 @@ export default function TeacherPage() {
       setForgotOther(value.forgotOther||"");
       setNote(value.note ?? value.behaviorNote ?? "");
       setNextLessonNote(value.nextLessonNote || "");
+      setNextLessonItems(Array.isArray(value.nextLessonItems)&&value.nextLessonItems.length?value.nextLessonItems:[blankHomeworkItem()]);
       setWordCorrect(value.wordCorrect ?? value.wordTest?.correct ?? "");
       setWordTotal(
         value.wordTotal ??
@@ -375,6 +378,8 @@ export default function TeacherPage() {
           attendance,
           originalDate,
           nextItems,
+          nextLessonItems,
+          nextLessonNote,
           dueDate,
           homework,
           nextId: assignmentId,
@@ -405,6 +410,7 @@ export default function TeacherPage() {
     originalDate,
     dueDate,
     nextItems,
+    nextLessonItems,
     homework,
     assignmentId,
     assignmentVersion,
@@ -464,6 +470,7 @@ export default function TeacherPage() {
     attendance,
     originalDate,
     nextItems,
+    nextLessonItems,
     dueDate,
     homework,
     nextId: assignmentId,
@@ -571,6 +578,13 @@ export default function TeacherPage() {
           Number(wordCorrect) > Number(wordTotal))
       )
         throw new Error("単語テストの正答数と問題数を確認してください。");
+      const rawHandoffItems=nextLessonItems.filter(item=>item.materialId||String(item.range||'').trim()||String(item.customLabel||'').trim());
+      const normalizedHandoffItems=rawHandoffItems.length
+        ? validateAssignment({assignedDate:date,dueDate:date,items:rawHandoffItems},homeworkData.templates).items
+        : [];
+      const nextLessonHandoff=normalizedHandoffItems.length
+        ? normalizedHandoffItems.map(item=>`${item.materialLabel}${item.range?` ${item.range}`:''}${item.note?`（${item.note}）`:''}`).join('／')
+        : nextLessonNote;
       const learningRecord = {
         homework:
           attendance === "absent"
@@ -600,7 +614,8 @@ export default function TeacherPage() {
         behaviorNote: note,
         learningContent,
         reportFacts,
-        nextLessonNote,
+        nextLessonNote:nextLessonHandoff,
+        nextLessonItems:normalizedHandoffItems,
       };
       if (attendance === "makeup" && !originalDate)
         throw new Error("振替元の授業日を入力してください。");
@@ -616,7 +631,8 @@ export default function TeacherPage() {
             commentIds,
             record: {
               ...learningRecord,
-              nextLessonNote,
+              nextLessonNote:nextLessonHandoff,
+              nextLessonItems:normalizedHandoffItems,
               attendance,
               originalLessonDate: originalDate,
             },
@@ -635,7 +651,8 @@ export default function TeacherPage() {
             date,
             status: attendance,
             originalDate,
-            nextLessonNote,
+            nextLessonNote:nextLessonHandoff,
+            nextLessonItems:normalizedHandoffItems,
             ...(isElementary
               ? { note, learningRecord, homeworkReview, commentIds }
               : {}),
@@ -1358,10 +1375,21 @@ export default function TeacherPage() {
               studentKey={studentKey}
               lessonDate={date}
             />
-            <label className="teacher-private-note">
-              次回授業メモ<small>次の通常授業で講師に一度だけ表示します</small>
-              <textarea value={nextLessonNote} maxLength="1000" onChange={(e)=>setNextLessonNote(e.target.value)} placeholder="例：次回P.46から" />
-            </label>
+            <div className="teacher-private-note">
+              <strong>次回授業メモ</strong>
+              <small>今回使った教材とページ・範囲を入力してください。次の通常授業で講師に一度だけ表示します。</small>
+              {nextLessonItems.map((item,index)=><HomeworkAssignmentRow
+                key={`next-lesson-${index}`}
+                item={item}
+                materials={homeworkData.templates.materials}
+                elementary={isElementary}
+                onChange={value=>setNextLessonItems(current=>current.map((entry,itemIndex)=>itemIndex===index?value:entry))}
+                onRemove={()=>setNextLessonItems(current=>current.filter((_,itemIndex)=>itemIndex!==index))}
+                removeDisabled={nextLessonItems.length===1}
+              />)}
+              <button type="button" onClick={()=>setNextLessonItems(current=>[...current,blankHomeworkItem()])}>＋教材を追加</button>
+              {nextLessonNote&&!nextLessonItems.some(item=>item.materialId||item.range||item.customLabel)&&<small>以前のメモ：{nextLessonNote}</small>}
+            </div>
             <label className="teacher-private-note">
               教室内メモ<small>管理者・講師だけが確認します</small>
               <textarea

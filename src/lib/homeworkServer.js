@@ -14,8 +14,19 @@ export async function requireHomeworkStaff(request) { return requireStaff(reques
 export async function homeworkTemplates() {
   const snapshot = await adminDb.collection('admin_data').doc('homeworkTemplates').get();
   if (!snapshot.exists) return DEFAULT_HOMEWORK_TEMPLATES;
-  const templates = snapshot.data().templates;
-  return { ...templates, materials: (templates.materials || []).map(item => { const fallback=DEFAULT_HOMEWORK_TEMPLATES.materials.find(value => value.id === item.id);let subjects=Array.isArray(item.subjects)&&item.subjects.length?item.subjects:[item.subject||fallback?.subject||fallback?.subjects?.[0]||'all'];if(item.id==='elementary_text'&&!subjects.includes('english'))subjects=[...subjects,'english'];return { ...item, audience:['words','new_english'].includes(item.id)?'all':item.audience, subjects, subject:subjects[0], difficulty:Number(item.difficulty||fallback?.difficulty||3), ...(item.id==='other'?{customLabel:true}:{}) }; }) };
+  const templates = snapshot.data().templates || {};
+  const configuredMaterials = Array.isArray(templates.materials) ? templates.materials : [];
+  // 古い校舎設定にも後から追加した標準教材（単語テストなど）を補完する。
+  const materials = [
+    ...configuredMaterials,
+    ...DEFAULT_HOMEWORK_TEMPLATES.materials.filter(fallback => !configuredMaterials.some(item => item.id === fallback.id)),
+  ];
+  return {
+    ...DEFAULT_HOMEWORK_TEMPLATES,
+    ...templates,
+    results: { ...DEFAULT_HOMEWORK_TEMPLATES.results, ...(templates.results || {}) },
+    materials: materials.map(item => { const fallback=DEFAULT_HOMEWORK_TEMPLATES.materials.find(value => value.id === item.id);let subjects=Array.isArray(item.subjects)&&item.subjects.length?item.subjects:[item.subject||fallback?.subject||fallback?.subjects?.[0]||'all'];if(item.id==='elementary_text'&&!subjects.includes('english'))subjects=[...subjects,'english'];return { ...fallback, ...item, audience:['words','new_english'].includes(item.id)?'all':item.audience, subjects, subject:subjects[0], difficulty:Number(item.difficulty||fallback?.difficulty||3), ...(item.id==='other'?{customLabel:true}:{}) }; }),
+  };
 }
 export function homeworkRefs(key, id) {
   if (!/^(user|elementary)_[A-Za-z0-9_-]{1,128}$/.test(key) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('生徒または課題IDが正しくありません。');

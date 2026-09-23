@@ -8,9 +8,14 @@ export const DEFAULT_HOMEWORK_TEMPLATES = {
 export const materialSubjects = material => Array.isArray(material?.subjects) && material.subjects.length ? material.subjects : [material?.subject || 'all'];
 export const materialMatchesSubject = (material, subject) => materialSubjects(material).includes('all') || materialSubjects(material).includes(subject);
 export function normalizePageRange(value) {
-  const normalized = String(value || '').trim().replace(/^[PpＰ]\.?\s*/, '').replace(/[、，\s]+/g, ',').replace(/[~〜～]+/g, '-').replace(/-+/g, '-').replace(/,+/g, ',').replace(/^,|,$/g, '');
+  const raw=String(value||'').trim();
+  const normalized = raw.replace(/^[PpＰ]\.?\s*/, '').replace(/[、，\s]+/g, ',').replace(/[~〜～]+/g, '-').replace(/-+/g, '-').replace(/,+/g, ',').replace(/^,|,$/g, '');
   if (!normalized) return '';
-  if (!/^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$/.test(normalized)) throw new Error('ページ範囲は「10」「10-15」「10,12,30」の形式で入力してください。');
+  if (!/^\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*$/.test(normalized)) {
+    // ページ番号だけの入力は従来どおり自動変換する。日本語を含む範囲・指示はそのまま保存する。
+    const mixed=raw.replace(/[~～]/g,'〜').replace(/\s+/g,' ').trim();
+    return /^\d/.test(mixed)?`P.${mixed.replace(/-/g,'〜')}`:mixed;
+  }
   for (const part of normalized.split(',')) { const [start,end] = part.split('-').map(Number); if (start < 1 || (end && end < start)) throw new Error('ページ範囲の開始・終了を確認してください。'); }
   return `P.${normalized.replaceAll('-', '〜')}`;
 }
