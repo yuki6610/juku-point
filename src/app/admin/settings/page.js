@@ -8,6 +8,7 @@ import ExamSettings from './ExamSettings';
 import ParentPortalSettings from './ParentPortalSettings';
 import ParentEventSettings from './ParentEventSettings';
 import InterviewSettings from './InterviewSettings';
+import AdminInviteManager from './AdminInviteManager';
 
 export default function AdminSettingsPage() {
   const [tab, setTab] = useState('lessons');
@@ -20,6 +21,6 @@ export default function AdminSettingsPage() {
     {tab==='homework'&&<HomeworkTemplates />}
     {tab==='events'&&<><ParentEventSettings /><InterviewSettings /></>}
     {tab==='portal'&&<ParentPortalSettings />}
-    {tab==='accounts'&&<><TeacherManager /><ParentManager /></>}
+    {tab==='accounts'&&<><TeacherManager /><ParentManager /><AdminInviteManager /></>}
   </main>;
 }

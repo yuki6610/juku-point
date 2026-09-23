@@ -17,6 +17,7 @@ import { db } from "@/../firebaseConfig";
 import { useAcademicContext } from "@/lib/useAcademicContext";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import { BASE_TEST_TYPES, PAST_EXAMS, SUMMER_ENTRANCE_PRACTICE } from '@/lib/scoreSubmissionPlan.mjs';
+import { schoolDeviationFromTopPercent } from '@/lib/schoolDeviation.mjs';
 import "./scores.css";
 
 const GRADES = ["中1", "中2", "中3"];
@@ -47,6 +48,7 @@ export default function StudentScoresPage() {
   const [internalGrade, setInternalGrade] = useState("中1");
   const [internalTerm, setInternalTerm] = useState("1学期");
   const [exam, setExam] = useState(emptyExam);
+  const [gradePercentile,setGradePercentile]=useState('');
   const [internalMain, setInternalMain] = useState(() => defaultInternal(MAIN));
   const [internalSub, setInternalSub] = useState(() => defaultInternal(SUB));
   const [saved, setSaved] = useState([]);
@@ -177,6 +179,7 @@ export default function StudentScoresPage() {
         exam,
         examTotal,
         examConverted,
+        gradePercentile,
         submittedBy: "student",
 
       });
@@ -360,6 +363,12 @@ export default function StudentScoresPage() {
                 ))}
               </div>
 
+              <label className="school-percentile-field">
+                <span>学年上位％（任意）</span>
+                <div><input type="number" min="0.1" max="99.9" step="0.1" inputMode="decimal" value={gradePercentile} onChange={event=>setGradePercentile(event.target.value)} placeholder="例：10"/><small>％</small></div>
+                <small>{gradePercentile?`校内推定偏差値 ${schoolDeviationFromTopPercent(gradePercentile)??'入力値を確認'}`:'入力すると校内推定偏差値を算出します'}</small>
+              </label>
+
               <div className="score-total">
                 <span>五教科合計</span>
                 <strong>{examTotal}<small> / 500点</small></strong>
@@ -467,7 +476,7 @@ export default function StudentScoresPage() {
                         {gradeLabel(score.grade)} {score.term}{" "}
                         {score.type === "exam" ? score.testType : "内申点"}
                       </strong>
-                      <small>{score.year || "年度不明"}年度</small>
+                      <small>{score.year || "年度不明"}年度{score.gradePercentile!=null?`・学年上位 ${score.gradePercentile}%・校内推定偏差値 ${score.schoolEstimatedDeviation}`:''}</small>
                     </div>
                     <b>
                       {score.type === "exam" ? `${score.examTotal}点` : `${score.internalTotal}点`}

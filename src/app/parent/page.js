@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 import { SCORE_TEST_TYPES } from "@/lib/scoreSubmissionPlan.mjs";
+import { schoolDeviationFromTopPercent } from '@/lib/schoolDeviation.mjs';
 import ParentServices from "./ParentServices";
 import ReferralPanel from "./ReferralPanel";
 import "./parent.css";
@@ -56,8 +57,13 @@ export default function ParentPage() {
   useEffect(
     () =>
       onAuthStateChanged(auth, async (user) => {
-        if (!user) return (location.href = "/parent/login");
+        if (!user) return location.replace("/parent/login");
         try {
+          const roleResponse=await fetch('/api/auth/role',{headers:{Authorization:`Bearer ${await user.getIdToken()}`}}),roleData=await roleResponse.json();
+          if(!roleResponse.ok||!['parent','admin'].includes(roleData.role)){
+            const landing={teacher:'/teacher',student:'/mypage',admin:'/admin'}[roleData.role]||'/parent/login';
+            return location.replace(landing);
+          }
           const value = await parentApi("/api/parent/context");
           setData(value);
           const requested = new URLSearchParams(window.location.search).get(
@@ -1020,6 +1026,7 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
     subSubjects = ["音楽", "美術", "保体", "技家"];
   const [type, setType] = useState("exam"),
     [testType, setTestType] = useState("中間"),
+    [gradePercentile,setGradePercentile]=useState(''),
     [exam, setExam] = useState(blankExam),
     [main, setMain] = useState(() =>
       Object.fromEntries(SUBJECTS.map((subject) => [subject, 3])),
@@ -1048,6 +1055,7 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
               term: `${selected.term}学期`,
               testType,
               exam,
+              gradePercentile,
             }
           : {
               type,
@@ -1179,6 +1187,7 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
                     </label>
                   ))}
                 </div>
+                <label>学年上位％（任意）<input type="number" min="0.1" max="99.9" step="0.1" inputMode="decimal" value={gradePercentile} onChange={event=>setGradePercentile(event.target.value)} placeholder="例：10"/><small>{gradePercentile?`校内推定偏差値 ${schoolDeviationFromTopPercent(gradePercentile)??'入力値を確認'}`:'入力すると校内推定偏差値を算出します'}</small></label>
               </>
             ) : (
               <>

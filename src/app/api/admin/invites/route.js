@@ -14,7 +14,7 @@ async function activeStudents() {
 export async function POST(request) {
   try {
     const admin=await requireAdmin(request), body=await request.json(), role=body.role, displayName=String(body.displayName||'').trim();
-    if(!validInviteRole(role)||role!=='parent'||!displayName) throw new Error('保護者招待の氏名を確認してください。講師は本人申請方式です。');
+    if(!validInviteRole(role)||!displayName) throw new Error('招待する役割と氏名を確認してください。');
     const childKeys=role==='parent'?[...new Set((body.childKeys||[]).map(normalizeStudentKey))]:[];
     if(role==='parent'&&!childKeys.length) throw new Error('保護者に紐付ける生徒を1人以上選択してください。');
     const students=await activeStudents(); if(childKeys.some(key=>!students.has(key))) throw new Error('退塾済みまたは存在しない生徒が含まれています。');

@@ -1,0 +1,16 @@
+{
+  "name": "千鳥が丘学習塾 保護者アプリ",
+  "short_name": "ちどポ保護者",
+  "description": "保護者用の授業・予定確認アプリ",
+  "id": "/parent",
+  "start_url": "/parent?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5faf7",
+  "theme_color": "#28745b",
+  "orientation": "portrait",
+  "icons": [
+    {"src":"/icons/parent-icon-192x192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/icons/parent-icon-512x512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

@@ -11,6 +11,7 @@ import {
 } from "@/lib/homeworkModel.mjs";
 import LessonReportFields from "@/components/LessonReportFields";
 import HomeworkAssignmentRow from "@/components/HomeworkAssignmentRow";
+import StaffScoreEntry from '@/components/StaffScoreEntry';
 import { availableStudentGrades } from "@/lib/studentFilterOptions.mjs";
 import "./teacher.css";
 import "./workflow-improvements.css";
@@ -165,10 +166,16 @@ export default function TeacherPage() {
     let active = true;
     setContext(null);
     setStudentKey("");
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) location.href = "/teacher/login";
-      else
-        api(`/api/teacher/context?date=${date}`)
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) return location.replace("/teacher/login");
+      try {
+        const roleResponse=await fetch('/api/auth/role',{headers:{Authorization:`Bearer ${await user.getIdToken()}`}}),roleData=await roleResponse.json();
+        if(!roleResponse.ok||!['teacher','admin'].includes(roleData.role)){
+          const landing={parent:'/parent',student:'/mypage',admin:'/admin'}[roleData.role]||'/teacher/login';
+          return location.replace(landing);
+        }
+      } catch { return location.replace('/teacher/login'); }
+      api(`/api/teacher/context?date=${date}`)
           .then((value) => {
             if (!active) return;
             setContext(value);
@@ -722,19 +729,25 @@ export default function TeacherPage() {
         >
           生徒情報
         </button>
+        <button
+          className={activeTab === "scores" ? "active" : ""}
+          onClick={() => openTab("scores")}
+        >
+          成績入力
+        </button>
       </nav>
       <fieldset
         className="teacher-edit-fields"
         disabled={saving}
         onChange={(event) => {
-          if (!event.target.closest(".teacher-flow,.teacher-assignment-panel"))
+          if (!event.target.closest(".teacher-flow,.teacher-assignment-panel,.staff-score-entry"))
             setDirty(true);
         }}
         onClick={(event) => {
           if (
             event.target.closest("button") &&
             !event.target.closest(
-              ".teacher-flow,.teacher-assignment-panel,.teacher-save",
+              ".teacher-flow,.teacher-assignment-panel,.teacher-save,.staff-score-entry",
             )
           )
             setDirty(true);
@@ -871,7 +884,7 @@ export default function TeacherPage() {
             {assignedStudents.map((item) => {
               const info = context?.guidanceByStudent?.[item.key] || {};
               return (
-                <details key={item.key} open>
+                <details key={item.key}>
                   <summary>
                     <strong>{item.name}</strong>
                     <small>
@@ -935,6 +948,7 @@ export default function TeacherPage() {
             })}
           </section>
         )}
+        {activeTab === 'scores' && <StaffScoreEntry students={context?.students||[]} />}
         {student && homeworkData && (
           <div className="teacher-selected-student">
             <strong>{student.realName || student.name}</strong>
@@ -1260,6 +1274,7 @@ export default function TeacherPage() {
                     />
                     遅刻
                   </label>
+                  <strong className="teacher-check-label">忘れ物</strong>
                   {[['workbook','ワーク'],['stationery','筆記用具'],['other','その他']].map(([id,label])=><label key={id}><input type="checkbox" checked={forgotItems.includes(id)} onChange={()=>{setForgotItems(old=>{const next=old.includes(id)?old.filter(value=>value!==id):[...old,id];setForgot(next.length>0);return next})}}/>{label}</label>)}
                   {forgotItems.includes('other')&&<input aria-label="その他の忘れ物" placeholder="その他の内容" value={forgotOther} onChange={event=>setForgotOther(event.target.value)}/>}
                 </div>

@@ -961,23 +961,14 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
             const currentSlots=student.lessonSchedule?.slots||student.lessonScheduleSlots||Object.fromEntries(current.map(day=>[String(day),{startTime:currentTime,subject:''}]));
             const slotsDraft=scheduleSlotDrafts[key]||currentSlots;
             const changed = JSON.stringify(draft) !== JSON.stringify(current)||JSON.stringify(slotsDraft)!==JSON.stringify(currentSlots);
-            return <article key={studentKey(student)}>
-              <div>
+            return <article className="schedule-card" key={studentKey(student)}>
+              <div className="schedule-student">
                 <strong>{student.name || student.realName || student.displayName}</strong>
                 <span>{gradeLabel(student.grade)}・{student.source === "elementary" ? "管理者登録" : "生徒アカウント"}</span>
               </div>
-              <div className="weekday-picker">{TEACHING_DAYS.map((day) => <button key={day} className={draft.includes(day) ? "active" : ""} disabled={busy} onClick={() => setScheduleDrafts((values) => ({ ...values, [key]: draft.includes(day) ? draft.filter((value) => value !== day) : [...draft, day].sort() }))}>{WEEKDAYS[day]}</button>)}</div>
-              <div className="weekday-lesson-slots">{draft.map(day=>{const slot=slotsDraft[String(day)]||{startTime:'',subject:''};const patch=values=>setScheduleSlotDrafts(all=>({...all,[key]:{...slotsDraft,[String(day)]:{...slot,...values}}}));return <div key={day}><b>{WEEKDAYS[day]}曜</b><input aria-label={`${WEEKDAYS[day]}曜の開始時刻`} type="time" value={slot.startTime||''} onChange={event=>patch({startTime:event.target.value})}/><input aria-label={`${WEEKDAYS[day]}曜の教科`} placeholder="教科" value={slot.subject||''} onChange={event=>patch({subject:event.target.value})}/></div>})}</div>
-              <button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft,slotsDraft)}>曜日・時刻・教科を保存</button>
-              <label className="lesson-start-field">
-                計算開始日
-                <input
-                  type="date"
-                  defaultValue={getLessonStartDate(student)}
-                  disabled={busy}
-                  onBlur={(event) => saveLessonStartDate(student, event.target.value)}
-                />
-              </label>
+              <div className="schedule-weekdays"><span>通塾曜日</span><div className="weekday-picker">{TEACHING_DAYS.map((day) => <button type="button" key={day} className={draft.includes(day) ? "active" : ""} disabled={busy} onClick={() => setScheduleDrafts((values) => ({ ...values, [key]: draft.includes(day) ? draft.filter((value) => value !== day) : [...draft, day].sort() }))}>{WEEKDAYS[day]}</button>)}</div></div>
+              <div className="weekday-lesson-slots">{draft.map(day=>{const slot=slotsDraft[String(day)]||{startTime:'',subject:''};const patch=values=>setScheduleSlotDrafts(all=>({...all,[key]:{...slotsDraft,[String(day)]:{...slot,...values}}}));return <div className="lesson-slot-row" key={day}><b>{WEEKDAYS[day]}曜日</b><label><span>開始時間</span><input aria-label={`${WEEKDAYS[day]}曜の開始時刻`} type="time" value={slot.startTime||''} onChange={event=>patch({startTime:event.target.value})}/></label><label><span>教科</span><input aria-label={`${WEEKDAYS[day]}曜の教科`} placeholder="例：数学" value={slot.subject||''} onChange={event=>patch({subject:event.target.value})}/></label></div>})}{!draft.length&&<p>通塾曜日を選択すると、時間と教科の入力欄が表示されます。</p>}</div>
+              <div className="schedule-card-actions"><label className="lesson-start-field">計算開始日<input type="date" defaultValue={getLessonStartDate(student)} disabled={busy} onBlur={(event) => saveLessonStartDate(student, event.target.value)}/></label><button className="schedule-save" disabled={busy || !changed} onClick={() => saveSchedule(student, draft,slotsDraft)}>曜日・時間・教科を保存</button></div>
             </article>;
           })}</div>
         </section>

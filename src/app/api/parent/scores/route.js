@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { requireParent, linkedChildren } from '@/lib/parentAccess';
 import { normalizeStudentKey } from '@/lib/staffAccess';
+import { normalizeTopPercent, schoolDeviationFromTopPercent } from '@/lib/schoolDeviation.mjs';
 
 const MAIN=['国語','社会','数学','理科','英語'], SUB=['音楽','美術','保体','技家'];
 const validTerm=value=>['1学期','2学期','3学期'].includes(value);
@@ -24,7 +25,8 @@ export async function POST(request) {
       const testType=String(body.testType||'').trim().slice(0,60);if(!testType)throw new Error('テスト名を入力してください。');
       if(existing.docs.some(doc=>doc.data().type==='exam'&&doc.data().testType===testType))throw new Error('同じテストの成績は登録済みです。');
       const exam=numbers(body.exam,MAIN,0,100),examTotal=Object.values(exam).reduce((sum,value)=>sum+value,0);
-      data={type:'exam',year,grade,term,testType,exam,examTotal,examConverted:examTotal*.5};
+      const gradePercentile=normalizeTopPercent(body.gradePercentile);
+      data={type:'exam',year,grade,term,testType,exam,examTotal,examConverted:examTotal*.5,gradePercentile,schoolEstimatedDeviation:schoolDeviationFromTopPercent(gradePercentile)};
     }else if(body.type==='internal'){
       if(existing.docs.some(doc=>doc.data().type==='internal'))throw new Error('この学期の通知表は登録済みです。');
       const internalMain=numbers(body.internalMain,MAIN,1,5),internalSub=numbers(body.internalSub,SUB,1,5);

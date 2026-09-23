@@ -110,3 +110,4 @@ svg {
     scroll-behavior: auto !important;
   }
 }
+.staff-score-entry,.parent-score-form,.score-form,.score-block{--score-border:#dfe7f2;--score-control:#cfd9e8}.staff-score-entry label,.parent-score-form label,.score-form label,.score-block label{font-weight:750}.staff-score-entry input,.staff-score-entry select,.parent-score-form input,.parent-score-form select,.score-form input,.score-form select,.score-block input,.score-block select{box-sizing:border-box;min-height:44px;border:1px solid var(--score-control);border-radius:10px;background:#fff;font-size:16px}

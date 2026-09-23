@@ -7,6 +7,7 @@ import { AppDialogProvider } from "../components/AppDialogProvider";
 export const metadata = {
   title: "塾ポイントアプリ",
   description: "学習塾のポイント＆景品管理アプリ",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }) {
@@ -17,7 +18,6 @@ export default function RootLayout({ children }) {
             name="viewport"
             content="width=device-width, initial-scale=1.0"
         />
-        <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="167x167" href="/icons/apple-touch-icon-167x167.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-touch-icon-152x152.png" />
