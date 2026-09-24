@@ -49,6 +49,18 @@ body {
   overflow-x: hidden;
 }
 
+.local-demo-banner {
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  padding: 6px 12px;
+  background: #173d35;
+  color: #fff;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 button,
 input,
 select,

@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getAcademicTerm } from "@/lib/academicCalendarServer";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { resolveStudentIdentity } from '@/lib/studentIdentity';
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,7 @@ export async function POST(request) {
       throw new RedeemError("景品が指定されていません。");
     }
 
-    const userRef = adminDb.collection("users").doc(decodedToken.uid);
+    const identity = await resolveStudentIdentity(decodedToken.uid), userRef = identity.ref;
     const rewardRef = adminDb.collection("rewards").doc(rewardId);
 
     const season=await getAcademicTerm();

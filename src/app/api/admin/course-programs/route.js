@@ -1,5 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { studentRef } from '@/lib/studentIdentity';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +70,7 @@ export async function POST(request) {
       }
       const programRef = adminDb.collection("coursePrograms").doc(programId);
       const [program, student] = await Promise.all([
-        programRef.get(), adminDb.collection("users").doc(assignment.uid).get(),
+        programRef.get(), studentRef(assignment.uid.startsWith('elementary_')?assignment.uid:`user_${assignment.uid}`).get(),
       ]);
       if (!program.exists) throw new ApiError("講習が見つかりません。", 404);
       if (!student.exists || Number(student.data().grade) < 7 || Number(student.data().grade) > 9) {
@@ -105,7 +106,7 @@ export async function PATCH(request) {
     if (body.action === "updateParticipants") {
       if (!validId(programId) || !Array.isArray(body.participantIds)) throw new ApiError("参加生徒の指定が正しくありません。");
       const participantIds = [...new Set(body.participantIds)].filter(validId);
-      const snapshots = await Promise.all(participantIds.map((uid) => adminDb.collection("users").doc(uid).get()));
+      const snapshots = await Promise.all(participantIds.map((uid) => studentRef(uid.startsWith('elementary_')?uid:`user_${uid}`).get()));
       if (snapshots.some((snapshot) => !snapshot.exists || Number(snapshot.data().grade) < 7 || Number(snapshot.data().grade) > 9)) {
         throw new ApiError("中学生以外の生徒が含まれています。");
       }

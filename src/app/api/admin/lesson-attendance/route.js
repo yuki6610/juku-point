@@ -72,8 +72,8 @@ export async function POST(request) {
     if (staff.role === 'teacher' && action === 'delete') throw new ApiError('削除は管理者に依頼してください。', 403);
     const records = adminDb.collection("adminLessonAttendance").doc(key).collection("records");
     const commonRef = records.doc(date);
-    const userRef = student.source === "user" ? adminDb.collection("users").doc(student.id) : null;
-    const isMiddle = student.source === "user" && Number(student.grade) >= 7 && Number(student.grade) <= 9;
+    const userRef = student.source === "user" || Number(student.grade) >= 7 ? adminDb.collection(student.source === 'elementary' ? 'adminStudents' : 'users').doc(student.id) : null;
+    const isMiddle = Number(student.grade) >= 7 && Number(student.grade) <= 9;
     const isHigh = student.source === "user" && Number(student.grade) >= 10 && Number(student.grade) <= 12;
     const termId = termIdForDate(date, terms, Number(year));
     const currentTermId = currentTerm.id;
@@ -91,7 +91,7 @@ export async function POST(request) {
       if (!studentSnap.exists) throw new ApiError('生徒が見つかりません。', 404);
       const studentData = studentSnap.data();
       const grade = Number(studentData.grade);
-      if (!Number.isInteger(grade) || (student.source === 'elementary' ? grade < 1 || grade > 6 : grade < 7 || grade > 12)) throw new ApiError('学年・生徒区分を確認してください。', 400);
+      if (!Number.isInteger(grade) || (student.source === 'elementary' ? grade < 1 || grade > 9 : grade < 7 || grade > 12)) throw new ApiError('学年・生徒区分を確認してください。', 400);
       if (Number(studentData.grade) !== Number(student.grade)) throw new ApiError('学年が変更されています。画面を再読み込みしてください。', 409);
       if (learningRecord && (isMiddle || studentData.active === false || studentData.enrollmentStatus === 'withdrawn')) throw new ApiError('対象生徒の登録状態を確認してください。', 409);
       const middleSnap = middleRef ? await transaction.get(middleRef) : null;

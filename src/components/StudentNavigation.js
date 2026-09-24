@@ -16,13 +16,11 @@ const primaryItems = [
 
 const moreItems = [
   { path: "/homework", label: "宿題", note: "出された課題と確認結果" },
-  { path: "/ranking", label: "ランキング", note: "みんなの学習成果" },
   { path: "/student/scores", label: "成績・志望校", note: "成績入力と高校比較", middleOnly: true },
   { path: "/student/mock-scores", label: "模試成績", note: "受験した模試の結果", middleOnly: true, requiredTag: "模試受験" },
   { path: "/schools", label: "高校情報", note: "通学・部活動・学校の特徴", middleOnly: true },
   { path: "/behavior", label: "生活態度", note: "学期の記録", middleOnly: true },
   { path: "/summer", label: "夏期イベント", note: "期間限定イベント", requiredTag: "summer_course" },
-  { path: "/settings", label: "設定", note: "プロフィールとアバター" },
   { path: "/guide", label: "使い方", note: "操作ガイド" },
   { path: "/feedback", label: "バグ報告", note: "表示・操作の不具合を連絡" },
 ];
@@ -67,7 +65,11 @@ export default function StudentNavigation() {
         return;
       }
       try {
-        const snapshot = await getDoc(doc(db, "users", currentUser.uid));
+        const response = await fetch('/api/auth/role', { headers: { Authorization: `Bearer ${await currentUser.getIdToken()}` } });
+        const identity = await response.json();
+        if (!response.ok || identity.role !== 'student') { setProfile(null); return; }
+        const key = identity.studentKey, elementary = key.startsWith('elementary_');
+        const snapshot = await getDoc(doc(db, elementary ? 'adminStudents' : 'users', key.slice(elementary ? 11 : 5)));
         setProfile(snapshot.exists() ? snapshot.data() : null);
       } catch (error) {
         console.error("生徒メニューのプロフィール取得に失敗しました:", error);

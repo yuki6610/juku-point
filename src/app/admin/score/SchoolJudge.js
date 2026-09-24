@@ -23,6 +23,8 @@ import { availableStudentGrades } from '@/lib/studentFilterOptions.mjs'
    定数
 ===================== */
 const TERMS = ['1学期','2学期','3学期']
+const scorePath=id=>id.startsWith('elementary_')?`adminStudents/${id.slice(11)}/scores`:`users/${id}/scores`
+const judgeCommentRef=(id,year,term)=>doc(db,id.startsWith('elementary_')?'adminStudents':'users',id.startsWith('elementary_')?id.slice(11):id,'judgeComments',`${year}_${term}`)
 
 const gradeLabel = g => g>=7 && g<=9 ? `中${g-6}` : '不明'
 
@@ -83,10 +85,9 @@ export default function AdminJudgePage(){
   /* === 生徒一覧 === */
   useEffect(()=>{
     if(!admin) return
-    getDocs(collection(db,'users')).then(snap=>{
+    Promise.all([getDocs(collection(db,'users')),getDocs(collection(db,'adminStudents'))]).then(([snap,elementary])=>{
       setStudents(
-        snap.docs
-          .map(d=>({uid:d.id,...d.data()}))
+        [...snap.docs.map(d=>({uid:d.id,...d.data()})),...elementary.docs.map(d=>({uid:`elementary_${d.id}`,realName:d.data().name||d.data().realName,...d.data()}))]
           .filter(s=>s.active!==false&&s.enrollmentStatus!=='withdrawn'&&Number(s.grade)>=7&&Number(s.grade)<=9)
           .sort((a,b)=>
             Number(a.grade||0)-Number(b.grade||0) ||
@@ -111,7 +112,7 @@ export default function AdminJudgePage(){
     setInternalScore(null)
 
     return onSnapshot(
-      collection(db, `users/${selectedStudentId}/scores`),
+      collection(db, scorePath(selectedStudentId)),
       snap=>setScores(snap.docs.map(d=>({id:d.id,...d.data()})))
     )
   },[selectedStudentId,students])
@@ -128,15 +129,7 @@ export default function AdminJudgePage(){
       let active=true
       setComment('')
       const loadComment = async ()=>{
-        const snap = await getDoc(
-          doc(
-            db,
-            'users',
-            selectedStudentId,
-            'judgeComments',
-            `${year}_${term}`
-          )
-        )
+        const snap = await getDoc(judgeCommentRef(selectedStudentId,year,term))
 
         if(!active)return
         if(snap.exists()){
@@ -168,13 +161,7 @@ export default function AdminJudgePage(){
         if(!selectedStudentId) return
 
         await setDoc(
-          doc(
-            db,
-            'users',
-            selectedStudentId,
-            'judgeComments',
-            `${year}_${term}`
-          ),
+          judgeCommentRef(selectedStudentId,year,term),
           {
             comment,
             updatedAt:new Date()

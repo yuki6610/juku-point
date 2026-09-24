@@ -4,7 +4,7 @@ import { normalizeReportFacts } from '../src/lib/lessonReport.mjs';
 
 test('不正な評価値と自由記述を安全に正規化する', () => {
   const result = normalizeReportFacts({ focus:'invalid', extraNote:'x'.repeat(800) });
-  assert.equal(result.focus, 3);
+  assert.equal(Object.hasOwn(result, 'focus'), false);
   assert.equal(result.extraNote.length, 800);
 });
 

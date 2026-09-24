@@ -12,6 +12,7 @@ import {
   startAfter,
 } from "firebase/firestore";
 import "./points.css";
+import { studentIdentityForCurrentUser } from '@/lib/studentClientIdentity';
 
 const PAGE_SIZE = 50;
 
@@ -47,8 +48,8 @@ export default function PointHistoryPage() {
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(false);
 
-  const fetchPage = async (uid, afterDoc = null) => {
-    const ref = collection(db, `users/${uid}/pointHistory`);
+  const fetchPage = async (identity, afterDoc = null) => {
+    const ref = collection(db, `${identity.collectionName}/${identity.studentId}/pointHistory`);
     const constraints = [orderBy("createdAt", "desc"), limitQuery(PAGE_SIZE)];
     if (afterDoc) constraints.push(startAfter(afterDoc));
     const snap = await getDocs(query(ref, ...constraints));
@@ -79,8 +80,9 @@ export default function PointHistoryPage() {
       }
 
       try {
-        setCurrentUid(user.uid);
-        const { list, last, hasNext } = await fetchPage(user.uid);
+        const identity = await studentIdentityForCurrentUser();
+        setCurrentUid(identity);
+        const { list, last, hasNext } = await fetchPage(identity);
         setItems(list);
         setLastDoc(last);
         setHasMore(hasNext);

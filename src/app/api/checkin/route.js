@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAcademicTerm } from '@/lib/academicCalendarServer';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
+import { resolveStudentIdentity } from '@/lib/studentIdentity';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,7 @@ export async function POST(request) {
     const expected = action === 'enter' ? String(pinDoc.data()?.enterPin || '1111') : String(pinDoc.data()?.exitPin || '0000');
     if (pin !== expected) throw Object.assign(new Error('PINが間違っています。'), { status: 403 });
 
-    const userRef = adminDb.collection('users').doc(user.uid);
+    const identity = await resolveStudentIdentity(user.uid), userRef = identity.ref;
     const active=await userRef.collection('checkins').where('currentSessionActive','==',true).limit(1).get();
     const checkRef = active.empty?userRef.collection('checkins').doc(todayJst()):active.docs[0].ref;
     let season=null;try{season=await getAcademicTerm()}catch{}

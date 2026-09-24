@@ -5,9 +5,9 @@ export async function readAbsenceCandidates({studentKey,student}) {
   const common=await adminDb.collection('adminLessonAttendance').doc(studentKey).collection('records').get();
   const records=new Map();
   const grade=Number(student.grade);
-  if(studentKey.startsWith('user_')&&grade>=7&&grade<=9){
+  if(grade>=7&&grade<=9){
     // 学年度をまたいだ未消化の欠席も振替対象になるため、現在年度だけに限定しない。
-    const termDocs=await adminDb.collection('users').doc(student.id).collection('lessonTerms').get();
+    const termDocs=await adminDb.collection(studentKey.startsWith('elementary_')?'adminStudents':'users').doc(student.id).collection('lessonTerms').get();
     const terms=await Promise.all(termDocs.docs.map(term=>term.ref.collection('records').get()));
     terms.forEach(snapshot=>snapshot.docs.forEach(doc=>records.set(doc.id,{date:doc.id,...doc.data(),source:'lessonTerms'})));
   }

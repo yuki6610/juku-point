@@ -215,7 +215,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     const student = students.find(item => item.uid === uid);
     if (!student) return;
     const middle = isMiddleStudent(student);
-    const recordRef = middle ? doc(db, 'users', student.id, 'lessonTerms', selectedTermId, 'records', selectedDate) : doc(db, 'adminLessonAttendance', student.uid, 'records', selectedDate);
+    const recordRef = middle ? doc(db, student.source === 'elementary' ? 'adminStudents' : 'users', student.id, 'lessonTerms', selectedTermId, 'records', selectedDate) : doc(db, 'adminLessonAttendance', student.uid, 'records', selectedDate);
     const snapshot = await getDoc(recordRef);
     let legacy = null;
     if (!snapshot.exists() && student.source === 'user' && !middle) {
@@ -315,7 +315,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          uid: selectedStudent.id,
+          uid: selectedStudent.source === 'elementary' ? `elementary_${selectedStudent.id}` : selectedStudent.id,
           homeworkReview, commentIds,
           date,
           termId,

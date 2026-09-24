@@ -8,6 +8,7 @@ import { auth, db, storage } from "@/firebaseConfig";
 import { doc, getDoc, getDocFromServer, setDoc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import "./settings.css";
+import { studentIdentityForCurrentUser } from '@/lib/studentClientIdentity';
 
 const Avatar3DWrapper = dynamic(
   () => import("@/components/VRMAvatarCanvas"),
@@ -29,6 +30,7 @@ export default function SettingsPage() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
+  const [studentIdentity, setStudentIdentity] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarStoragePath, setAvatarStoragePath] = useState("");
   const [name, setName] = useState("");
@@ -89,7 +91,9 @@ export default function SettingsPage() {
       setUser(currentUser);
 
       try {
-        const userRef = doc(db, "users", currentUser.uid);
+        const identity = await studentIdentityForCurrentUser();
+        setStudentIdentity(identity);
+        const userRef = doc(db, identity.collectionName, identity.studentId);
         const snap = await getDoc(userRef);
 
         if (snap.exists()) {
@@ -116,7 +120,8 @@ export default function SettingsPage() {
 
     setSavingName(true);
     try {
-      await updateDoc(doc(db, "users", user.uid), {
+      if (!studentIdentity) throw new Error('生徒情報を確認できません。');
+      await updateDoc(doc(db, studentIdentity.collectionName, studentIdentity.studentId), {
         displayName: name.trim(),
         updatedAt: new Date(),
       });
@@ -170,7 +175,8 @@ export default function SettingsPage() {
         const previousAvatarStoragePath = avatarStoragePath;
         const avatarVersion = Date.now();
 
-        const userRef = doc(db, "users", user.uid);
+        if (!studentIdentity) throw new Error('生徒情報を確認できません。');
+        const userRef = doc(db, studentIdentity.collectionName, studentIdentity.studentId);
         profileCommitted = true; // Never remove a possibly committed file after an ambiguous network error.
         await setDoc(userRef, {
           avatarUrl: downloadURL,

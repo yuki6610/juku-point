@@ -1,0 +1,18 @@
+'use client';
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
+import { auth } from '@/firebaseConfig';
+import './recovery.css';
+
+const roles = { student: '生徒', parent: '保護者', teacher: '講師' };
+
+export default function AccountRecoveryAdmin() {
+  const [data, setData] = useState(null), [role, setRole] = useState('student'), [uid, setUid] = useState(''), [url, setUrl] = useState(''), [qr, setQr] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
+  const api = async (options = {}) => { const response = await fetch('/api/admin/account-recovery', { ...options, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await auth.currentUser?.getIdToken()}` } }), result = await response.json(); if (!response.ok) throw new Error(result.error); return result; };
+  const load = () => api().then(setData).catch(error => setNotice(error.message));
+  useEffect(() => { load(); }, []);
+  useEffect(() => { let active = true; if (!url) { setQr(''); return; } QRCode.toDataURL(url, { width: 260, margin: 2 }).then(value => active && setQr(value)).catch(() => active && setNotice('リンクは発行済みですが、QRコードを表示できませんでした。')); return () => { active = false; }; }, [url]);
+  const issue = async () => { if (!uid || busy) return; setBusy(true); setNotice(''); setUrl(''); try { const result = await api({ method: 'POST', body: JSON.stringify({ role, uid }) }); setUrl(result.url); setNotice('24時間有効・1回限りの復旧リンクを発行しました。本人に直接渡してください。'); await load(); } catch (error) { setNotice(error.message); } finally { setBusy(false); } };
+  const accounts = (data?.accounts || []).filter(item => item.role === role).sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  return <main className="account-recovery-admin"><header><small>ACCOUNT RECOVERY</small><h1>ログイン復旧</h1><p>正式メールの方はログイン画面の再設定メールを利用できます。仮メールなどで自己復旧できない場合に、本人へ直接渡すリンクを発行します。再発行すると前のリンクは無効になります。</p></header>{notice && <p role="status" className="recovery-notice">{notice}</p>}<section><h2>復旧リンクを発行</h2><div className="recovery-fields"><label>対象区分<select value={role} onChange={event => { setRole(event.target.value); setUid(''); setUrl(''); }}><option value="student">生徒</option><option value="parent">保護者</option><option value="teacher">講師</option></select></label><label>対象アカウント<select value={uid} onChange={event => { setUid(event.target.value); setUrl(''); }}><option value="">選択してください</option>{accounts.map(item => <option key={item.uid} value={item.uid}>{item.name}（{item.email || item.uid}）</option>)}</select></label><button disabled={!uid || busy} onClick={issue}>{busy ? '発行中…' : '復旧リンク／QRを発行'}</button></div>{url && <div className="recovery-issued"><strong>発行したリンクはこの画面を離れると再表示できません</strong>{qr && <img src={qr} width="260" height="260" alt="ログイン復旧用QRコード"/>}<input readOnly value={url} aria-label="復旧リンク"/><button onClick={() => navigator.clipboard.writeText(url).then(() => setNotice('リンクをコピーしました。'))}>リンクをコピー</button></div>}</section><section><h2>発行・利用履歴</h2><div className="recovery-history">{(data?.history || []).map(item => <article key={item.id}><strong>{item.name}（{roles[item.role] || item.role}）</strong><span>発行 {item.createdAt ? new Date(item.createdAt).toLocaleString('ja-JP') : '日時未登録'}</span><span>発行者 {item.createdBy}</span><span>期限 {item.expiresAt ? new Date(item.expiresAt).toLocaleString('ja-JP') : '不明'}</span>{item.usedAt && <span>使用 {new Date(item.usedAt).toLocaleString('ja-JP')}</span>}<b>{item.status === 'used' ? '使用済み' : item.status === 'superseded' ? '再発行で失効' : item.expiresAt && new Date(item.expiresAt) < new Date() ? '期限切れ' : '発行済み'}</b></article>)}</div></section></main>;
+}

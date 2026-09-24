@@ -31,7 +31,9 @@ const menuGroups = [
         path: "/admin/study-log",
         tone: "cyan",
       },
-      { title:"講習授業管理",desc:"講習申込・日程・宿題進捗を管理",icon:"季",path:"/admin/course-lessons",tone:"sky" },
+      { title:"講習授業管理",desc:"講習申込・受講コマ数・日程を管理",icon:"季",path:"/admin/course-lessons",tone:"sky" },
+      { title:"講師シフト",desc:"週ごとのシフト作成・コピー・確定",icon:"表",path:"/admin/shifts",tone:"indigo" },
+      { title:"講師のシフト希望",desc:"出勤可能日時・対応教科と学年を確認",icon:"時",path:"/admin/teacher-preferences",tone:"mint" },
     ],
   },
   {
@@ -62,6 +64,7 @@ const menuGroups = [
         tone: "sky",
       },
       { title:"生徒メモ",desc:"授業方針・共有事項・教材を一覧編集",icon:"表",path:"/admin/student-notes",tone:"slate" },
+      { title:"本アカウント紐付け・進級",desc:"生徒IDを維持して本人アカウントを管理",icon:"鍵",path:"/admin/student-accounts",tone:"indigo" },
       { title:"保護者管理",desc:"保護者の紐付け・招待・タグを管理",icon:"家",path:"/admin/parents",tone:"mint" },
       { title:"タグ一括管理",desc:"生徒・保護者へタグを一括設定",icon:"#",path:"/admin/tags",tone:"violet" },
       { title:"模試成績",desc:"生徒ごとの模試結果を登録・確認",icon:"模",path:"/admin/mock-scores",tone:"indigo" },
@@ -90,6 +93,8 @@ const menuGroups = [
       },
       { title:"友人紹介管理",desc:"紹介から特典引き渡しまでを管理",icon:"紹",path:"/admin/referrals",tone:"mint" },
       { title:"バグ報告",desc:"生徒・保護者から届いた報告を確認",icon:"!",path:"/admin/feedback",tone:"violet" },
+      { title:"ログイン復旧",desc:"本人に渡す一回限りの再設定リンクを発行",icon:"鍵",path:"/admin/account-recovery",tone:"indigo" },
+      { title:"アプリ運用費",desc:"AI利用量と実請求額を比較",icon:"¥",path:"/admin/operations-costs",tone:"sky" },
     ],
   },
 ];

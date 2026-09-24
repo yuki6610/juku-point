@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addDoc, collection, doc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/firebaseConfig";
 import "./elementary-manager.css";
 
@@ -26,7 +26,8 @@ export default function ElementaryStudentManager({ onNotice }) {
     if (!name.trim()) return notify("名前を入力してください。");
     setBusy(true);
     try {
-      await addDoc(collection(db, "adminStudents"), { name: name.trim(), grade: Number(grade), weekdays: [], active: true, createdBy: auth.currentUser?.uid || null, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      const studentRef = doc(collection(db, 'adminStudents'));
+      await setDoc(studentRef, { studentId: studentRef.id, name: name.trim(), grade: Number(grade), weekdays: [], active: true, createdBy: auth.currentUser?.uid || null, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
       setName(""); setGrade(1); await loadStudents(); notify("小学生を登録しました。");
     } catch (error) { console.error(error); notify("小学生を登録できませんでした。"); }
     finally { setBusy(false); }
@@ -54,8 +55,9 @@ export default function ElementaryStudentManager({ onNotice }) {
     finally { setBusy(false); }
   };
 
+  const elementaryStudents = students.filter(student => Number(student.grade) <= 6);
   return <section className="elementary-manager">
-    <div className="elementary-manager-heading"><div><span>ELEMENTARY</span><h2>小学生の登録・編集</h2><p>ログインアカウントを持たない小学生を、名前と学年だけで管理します。</p></div><strong>{students.length}人</strong></div>
+    <div className="elementary-manager-heading"><div><span>ELEMENTARY</span><h2>小学生の登録・編集</h2><p>ログインアカウントを持たない小学生を、名前と学年だけで管理します。</p></div><strong>{elementaryStudents.length}人</strong></div>
     <form className="elementary-add-form" onSubmit={registerStudent}>
       <label>名前<input value={name} onChange={(event) => setName(event.target.value)} placeholder="例：山田 太郎" /></label>
       <label>学年<select value={grade} onChange={(event) => setGrade(Number(event.target.value))}>{[1,2,3,4,5,6].map((value) => <option key={value} value={value}>小学{value}年</option>)}</select></label>
@@ -63,14 +65,14 @@ export default function ElementaryStudentManager({ onNotice }) {
     </form>
     <div className="elementary-status-filter"><button className={statusFilter === "active" ? "active" : ""} onClick={() => setStatusFilter("active")}>在籍中</button><button className={statusFilter === "withdrawn" ? "active" : ""} onClick={() => setStatusFilter("withdrawn")}>退塾者</button></div>
     <div className="elementary-manager-list">
-      {students.filter((student) => statusFilter === "withdrawn" ? student.active === false || student.enrollmentStatus === "withdrawn" : student.active !== false && student.enrollmentStatus !== "withdrawn").map((student) => { const values = editing[student.id] || {}; return <article key={student.id}>
+      {elementaryStudents.filter((student) => statusFilter === "withdrawn" ? student.active === false || student.enrollmentStatus === "withdrawn" : student.active !== false && student.enrollmentStatus !== "withdrawn").map((student) => { const values = editing[student.id] || {}; return <article key={student.id}>
         <input value={values.name ?? student.name ?? ""} onChange={(event) => setEditing((current) => ({ ...current, [student.id]: { ...current[student.id], name: event.target.value } }))} aria-label={`${student.name}の名前`} />
         <select value={values.grade ?? student.grade ?? 1} onChange={(event) => setEditing((current) => ({ ...current, [student.id]: { ...current[student.id], grade: Number(event.target.value) } }))}>{[1,2,3,4,5,6].map((value) => <option key={value} value={value}>小学{value}年</option>)}</select>
         <span>{(student.weekdays || []).length ? "通塾曜日設定済み" : "通塾曜日未設定"}</span>
         <button disabled={busy} onClick={() => saveStudent(student)}>保存</button>
         <button disabled={busy} className={student.active === false || student.enrollmentStatus === "withdrawn" ? "restore" : "delete"} onClick={() => setEnrollmentStatus(student, !(student.active === false || student.enrollmentStatus === "withdrawn"))}>{student.active === false || student.enrollmentStatus === "withdrawn" ? "復帰" : "退塾"}</button>
       </article>; })}
-      {!students.length && <p className="elementary-manager-empty">登録された小学生はいません。</p>}
+      {!elementaryStudents.length && <p className="elementary-manager-empty">登録された小学生はいません。</p>}
     </div>
   </section>;
 }

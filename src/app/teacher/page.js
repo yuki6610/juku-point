@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
 import { japanDateId } from "@/lib/academicCalendar.mjs";
 import {
@@ -12,6 +12,7 @@ import {
 import LessonReportFields from "@/components/LessonReportFields";
 import HomeworkAssignmentRow from "@/components/HomeworkAssignmentRow";
 import StaffScoreEntry from '@/components/StaffScoreEntry';
+import ShiftPreferences from './ShiftPreferences';
 import { availableStudentGrades } from "@/lib/studentFilterOptions.mjs";
 import "./teacher.css";
 import "./workflow-improvements.css";
@@ -33,6 +34,19 @@ const gradeLabel = (value) =>
         ? `高${Number(value) - 9}`
         : "学年未設定";
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const TEACHER_PERIODS = [
+  { id: "period-3", label: "3講", start: "13:20" },
+  { id: "period-4", label: "4講", start: "15:00" },
+  { id: "period-5", label: "5講", start: "16:40" },
+  { id: "period-6", label: "6講", start: "18:20" },
+  { id: "period-7", label: "7講", start: "20:00" },
+];
+const periodForStudent = (item) => {
+  const periodId = item.lessonPeriodId || "";
+  const byId = TEACHER_PERIODS.find((period) => period.id === periodId || (period.id === "period-3" && periodId === "course-early"));
+  if (byId) return byId.id;
+  return TEACHER_PERIODS.find((period) => period.start === item.lessonStartTime)?.id || "unassigned";
+};
 const blankHomeworkItem = () => ({ subject:"all", materialId:"", range:"", note:"", customLabel:"", difficulty:3 });
 const monthDay = value => /^\d{4}-(\d{2})-(\d{2})$/.test(value||'') ? `${Number(value.slice(5,7))}/${Number(value.slice(8,10))}` : value;
 const submissionLabel = (status) =>
@@ -90,7 +104,9 @@ export default function TeacherPage() {
     [homeworkData, setHomeworkData] = useState(null);
   const [gradeFilter, setGradeFilter] = useState("all"),
     [scheduledOnly, setScheduledOnly] = useState(true);
+  const [reportPeriod, setReportPeriod] = useState("period-3");
   const [assignedKeys, setAssignedKeys] = useState([]),
+    [assignmentOverrides, setAssignmentOverrides] = useState({ add: [], remove: [] }),
     [activeTab, setActiveTab] = useState("students");
   const [reviewId, setReviewId] = useState(""),
     [itemResults, setItemResults] = useState({}),
@@ -110,6 +126,7 @@ export default function TeacherPage() {
     [reportFacts, setReportFacts] = useState({});
   const [attendance, setAttendance] = useState("present"),
     [originalDate, setOriginalDate] = useState("");
+  const [lessonType, setLessonType] = useState('regular');
   const [nextItems, setNextItems] = useState([
       {
         subject: "all",
@@ -143,10 +160,20 @@ export default function TeacherPage() {
   const confirmMove = () =>
     !dirty ||
     window.confirm(
-      "この生徒の入力は端末内に一時保存されています。別の入力へ移動しますか？",
+      "この生徒の入力は下書きとして自動保存されています。別の入力へ移動しますか？",
     );
   const changeDate = (value) => {
-    if (confirmMove()) setDate(value);
+    if (!value || value === date || !confirmMove()) return;
+    const uid = auth.currentUser?.uid;
+    if (uid) {
+      try {
+        localStorage.removeItem(`teacher-assigned:${uid}:${date}`);
+        localStorage.removeItem(`teacher-assigned:${uid}:${value}`);
+      } catch {}
+    }
+    setAssignmentOverrides({ add: [], remove: [] });
+    setAssignedKeys([]);
+    setDate(value);
   };
   const changeStudent = (value) => {
     if (confirmMove()) {
@@ -154,13 +181,22 @@ export default function TeacherPage() {
       if (value) setActiveTab("report");
     }
   };
-  const toggleAssigned = (key) =>
-    setAssignedKeys((old) =>
-      old.includes(key) ? old.filter((value) => value !== key) : [...old, key],
-    );
+  const toggleAssigned = (key) => {
+    const next = assignedKeys.includes(key) ? assignedKeys.filter(value => value !== key) : [...assignedKeys, key];
+    const base = context?.suggestedKeys || [];
+    setAssignedKeys(next);
+    setAssignmentOverrides({ add: next.filter(value => !base.includes(value)), remove: base.filter(value => !next.includes(value)) });
+  };
   const assignedStudents = (context?.students || []).filter((item) =>
     assignedKeys.includes(item.key),
   );
+  const unassignedPeriodStudents = assignedStudents.filter((item) => periodForStudent(item) === "unassigned");
+  const reportPeriodOptions = [
+    ...TEACHER_PERIODS,
+    ...(unassignedPeriodStudents.length ? [{ id: "unassigned", label: "講数未設定" }] : []),
+  ];
+  const reportPeriodStudents = assignedStudents.filter((item) => periodForStudent(item) === reportPeriod);
+  const selectedStudentPeriod = student ? TEACHER_PERIODS.find((period) => period.id === periodForStudent(student))?.label || "講数未設定" : "";
   const openTab = (value) => {
     if (!confirmMove()) return;
     setActiveTab(value);
@@ -183,18 +219,17 @@ export default function TeacherPage() {
           .then((value) => {
             if (!active) return;
             setContext(value);
-            let saved = [];
+            let saved = {};
             try {
               saved = JSON.parse(
-                localStorage.getItem(`teacher-assigned:${user.uid}:${date}`) ||
-                  "[]",
+                localStorage.getItem(`teacher-assigned:${user.uid}:${date}`) || '{}',
               );
             } catch {}
-            setAssignedKeys(
-              saved.filter((key) =>
-                value.students.some((item) => item.key === key),
-              ),
-            );
+            const base = value.suggestedKeys || [];
+            const overrides = Array.isArray(saved) ? { add: saved.filter(key => !base.includes(key)), remove: [] } : { add: Array.isArray(saved?.add) ? saved.add : [], remove: Array.isArray(saved?.remove) ? saved.remove : [] };
+            const valid = new Set(value.students.map(item => item.key));
+            setAssignmentOverrides(overrides);
+            setAssignedKeys([...new Set([...base.filter(key => !overrides.remove.includes(key)), ...overrides.add].filter(key => valid.has(key)))]);
           })
           .catch((error) => {
             if (active) setNotice(error.message);
@@ -206,14 +241,14 @@ export default function TeacherPage() {
     };
   }, [date]);
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || context?.date !== date) return;
     try {
       localStorage.setItem(
         `teacher-assigned:${auth.currentUser.uid}:${date}`,
-        JSON.stringify(assignedKeys),
+        JSON.stringify(assignmentOverrides),
       );
     } catch {}
-  }, [assignedKeys, date]);
+  }, [assignmentOverrides, date, context?.date]);
   useEffect(() => {
     let active = true;
     setDraftLoadedKey("");
@@ -259,8 +294,9 @@ export default function TeacherPage() {
       setWordRangeMode(value.wordRangeMode || "same");
       setLearningContent(value.learningContent || "");
       setReportFacts(value.reportFacts || {});
-      setAttendance(value.attendance ?? value.status ?? "present");
-      setOriginalDate(value.originalDate || value.originalLessonDate || "");
+      setAttendance(value.attendance ?? value.status ?? (student?.lessonType === 'makeup' ? 'makeup' : 'present'));
+      setOriginalDate(value.originalDate || value.originalLessonDate || (student?.lessonType === 'makeup' && /^\d{4}-\d{2}-\d{2}$/.test(student.lessonSourceId || '') ? student.lessonSourceId : ''));
+      setLessonType(value.lessonType || student?.lessonType || 'regular');
       setNextItems(
         value.nextItems || [
           {
@@ -337,9 +373,9 @@ export default function TeacherPage() {
         setDraftLoadedKey(key);
         setNotice(
           local
-            ? "この端末の一時保存を復元しました。"
+            ? "自動保存した下書きを復元しました。"
             : value.existingDraft
-              ? "共有された一時保存を復元しました。"
+              ? "共有下書きを復元しました。"
               : value.existingRecord
                 ? "入力済みの記録です。訂正して保存できます。"
                 : "",
@@ -360,15 +396,14 @@ export default function TeacherPage() {
         `teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`
     )
       return;
-    try {
-      localStorage.setItem(
-        draftLoadedKey,
-        JSON.stringify({
+    const payload = {
           reviewId,
           itemResults,
           commentIds,
           late,
           forgot,
+          forgotItems,
+          forgotOther,
           note,
           wordCorrect,
           wordTotal,
@@ -378,6 +413,7 @@ export default function TeacherPage() {
           learningContent,
           reportFacts,
           attendance,
+          lessonType,
           originalDate,
           nextItems,
           nextLessonItems,
@@ -386,9 +422,39 @@ export default function TeacherPage() {
           homework,
           nextId: assignmentId,
           nextVersion: assignmentVersion,
-        }),
-      );
+        };
+    try {
+      localStorage.setItem(draftLoadedKey, JSON.stringify(payload));
     } catch {}
+
+    let active = true;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const result = await api("/api/teacher/context", {
+          method: "POST",
+          body: JSON.stringify({ date, studentKey, payload }),
+        });
+        if (!active) return;
+        setContext((old) => ({
+          ...old,
+          draftStatus: {
+            ...(old.draftStatus || {}),
+            [studentKey]: { missingFields: result.missingFields || [] },
+          },
+        }));
+        setNotice(
+          result.missingFields?.length
+            ? `自動保存しました。確認項目：${result.missingFields.join("、")}`
+            : "自動保存しました。",
+        );
+      } catch (error) {
+        if (active) setNotice(`端末には保存済みですが、共有下書きの保存に失敗しました。${error.message}`);
+      }
+    }, 800);
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
   }, [
     studentKey,
     date,
@@ -417,6 +483,7 @@ export default function TeacherPage() {
     assignmentId,
     assignmentVersion,
     attendance,
+    lessonType,
     dirty,
   ]);
   useEffect(() => {
@@ -452,64 +519,10 @@ export default function TeacherPage() {
       item.audience === "all" ||
       item.audience === (isElementary ? "elementary" : "middle"),
   );
-  const draftPayload = () => ({
-    reviewId,
-    itemResults,
-    commentIds,
-    late,
-    forgot,
-    forgotItems,
-    forgotOther,
-    note,
-    nextLessonNote,
-    wordCorrect,
-    wordTotal,
-    wordRange,
-    nextWordRange,
-    wordRangeMode,
-    learningContent,
-    reportFacts,
-    attendance,
-    originalDate,
-    nextItems,
-    nextLessonItems,
-    dueDate,
-    homework,
-    nextId: assignmentId,
-    nextVersion: assignmentVersion,
-  });
-  const saveDraft = async () => {
-    if (!studentKey || !draftLoadedKey) return;
-    setSaving(true);
-    try {
-      const result = await api("/api/teacher/context", {
-        method: "POST",
-        body: JSON.stringify({ date, studentKey, payload: draftPayload() }),
-      });
-      try {
-        localStorage.setItem(draftLoadedKey, JSON.stringify(draftPayload()));
-      } catch {}
-      setDirty(true);
-      setContext((old) => ({
-        ...old,
-        draftStatus: {
-          ...(old.draftStatus || {}),
-          [studentKey]: { missingFields: result.missingFields || [] },
-        },
-      }));
-      setNotice(
-        result.missingFields?.length
-          ? `一時保存しました。未入力：${result.missingFields.join("、")}`
-          : "一時保存しました。",
-      );
-    } catch (error) {
-      setNotice(error.message);
-    } finally {
-      setSaving(false);
-    }
-  };
   const save = async () => {
     if (!student || saving || !draftLoadedKey || !homeworkData) return;
+    if (lessonType === 'course' && !context?.coursePeriod) return setNotice('講習期間外には講習授業を登録できません。');
+    if (student.lessonType && lessonType !== student.lessonType) return setNotice('確定シフトの授業種別と異なります。画面を読み直してください。');
     if (!attendance)
       return setNotice("出席・欠席・振替出席のいずれかを選択してください。");
     setSaving(true);
@@ -588,6 +601,7 @@ export default function TeacherPage() {
         ? normalizedHandoffItems.map(item=>`${item.materialLabel}${item.range?` ${item.range}`:''}${item.note?`（${item.note}）`:''}`).join('／')
         : nextLessonNote;
       const learningRecord = {
+        lessonType,
         homework:
           attendance === "absent"
             ? "notEvaluated"
@@ -625,7 +639,7 @@ export default function TeacherPage() {
         await api("/api/admin/lesson-records", {
           method: "POST",
           body: JSON.stringify({
-            uid: student.id,
+            uid: student.source === 'elementary' ? `elementary_${student.id}` : student.id,
             date,
             termId,
             weekId,
@@ -652,6 +666,7 @@ export default function TeacherPage() {
             },
             date,
             status: attendance,
+            lessonType,
             originalDate,
             nextLessonNote:nextLessonHandoff,
             nextLessonItems:normalizedHandoffItems,
@@ -702,30 +717,14 @@ export default function TeacherPage() {
       setSaving(false);
     }
   };
-  const scheduled = (context?.students || []).filter((item) => item.scheduled),
-    completed = scheduled.filter(
-      (item) => context?.inputStatus?.[item.key],
-    ).length;
   return (
     <main className={`teacher-shell ${embedded ? "teacher-embedded" : ""}`}>
       <header>
         <div>
           <small>{embedded ? "ADMIN LESSON INPUT" : "TEACHER CONSOLE"}</small>
-          <h1>{embedded ? "学習記録を入力" : "授業後の入力"}</h1>
-          <p>
-            {context?.displayName || ""}
-            　その日に担当した生徒を選択してください。
-          </p>
+          <h1>{embedded ? "学習記録を入力" : "授業報告"}</h1>
+          {embedded && <p>{context?.displayName || ""}</p>}
         </div>
-        {!embedded && (
-          <button
-            onClick={() =>
-              signOut(auth).then(() => (location.href = "/teacher/login"))
-            }
-          >
-            ログアウト
-          </button>
-        )}
       </header>
       <nav className="teacher-work-tabs">
         <button
@@ -748,37 +747,25 @@ export default function TeacherPage() {
         >
           生徒情報
         </button>
+        <button className={activeTab === 'shift' ? 'active' : ''} onClick={() => openTab('shift')}>シフト希望</button>
       </nav>
       <fieldset
         className="teacher-edit-fields"
         disabled={saving}
         onChange={(event) => {
-          if (!event.target.closest(".teacher-flow,.teacher-assignment-panel,.staff-score-entry"))
+          if (!event.target.closest(".teacher-flow,.teacher-assignment-panel,.staff-score-entry,.teacher-shift-preferences"))
             setDirty(true);
         }}
         onClick={(event) => {
           if (
             event.target.closest("button") &&
             !event.target.closest(
-              ".teacher-flow,.teacher-assignment-panel,.teacher-save,.staff-score-entry",
+              ".teacher-flow,.teacher-assignment-panel,.teacher-save,.staff-score-entry,.teacher-shift-preferences",
             )
           )
             setDirty(true);
         }}
       >
-        {context && (
-          <div className="teacher-daily-status">
-            <span>
-              <strong>{scheduled.length}</strong>予定
-            </span>
-            <span className="done">
-              <strong>{completed}</strong>入力済み
-            </span>
-            <span className="pending">
-              <strong>{Math.max(0, scheduled.length - completed)}</strong>未入力
-            </span>
-          </div>
-        )}
         {notice && (
           <p className="teacher-notice" role="status">
             {notice}
@@ -835,12 +822,9 @@ export default function TeacherPage() {
                     <strong>{item.name}</strong>
                     <small>
                       {item.lessonStartTime || "時刻未設定"}・
-                      {gradeLabel(item.grade)}
+                      {gradeLabel(item.grade)}{item.lessonType === 'course' ? '・講習' : item.lessonType === 'makeup' ? '・振替' : ''}
                     </small>
                   </span>
-                  <b>
-                    {context?.inputStatus?.[item.key] ? "入力済み" : "未入力"}
-                  </b>
                 </label>
               ))}
             </div>
@@ -854,6 +838,7 @@ export default function TeacherPage() {
             </button>
           </section>
         )}
+        {activeTab === 'shift' && <ShiftPreferences />}
         {activeTab === "report" && (
           <section className="teacher-flow">
             <label>
@@ -864,32 +849,21 @@ export default function TeacherPage() {
                 onChange={(e) => changeDate(e.target.value)}
               />
             </label>
-            <div className="teacher-student-picker">
-              <span>選択した担当生徒</span>
-              <div className="teacher-quick-students">
-                {assignedStudents.map((item) => (
-                  <button
-                    type="button"
-                    key={item.key}
-                    className={studentKey === item.key ? "selected" : ""}
-                    onClick={() => changeStudent(item.key)}
-                  >
-                    <strong>{item.name}</strong>
-                    <small>
-                      {item.lessonStartTime || "時刻未設定"}
-                      {context?.inputStatus?.[item.key]
-                        ? "・入力済み"
-                        : "・未入力"}
-                    </small>
-                  </button>
-                ))}
-              </div>
-              {!assignedStudents.length && (
-                <p className="teacher-empty-students">
-                  「担当生徒を選択」から入力対象を選んでください。
-                </p>
-              )}
-            </div>
+            <label className="teacher-period-select">
+              <span>授業時間</span>
+              <select value={reportPeriod} onChange={(event) => setReportPeriod(event.target.value)}>
+                {reportPeriodOptions.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}
+              </select>
+            </label>
+            <label className="teacher-student-select">
+              <span>入力する生徒</span>
+              <select value={studentKey} onChange={(event) => changeStudent(event.target.value)}>
+                <option value="">生徒を選択</option>
+                {reportPeriodStudents.map((item) => <option key={item.key} value={item.key}>{item.realName || item.name}{item.lessonStartTime ? `（${item.lessonStartTime}）` : ""}</option>)}
+              </select>
+            </label>
+            {!assignedStudents.length && <p className="teacher-empty-students">「担当生徒を選択」から入力対象を選んでください。</p>}
+            {assignedStudents.length > 0 && !reportPeriodStudents.length && <p className="teacher-empty-students">この授業時間に担当生徒はいません。</p>}
           </section>
         )}
         {activeTab === "info" && (
@@ -954,7 +928,7 @@ export default function TeacherPage() {
                       ))}
                     </div>
                   )}
-                  {item.key.startsWith('user_') && Number(item.grade) >= 7 && Number(item.grade) <= 9 && <div className="teacher-info-score-action"><button type="button" onClick={()=>setScoreStudentKey(current=>current===item.key?'':item.key)}>{scoreStudentKey===item.key?'成績入力を閉じる':'この生徒の成績を入力'}</button>{scoreStudentKey===item.key&&<StaffScoreEntry studentKey={item.key} students={context?.students||[]}/>}</div>}
+                  {Number(item.grade) >= 7 && Number(item.grade) <= 9 && <div className="teacher-info-score-action"><button type="button" onClick={()=>setScoreStudentKey(current=>current===item.key?'':item.key)}>{scoreStudentKey===item.key?'成績入力を閉じる':'この生徒の成績を入力'}</button>{scoreStudentKey===item.key&&<StaffScoreEntry studentKey={item.key} students={context?.students||[]}/>}</div>}
                   {!Object.values(info).some(Boolean) && (
                     <p>登録された共有情報はありません。</p>
                   )}
@@ -963,19 +937,18 @@ export default function TeacherPage() {
             })}
           </section>
         )}
-        {student && homeworkData && (
-          <div className="teacher-selected-student">
+        {activeTab === "report" && student && (
+          <div className="teacher-selected-student teacher-selected-student-sticky">
             <strong>{student.realName || student.name}</strong>
             <small>
-              {student.lessonStartTime
-                ? `${student.lessonStartTime}開始 · `
-                : ""}
+              {selectedStudentPeriod} · {student.lessonStartTime ? `${student.lessonStartTime}開始 · ` : ""}
               {gradeLabel(student.grade)} · {date}
             </small>
           </div>
         )}
         {activeTab === "report" && student && homeworkData && (
-          <section className="teacher-attendance-section">
+          <section className="teacher-attendance-section teacher-input-section teacher-check-section">
+            <div className="teacher-lesson-type"><strong>授業種別</strong>{student.lessonType ? <span>{student.lessonType === 'course' ? '講習授業' : student.lessonType === 'makeup' ? '振替授業' : '通常授業'}（確定シフトから自動判定）</span> : <select value={lessonType} onChange={event => { setLessonType(event.target.value); if (event.target.value === 'makeup') setAttendance('makeup'); }}><option value="regular">通常授業</option>{context?.coursePeriod && <option value="course">講習授業</option>}<option value="makeup">振替授業</option></select>}</div>
             <h2>出席状況</h2>
             <div className="teacher-attendance">
               {[
@@ -987,7 +960,7 @@ export default function TeacherPage() {
                   type="button"
                   key={value}
                   className={attendance === value ? "selected" : ""}
-                  onClick={() => setAttendance(value)}
+                  onClick={() => { setAttendance(value); if (value === 'makeup') setLessonType('makeup'); }}
                 >
                   {label}
                 </button>
@@ -1028,7 +1001,7 @@ export default function TeacherPage() {
             context.guidance.teacherMemo ||
             context.guidance.sharedInfo ||
             context.guidance.submissionStatus?.items?.some(entry=>entry.status==='missing')) && (
-            <details className="teacher-guidance" open>
+            <details className="teacher-guidance">
               <summary>教室メモ・共有事項</summary>
               {context.guidance.sharedInfo && (
                 <p>
@@ -1077,8 +1050,8 @@ export default function TeacherPage() {
         {student&&context?.academicRecords&&<details className="teacher-guidance"><summary>成績・模試・高校判定</summary><div className="teacher-score-summary">{context.academicRecords.scores?.map(item=><article key={item.id}><b>{item.year} {item.term} {item.type==='internal'?'内申':item.testType||'テスト'}</b><span>{item.type==='internal'?`内申換算 ${item.internalTotal??'未登録'}`:`合計 ${item.examTotal??'未登録'}点`}</span></article>)}{context.academicRecords.mockScores?.map(item=><article key={item.id}><b>{item.examName}</b><span>偏差値 {item.overallDeviation??'未登録'}・判定 {item.judgement||'未登録'}</span></article>)}{context.academicRecords.judgments?.map(item=><article key={item.id}><b>{item.name}</b><span>{item.label}（基準差 {item.difference>=0?'+':''}{item.difference}）</span></article>)}{!context.academicRecords.scores?.length&&!context.academicRecords.mockScores?.length&&<p>登録済みの成績はありません。</p>}</div></details>}
         {student && homeworkData && student.grade < 10 && (
           <>
-            <section>
-              <h2>今回の確認</h2>
+            <section className="teacher-input-section teacher-check-section">
+              <h2>今日の確認</h2>
               {pending.length ? (
                 <>
                   <label>
@@ -1294,28 +1267,32 @@ export default function TeacherPage() {
                 </div>
               )}
             </section>
-            <section>
+            <section className="teacher-input-section teacher-homework-section">
               <h2>次回までの宿題</h2>
               <p className="teacher-help">
-                通常は次回授業で確認します。教材、範囲、難易度を入力してください。
+                教材、教科、範囲を入力してください。
               </p>
-              {nextItems.map((item, index) => (
-                <HomeworkAssignmentRow
-                  key={index}
-                  item={item}
-                  materials={materials}
-                  elementary={isElementary}
-                  onChange={(value) =>
-                    setNextItems((old) =>
-                      old.map((row, i) => (i === index ? value : row)),
-                    )
-                  }
-                  onRemove={() =>
-                    setNextItems((old) => old.filter((_, i) => i !== index))
-                  }
-                  removeDisabled={nextItems.length === 1}
-                />
-              ))}
+              <details className="teacher-assigned-homework" open={!nextItems.some((item) => item.materialId || item.range || item.customLabel)}>
+                <summary>宿題を確認・編集（{nextItems.filter((item) => item.materialId || item.range || item.customLabel).length}件）</summary>
+                {nextItems.map((item, index) => (
+                  <HomeworkAssignmentRow
+                    key={index}
+                    item={item}
+                    materials={materials}
+                    elementary={isElementary}
+                    materialFirst
+                    onChange={(value) =>
+                      setNextItems((old) =>
+                        old.map((row, i) => (i === index ? value : row)),
+                      )
+                    }
+                    onRemove={() =>
+                      setNextItems((old) => old.filter((_, i) => i !== index))
+                    }
+                    removeDisabled={nextItems.length === 1}
+                  />
+                ))}
+              </details>
               <button
                 onClick={() =>
                   setNextItems((old) => [
@@ -1345,18 +1322,18 @@ export default function TeacherPage() {
                 </label>
               </details>
             </section>
+            {student && student.grade < 10 && (
+              <div className="teacher-final-save-action teacher-save-between-sections">
+                <button
+                  className="teacher-save"
+                  disabled={saving || !homeworkData || draftLoadedKey !== `teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`}
+                  onClick={save}
+                >
+                  {saving ? "保存中…" : "この授業記録を保存"}
+                </button>
+              </div>
+            )}
           </>
-        )}
-        {student && (
-          <div className="teacher-save-actions">
-            <button
-              type="button"
-              disabled={!dirty || !draftLoadedKey || saving}
-              onClick={saveDraft}
-            >
-              一時保存
-            </button>
-          </div>
         )}
         {student && homeworkData && student.grade < 10 && (
           <section className="teacher-report-section">
@@ -1365,6 +1342,7 @@ export default function TeacherPage() {
               onLearningContentChange={setLearningContent}
               value={reportFacts}
               onChange={setReportFacts}
+              teacherView
               context={{
                 grade: gradeLabel(student?.grade),
                 subject: student?.lessonSubject || "",
@@ -1380,6 +1358,10 @@ export default function TeacherPage() {
                 item={item}
                 materials={homeworkData.templates.materials}
                 elementary={isElementary}
+                materialFirst
+                showDifficulty={false}
+                rangeLabel="ページ・補足"
+                rangePlaceholder="例：p.10-12／間違えた問題を解き直す"
                 onChange={value=>setNextLessonItems(current=>current.map((entry,itemIndex)=>itemIndex===index?value:entry))}
                 onRemove={()=>setNextLessonItems(current=>current.filter((_,itemIndex)=>itemIndex!==index))}
                 removeDisabled={nextLessonItems.length===1}
@@ -1397,7 +1379,7 @@ export default function TeacherPage() {
             </label>
           </section>
         )}
-        {student && (
+        {student && student.grade >= 10 && (
           <div className="teacher-final-save-action">
             <button
               className="teacher-save"

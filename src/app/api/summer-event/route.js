@@ -1,4 +1,5 @@
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { resolveStudentIdentity } from '@/lib/studentIdentity';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,11 +11,13 @@ export async function GET(request) {
       return Response.json({ error: "ログインが必要です。" }, { status: 401 });
     }
     const decoded = await adminAuth.verifyIdToken(authorization.slice(7));
+    const identity = await resolveStudentIdentity(decoded.uid);
 
-    const [userSnap, eventSnap, usersSnap, adminsSnap] = await Promise.all([
-      adminDb.collection("users").doc(decoded.uid).get(),
+    const [userSnap, eventSnap, usersSnap, elementarySnap, adminsSnap] = await Promise.all([
+      Promise.resolve(identity.student),
       adminDb.collection("admin_data").doc("summerEvent").get(),
       adminDb.collection("users").where("courseTags", "array-contains", "summer_course").get(),
+      adminDb.collection('adminStudents').where('courseTags','array-contains','summer_course').get(),
       adminDb.collection("admins").get(),
     ]);
 
@@ -26,7 +29,7 @@ export async function GET(request) {
     }
 
     const adminIds = new Set(adminsSnap.docs.map((item) => item.id));
-    const ranking = usersSnap.docs
+    const ranking = [...usersSnap.docs,...elementarySnap.docs]
       .filter((item) => {
         const data = item.data();
         return !adminIds.has(item.id) && data.isAdmin !== true && data.role !== "admin" && data.active!==false && data.enrollmentStatus!=="withdrawn";
@@ -34,8 +37,8 @@ export async function GET(request) {
       .map((item) => {
         const data = item.data();
         return {
-          uid: item.id,
-          name: data.realName || data.displayName || "名前なし",
+          uid: item.ref.parent.id === 'adminStudents' ? `elementary_${item.id}` : item.id,
+          name: data.realName || data.name || data.displayName || "名前なし",
           point: Number(data.summerExchangePoint || 0),
         };
       })

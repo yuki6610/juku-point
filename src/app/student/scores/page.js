@@ -18,6 +18,7 @@ import { useAcademicContext } from "@/lib/useAcademicContext";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import { BASE_TEST_TYPES, PAST_EXAMS, SUMMER_ENTRANCE_PRACTICE } from '@/lib/scoreSubmissionPlan.mjs';
 import { schoolDeviationFromTopPercent } from '@/lib/schoolDeviation.mjs';
+import { studentIdentityForCurrentUser } from '@/lib/studentClientIdentity';
 import "./scores.css";
 
 const GRADES = ["中1", "中2", "中3"];
@@ -69,21 +70,23 @@ export default function StudentScoresPage() {
 
   useEffect(() => {
     if (!user) return undefined;
-
-    const stopScores = onSnapshot(
-      query(collection(db, `users/${user.uid}/scores`), orderBy("createdAt", "desc")),
-      (snapshot) => setSaved(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
-      () => setNotice({ tone: "error", text: "成績データを読み込めませんでした。" }),
-    );
+    let active = true, stopScores = () => {};
+    studentIdentityForCurrentUser().then(identity => {
+      if (!active) return;
+      stopScores = onSnapshot(
+        query(collection(db, `${identity.collectionName}/${identity.studentId}/scores`), orderBy("createdAt", "desc")),
+        (snapshot) => setSaved(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))),
+        () => setNotice({ tone: "error", text: "成績データを読み込めませんでした。" }),
+      );
+      return getDoc(doc(db, identity.collectionName, identity.studentId));
+    }).then(snapshot => { if (active && snapshot) setProfile(snapshot.data()); })
+      .catch(() => active && setNotice({ tone: "error", text: "生徒情報を読み込めませんでした。" }));
     getDocs(collection(db, "schools"))
       .then((snapshot) => setSchools(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))))
       .catch(() => setNotice({ tone: "error", text: "志望校データを読み込めませんでした。" }));
 
-    getDoc(doc(db, "users", user.uid))
-      .then((snapshot) => setProfile(snapshot.data()))
-      .catch(() => setNotice({ tone: "error", text: "生徒情報を読み込めませんでした。" }));
-
     return () => {
+      active = false;
       stopScores();
     };
   }, [user]);

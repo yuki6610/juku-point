@@ -32,6 +32,7 @@ const MAIN=['国語','社会','数学','理科','英語']
 const SUB=['音楽','美術','保体','技家']
 
 const gradeLabel=g=>g>=7&&g<=9?`中${g-6}`:'不明'
+const scorePath=id=>id.startsWith('elementary_')?`adminStudents/${id.slice(11)}/scores`:`users/${id}/scores`
 
 const formatSavedAt=value=>{
   if(!value) return '保存日時不明'
@@ -98,14 +99,13 @@ export default function ScoreManager() {
     if (!admin) return
 
     let active = true
-    getDocs(collection(db,'users')).then(snap=>{
+    Promise.all([getDocs(collection(db,'users')),getDocs(collection(db,'adminStudents'))]).then(([snap,elementary])=>{
       if (!active) return
       setStudents(
-        snap.docs
-          .map(d=>({
+        [...snap.docs.map(d=>({
             uid:d.id,
             ...d.data()
-          }))
+          })),...elementary.docs.map(d=>({uid:`elementary_${d.id}`,realName:d.data().name||d.data().realName,...d.data()}))]
           .filter(s=>s.active!==false&&s.enrollmentStatus!=='withdrawn'&&Number(s.grade)>=7&&Number(s.grade)<=9)
           .sort((a,b)=>
             Number(a.grade||0)-Number(b.grade||0) ||
@@ -137,7 +137,7 @@ export default function ScoreManager() {
 
     return onSnapshot(
       query(
-        collection(db,`users/${selectedStudentId}/scores`),
+        collection(db,scorePath(selectedStudentId)),
         orderBy('createdAt','desc')
       ),
       snap=>{
@@ -217,11 +217,11 @@ export default function ScoreManager() {
 
     editingScoreId
       ? await updateDoc(
-          doc(db,`users/${selectedStudentId}/scores/${editingScoreId}`),
+          doc(db,`${scorePath(selectedStudentId)}/${editingScoreId}`),
           data
         )
       : await addDoc(
-          collection(db,`users/${selectedStudentId}/scores`),
+          collection(db,scorePath(selectedStudentId)),
           {
             ...data,
             createdAt:new Date(),
@@ -256,11 +256,11 @@ export default function ScoreManager() {
 
     editingScoreId
       ? await updateDoc(
-          doc(db,`users/${selectedStudentId}/scores/${editingScoreId}`),
+          doc(db,`${scorePath(selectedStudentId)}/${editingScoreId}`),
           data
         )
       : await addDoc(
-          collection(db,`users/${selectedStudentId}/scores`),
+          collection(db,scorePath(selectedStudentId)),
           {
             ...data,
             createdAt:new Date(),
@@ -278,7 +278,7 @@ export default function ScoreManager() {
     if(!confirm('このデータを削除しますか？')) return
 
     await deleteDoc(
-      doc(db,`users/${selectedStudentId}/scores/${scoreId}`)
+      doc(db,`${scorePath(selectedStudentId)}/${scoreId}`)
     )
 
     alert('削除しました')

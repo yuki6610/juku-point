@@ -10,7 +10,7 @@ const homeworkServer = fs.readFileSync(new URL('../src/lib/homeworkServer.js', i
 const authRole = fs.readFileSync(new URL('../src/app/api/auth/role/route.js', import.meta.url), 'utf8');
 const roleLogin = fs.readFileSync(new URL('../src/components/RoleLogin.js', import.meta.url), 'utf8');
 const inviteApi = fs.readFileSync(new URL('../src/app/api/invite/route.js', import.meta.url), 'utf8');
-const teacherRegister = fs.readFileSync(new URL('../src/app/api/teacher/register/route.js', import.meta.url), 'utf8');
+const teacherSignup = fs.readFileSync(new URL('../src/app/teacher/signup/page.js', import.meta.url), 'utf8');
 const teacherAdmin = fs.readFileSync(new URL('../src/app/api/admin/teachers/route.js', import.meta.url), 'utf8');
 
 test('teacher selection is daily and no fixed assignment is required', () => {
@@ -67,9 +67,10 @@ test('account invitations are one-time, expiring and do not store plain secrets'
   assert.doesNotMatch(inviteApi, /secret:/);
 });
 
-test('teacher self-registration remains approval-gated', () => {
-  assert.match(teacherRegister, /pendingTeachers/);
-  assert.doesNotMatch(teacherRegister, /collection\('teachers'\).*set/);
+test('teacher registration requires an invitation and legacy approvals remain admin-only', () => {
+  assert.match(teacherSignup, /招待QRが必要/);
+  assert.match(inviteApi, /checked\(data,body\.id,body\.secret\)/);
+  assert.match(inviteApi, /teacher:'teachers'/);
+  assert.match(teacherAdmin, /requireAdmin\(request\)/);
   assert.match(teacherAdmin, /action==='approve'/);
-  assert.match(teacherAdmin, /collection\('teachers'\)/);
 });

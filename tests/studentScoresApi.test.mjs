@@ -6,7 +6,7 @@ const source=fs.readFileSync(new URL('../src/app/api/student/scores/route.js',im
 async function request(body,profile={grade:8},existing=[]){
  const writes=[],reads=[];
  const ref=path=>({path,collection:key=>ref(`${path}/${key}`),doc:key=>ref(`${path}/${key||'generated'}`),where:()=>ref(path),get:async()=>{reads.push(path);return{exists:true,data:()=>profile}}});
- const context={Response,console,adminAuth:{verifyIdToken:async()=>({uid:'alice'})},FieldValue:{serverTimestamp:()=>100},readAcademicSettings:async()=>[{year:2026,terms:{2:{start:'2026-09-03',end:'2026-12-26'}}}],adminDb:{collection:ref,runTransaction:async callback=>callback({get:async target=>{reads.push(target.path);return{docs:existing.map(data=>({data:()=>data}))}},set:(target,data)=>writes.push({path:target.path,data})})}};
+ const context={Response,console,adminAuth:{verifyIdToken:async()=>({uid:'alice'})},FieldValue:{serverTimestamp:()=>100},readAcademicSettings:async()=>[{year:2026,terms:{2:{start:'2026-09-03',end:'2026-12-26'}}}],normalizeTopPercent:value=>value??null,schoolDeviationFromTopPercent:()=>null,resolveStudentIdentity:async uid=>({student:{exists:true,data:()=>profile},ref:ref(`users/${uid}`)}),adminDb:{collection:ref,runTransaction:async callback=>callback({get:async target=>{reads.push(target.path);return{docs:existing.map(data=>({data:()=>data}))}},set:(target,data)=>writes.push({path:target.path,data})})}};
  vm.createContext(context);vm.runInContext(source.replace(/^import .*\n/gm,'').replaceAll('export ',''),context);
  const response=await context.POST({headers:{get:()=> 'Bearer test'},json:async()=>body});return{response,writes,reads};
 }

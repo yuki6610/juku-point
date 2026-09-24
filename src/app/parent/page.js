@@ -149,7 +149,7 @@ export default function ParentPage() {
     };
   }, [student, activeTab, readyStudent]);
   useEffect(() => {
-    if (!student || activeTab !== "calendar" || portal?.detail === "full")
+    if (!student || activeTab !== "calendar")
       return undefined;
     let active = true;
     parentApi(
@@ -160,7 +160,7 @@ export default function ParentPage() {
     return () => {
       active = false;
     };
-  }, [student, activeTab, portal?.detail]);
+  }, [student, activeTab]);
   useEffect(() => {
     if (!student || !term || readyStudent !== student) return undefined;
     let active = true;

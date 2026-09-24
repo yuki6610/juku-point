@@ -6,7 +6,9 @@ service cloud.firestore {
     function isAdmin() { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
     function isTeacher() { return signedIn() && exists(/databases/$(database)/documents/teachers/$(request.auth.uid)) && get(/databases/$(database)/documents/teachers/$(request.auth.uid)).data.active != false; }
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
-    function isOwnStudentKey(key) { return signedIn() && key == 'user_' + request.auth.uid; }
+    function isOwnStudentKey(key) { return signedIn() && (key == 'user_' + request.auth.uid
+      || (exists(/databases/$(database)/documents/studentAuthLinks/$(request.auth.uid))
+        && get(/databases/$(database)/documents/studentAuthLinks/$(request.auth.uid)).data.studentKey == key)); }
     function parentLinked(key) { return signedIn()
       && exists(/databases/$(database)/documents/parentAccounts/$(request.auth.uid))
       && get(/databases/$(database)/documents/parentAccounts/$(request.auth.uid)).data.get('active', true) == true
@@ -38,18 +40,24 @@ service cloud.firestore {
     match /parentLinks/{parentUid}/children/{studentKey} { allow read: if isOwner(parentUid) || isAdmin(); allow write: if isAdmin(); }
 
     match /users/{uid} {
-      allow read: if isOwner(uid) || isAdmin();
+      allow read: if isOwnStudentKey('user_' + uid) || isAdmin();
       allow create: if isOwner(uid) && safeNewStudent();
-      allow update: if isAdmin() || (isOwner(uid) && safeProfileUpdate());
+      allow update: if isAdmin() || (isOwnStudentKey('user_' + uid) && safeProfileUpdate());
       allow delete: if isAdmin();
-      match /checkins/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
-      match /pointHistory/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
-      match /rewardHistory/{id} { allow read: if isOwner(uid) || isAdmin(); allow write: if isAdmin(); }
-      match /{collectionName}/{document=**} { allow read: if isAdmin() || (isOwner(uid) && collectionName != 'lessonTerms'); allow write: if isAdmin(); }
+      match /checkins/{id} { allow read: if isOwnStudentKey('user_' + uid) || isAdmin(); allow write: if isAdmin(); }
+      match /pointHistory/{id} { allow read: if isOwnStudentKey('user_' + uid) || isAdmin(); allow write: if isAdmin(); }
+      match /rewardHistory/{id} { allow read: if isOwnStudentKey('user_' + uid) || isAdmin(); allow write: if isAdmin(); }
+      match /{collectionName}/{document=**} { allow read: if isAdmin() || (isOwnStudentKey('user_' + uid) && collectionName != 'lessonTerms'); allow write: if isAdmin(); }
     }
 
     // 小学生は管理者登録のみ。講師からの操作はサーバーAPIで検証する。
-    match /adminStudents/{id} { allow read, write: if isAdmin(); }
+    match /studentAuthLinks/{uid} { allow get: if isOwner(uid) || isAdmin(); allow list, write: if isAdmin(); }
+    match /adminStudents/{id} {
+      allow read: if isAdmin() || isOwnStudentKey('elementary_' + id);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (isOwnStudentKey('elementary_' + id) && safeProfileUpdate());
+      match /{collectionName}/{document=**} { allow read: if isAdmin() || (isOwnStudentKey('elementary_' + id) && collectionName != 'lessonTerms'); allow write: if isAdmin(); }
+    }
     match /adminLessonAttendance/{studentKey}/{document=**} { allow read, write: if isAdmin(); }
     match /homeworkAssignments/{studentKey}/{document=**} { allow read, write: if isAdmin(); }
 

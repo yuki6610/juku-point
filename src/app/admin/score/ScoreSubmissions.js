@@ -198,11 +198,13 @@ export default function ScoreSubmissions() {
                         {row.schoolName || "学校未登録"}
                       </span>
                     </div>
-                    <b className={row.missingCount ? "pending" : "complete"}>
+                    <b className={!row.hasSchedule || row.missingCount || row.submissionItems.some(item => item.status === "upcoming") ? "pending" : "complete"}>
                       {row.hasSchedule
                         ? row.missingCount
                           ? `未提出 ${row.missingCount}件`
-                          : "提出確認済み"
+                          : row.submissionItems.some(item => item.status === "upcoming")
+                            ? "提出予定"
+                            : "提出確認済み"
                         : "予定未設定"}
                     </b>
                   </header>

@@ -28,6 +28,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body>
+        {process.env.NEXT_PUBLIC_DEMO_MODE === "1" && <div className="local-demo-banner">ローカルデモ · 架空データのみ · 本番とは接続していません</div>}
         <AppDialogProvider>
           <div className="app-container">{children}</div>
           <StudentNavigation />

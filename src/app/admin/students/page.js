@@ -68,6 +68,10 @@ const gradeLabel = (g) =>
 
 const displayName = (student) =>
   student?.realName || student?.displayName || student?.name || '名前未設定';
+const studentRef = (uid) => uid.startsWith('elementary_')
+  ? doc(db, 'adminStudents', uid.slice(11))
+  : doc(db, 'users', uid);
+const pointHistoryRef = (uid) => collection(studentRef(uid), 'pointHistory');
 
 const formatDate = (value) => {
   if (!value) return '未設定';
@@ -121,12 +125,18 @@ export default function StudentsPage() {
   };
 
   const loadStudents = async () => {
-    const snap = await getDocs(collection(db, 'users'));
+    const [snap, promoted] = await Promise.all([
+      getDocs(collection(db, 'users')),
+      getDocs(collection(db, 'adminStudents')),
+    ]);
     const list = sortStudents(
-      snap.docs.map((d) => ({
+      [...snap.docs.map((d) => ({
         uid: d.id,
         ...d.data(),
-      })),
+      })), ...promoted.docs.filter((d) => Number(d.data().grade) >= 7).map((d) => ({
+        ...d.data(),
+        uid: `elementary_${d.id}`,
+      }))],
       'grade'
     );
     setStudents(list);
@@ -196,7 +206,7 @@ export default function StudentsPage() {
   const updateGrade = async (uid, newGrade) => {
     setSavingField(`${uid}:grade`);
     try {
-      await updateDoc(doc(db, 'users', uid), {
+      await updateDoc(studentRef(uid), {
         grade: Number(newGrade),
         updatedAt: serverTimestamp(),
       });
@@ -218,8 +228,8 @@ export default function StudentsPage() {
         const difference = safe - Number(target?.points || 0);
         if (difference !== 0) {
           const batch = writeBatch(db);
-          batch.update(doc(db, 'users', uid), update);
-          batch.set(doc(collection(db, 'users', uid, 'pointHistory')), {
+          batch.update(studentRef(uid), update);
+          batch.set(doc(pointHistoryRef(uid)), {
             type: 'balanceAdjustment',
             amount: difference,
             note: '管理者による現在ポイント調整',
@@ -229,10 +239,10 @@ export default function StudentsPage() {
           });
           await batch.commit();
         } else {
-          await updateDoc(doc(db, 'users', uid), update);
+          await updateDoc(studentRef(uid), update);
         }
       } else {
-        await updateDoc(doc(db, 'users', uid), update);
+        await updateDoc(studentRef(uid), update);
       }
 
       updateLocalStudent(uid, { [field]: safe });
@@ -260,7 +270,7 @@ export default function StudentsPage() {
     if (!name) return setNotice('名前は空にできません。');
     setSavingField(`${uid}:realName`);
     try {
-      await updateDoc(doc(db, 'users', uid), {
+      await updateDoc(studentRef(uid), {
         realName: name,
         displayName: name,
         updatedAt: serverTimestamp(),
@@ -275,13 +285,13 @@ export default function StudentsPage() {
 
   const addYellowCard = async (uid, current) => {
     const next = Number(current || 0) + 1;
-    await updateDoc(doc(db, 'users', uid), { yellowCard: next, updatedAt: serverTimestamp() });
+    await updateDoc(studentRef(uid), { yellowCard: next, updatedAt: serverTimestamp() });
     updateLocalStudent(uid, { yellowCard: next });
     setNotice('イエローカードを追加しました。');
   };
 
   const resetYellowCard = async (uid) => {
-    await updateDoc(doc(db, 'users', uid), { yellowCard: 0, updatedAt: serverTimestamp() });
+    await updateDoc(studentRef(uid), { yellowCard: 0, updatedAt: serverTimestamp() });
     updateLocalStudent(uid, { yellowCard: 0 });
     setNotice('イエローカードをリセットしました。');
   };
@@ -290,7 +300,7 @@ export default function StudentsPage() {
     const until = new Date();
     until.setDate(until.getDate() + 7);
 
-    await updateDoc(doc(db, 'users', uid), {
+    await updateDoc(studentRef(uid), {
       isBanned: true,
       banUntil: until,
       updatedAt: serverTimestamp(),
@@ -301,7 +311,7 @@ export default function StudentsPage() {
   };
 
   const unbanStudent = async (uid) => {
-    await updateDoc(doc(db, 'users', uid), {
+    await updateDoc(studentRef(uid), {
       isBanned: false,
       banUntil: null,
       updatedAt: serverTimestamp(),
@@ -314,7 +324,7 @@ export default function StudentsPage() {
     if (withdrawn && !window.confirm(`${displayName(student)}さんを退塾扱いにしますか？\n過去の成績・ポイント・出欠記録は残ります。`)) return;
     setSavingField(`${student.uid}:enrollment`);
     try {
-      await updateDoc(doc(db, 'users', student.uid), { active: !withdrawn, enrollmentStatus: withdrawn ? 'withdrawn' : 'active', withdrawnAt: withdrawn ? serverTimestamp() : null, updatedAt: serverTimestamp() });
+      await updateDoc(studentRef(student.uid), { active: !withdrawn, enrollmentStatus: withdrawn ? 'withdrawn' : 'active', withdrawnAt: withdrawn ? serverTimestamp() : null, updatedAt: serverTimestamp() });
       updateLocalStudent(student.uid, { active: !withdrawn, enrollmentStatus: withdrawn ? 'withdrawn' : 'active', withdrawnAt: withdrawn ? new Date() : null });
       setNotice(withdrawn ? `${displayName(student)}さんを退塾者へ移動しました。` : `${displayName(student)}さんを在籍中へ戻しました。`);
     } catch (error) { console.error(error); setNotice('在籍状態を更新できませんでした。'); }
@@ -347,7 +357,7 @@ export default function StudentsPage() {
     setSavingField(`${student.uid}:confiscate`);
     try {
       const batch = writeBatch(db);
-      const userRef = doc(db, 'users', student.uid);
+      const userRef = studentRef(student.uid);
       const adminUid = auth.currentUser?.uid || null;
       batch.update(userRef, {
         points: 0,
@@ -357,7 +367,7 @@ export default function StudentsPage() {
         lastPointConfiscationBy: adminUid,
         updatedAt: serverTimestamp(),
       });
-      batch.set(doc(collection(db, 'users', student.uid, 'pointHistory')), {
+      batch.set(doc(pointHistoryRef(student.uid)), {
         type: 'penalty',
         amount: -targetAmount,
         note: `不正による全ポイント没収（現在${currentPoints} / 学期${termPoints} / 累計${totalEarnedPoints}）`,

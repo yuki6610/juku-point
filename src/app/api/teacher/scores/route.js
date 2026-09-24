@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { requireStaff, normalizeStudentKey } from '@/lib/staffAccess';
 import { normalizeTopPercent, schoolDeviationFromTopPercent } from '@/lib/schoolDeviation.mjs';
+import { studentRef } from '@/lib/studentIdentity';
 
 const MAIN=['国語','社会','数学','理科','英語'],SUB=['音楽','美術','保体','技家'];
 const numbers=(value,subjects,min,max)=>Object.fromEntries(subjects.map(subject=>{const raw=value?.[subject],number=Number(raw);if(raw===null||raw===undefined||String(raw).trim()===''||!Number.isInteger(number)||number<min||number>max)throw new Error(`${subject}の値を確認してください。`);return[subject,number]}));
@@ -9,11 +10,10 @@ const numbers=(value,subjects,min,max)=>Object.fromEntries(subjects.map(subject=
 export async function POST(request){
   try{
     const staff=await requireStaff(request),body=await request.json(),studentKey=normalizeStudentKey(body.student);
-    if(!studentKey.startsWith('user_'))throw new Error('成績入力は中学生のみ利用できます。');
-    const uid=studentKey.slice(5),student=await adminDb.collection('users').doc(uid).get(),profile=student.data()||{},grade=Number(profile.grade);
+    const sourceRef=studentRef(studentKey),student=await sourceRef.get(),profile=student.data()||{},grade=Number(profile.grade);
     if(!student.exists||profile.active===false||profile.enrollmentStatus==='withdrawn'||grade<7||grade>9)throw new Error('対象の中学生を確認できません。');
     const year=String(body.year||''),term=String(body.term||'');if(!/^20\d{2}$/.test(year)||!['1学期','2学期','3学期'].includes(term))throw new Error('年度・学期を確認してください。');
-    const ref=adminDb.collection('users').doc(uid).collection('scores');
+    const ref=sourceRef.collection('scores');
     await adminDb.runTransaction(async transaction=>{
       const existing=await transaction.get(ref.where('year','==',year).where('term','==',term));let data;
       if(body.type==='exam'){

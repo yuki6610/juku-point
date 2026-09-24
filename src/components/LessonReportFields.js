@@ -8,7 +8,7 @@ const LABELS = { focus:'集中度', understanding:'理解度', attitude:'学習�
 const RATING_LABELS = { 1:'かなり課題がある', 2:'やや課題がある', 3:'標準', 4:'良好', 5:'非常に良好' };
 const SUBJECTS = ['国語','数学','英語','理科','社会','その他'];
 
-export default function LessonReportFields({ learningContent, onLearningContentChange, value, onChange, context = {}, studentKey = '', lessonDate = '' }) {
+export default function LessonReportFields({ learningContent, onLearningContentChange, value, onChange, context = {}, studentKey = '', lessonDate = '', teacherView=false }) {
   const facts = normalizeReportFacts(value);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState('');
@@ -38,12 +38,13 @@ export default function LessonReportFields({ learningContent, onLearningContentC
     }
   };
 
+  const labels = teacherView ? Object.fromEntries(Object.entries(LABELS).filter(([key])=>key!=='questions')) : LABELS;
   return <section className="lesson-report-fields">
-    <h3>保護者向け授業報告</h3>
-    <p>授業内容と、必要な場合だけ選択した5段階評価をもとに授業報告を生成します。</p>
+    <h3>{teacherView?'保護者への授業報告':'保護者向け授業報告'}</h3>
+    {!teacherView&&<p>授業内容と、必要な場合だけ選択した5段階評価をもとに授業報告を生成します。</p>}
     <label>教科<select value={facts.subject||''} onChange={event=>onChange({...facts,subject:event.target.value})}><option value="">教科を選択</option>{SUBJECTS.map(subject=><option key={subject}>{subject}</option>)}</select></label>
     <label>学習内容<input value={learningContent} maxLength={500} onChange={event=>onLearningContentChange(event.target.value)} placeholder="例：一次方程式の文章題" /></label>
-    <div className="lesson-report-grid">{Object.entries(LABELS).map(([key,label])=>{
+    <div className="lesson-report-grid">{Object.entries(labels).map(([key,label])=>{
       const selected = Number(facts[key]) || 0;
       return <div className="report-rating-control" key={key}>
         <span className="report-rating-title">{label}</span>

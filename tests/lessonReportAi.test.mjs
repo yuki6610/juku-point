@@ -10,13 +10,13 @@ test('AI授業報告の入力を安全な長さと5段階評価へ正規化す�
   });
   assert.equal(data.learningContent, '一次方程式');
   assert.equal(data.ratings.集中度, 5);
-  assert.equal(data.ratings.理解度, 3);
+  assert.equal(Object.hasOwn(data.ratings, '理解度'), false);
   assert.equal(data.ratings.学習態度, 4);
 });
 
 test('プロンプトは入力にない事実を作らず単語点を本文へ入れないよう指示する', () => {
   const prompt = buildLessonReportInput(normalizeLessonReportAiInput({ learningContent: '英語長文' }));
-  assert.match(prompt, /事実を勝手に追加しない/);
+  assert.match(prompt, /入力されていない事実を追加しない/);
   assert.match(prompt, /単語テストの点数は文章に含めない/);
   assert.match(prompt, /英語長文/);
 });

@@ -1,10 +1,10 @@
 export function lessonStudent(id, data, source = 'user') {
   const grade = Number(data.grade);
   if (data.active === false || data.enrollmentStatus === 'withdrawn' || !Number.isInteger(grade)) return null;
-  if (source === 'elementary' ? grade < 1 || grade > 6 : grade < 7 || grade > 12) return null;
+  if (source === 'elementary' ? grade < 1 || grade > 9 : grade < 7 || grade > 12) return null;
   return { ...data, id, source, grade, uid: `${source}_${id}`, realName: data.realName || data.name || data.displayName || '名前未設定' };
 }
-export const isMiddleStudent = student => student?.source === 'user' && student.grade >= 7 && student.grade <= 9;
+export const isMiddleStudent = student => student?.grade >= 7 && student.grade <= 9;
 export const studentGradeLabel = grade => grade <= 6 ? `小${grade}` : grade <= 9 ? `中${grade - 6}` : `高${grade - 9}`;
 
 export function learningFields(record) {

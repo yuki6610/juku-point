@@ -12,24 +12,24 @@ export async function GET(request) {
     const termId = new URL(request.url).searchParams.get('term');
     if (!validTerm(termId)) throw new Error('学期を確認してください。');
     const [year,term] = termId.split('_');
-    const [users,profiles,calendar] = await Promise.all([
-      adminDb.collection('users').get(), adminDb.collection('studentProfiles').get(),
+    const [users,elementary,profiles,calendar] = await Promise.all([
+      adminDb.collection('users').get(), adminDb.collection('adminStudents').get(), adminDb.collection('studentProfiles').get(),
       adminDb.collection('scoreSubmissionCalendars').doc(year).collection('entries').get(),
     ]);
     const profileMap=Object.fromEntries(profiles.docs.map(doc=>[doc.id,doc.data()]));
     const entries=calendar.docs.map(doc=>({id:doc.id,...doc.data()}));
-    const students = users.docs.map(doc => ({ id:doc.id,...doc.data() })).filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn' && Number(item.grade) >= 7 && Number(item.grade) <= 9);
+    const students = [...users.docs.map(doc => ({ id:doc.id,source:'users',key:`user_${doc.id}`,...doc.data() })),...elementary.docs.map(doc=>({id:doc.id,source:'adminStudents',key:`elementary_${doc.id}`,...doc.data()}))].filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn' && Number(item.grade) >= 7 && Number(item.grade) <= 9);
     const rows = await Promise.all(students.map(async student => {
       const [scores,status] = await Promise.all([
-        adminDb.collection('users').doc(student.id).collection('scores').where('year','==',year).where('term','==',`${term}学期`).get(),
-        adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(student.id).get(),
+        adminDb.collection(student.source).doc(student.id).collection('scores').where('year','==',year).where('term','==',`${term}学期`).get(),
+        adminDb.collection('scoreSubmissionTerms').doc(termId).collection('students').doc(student.source==='users'?student.id:student.key).get(),
       ]);
-      const saved = status.data() || {},calendarSchools=[...new Set(entries.map(item=>String(item.schoolName||'')).filter(Boolean))],tagSchool=(student.tags||[]).find(tag=>calendarSchools.some(name=>String(name).normalize('NFKC').replace(/\s+/g,'')===String(tag).normalize('NFKC').replace(/\s+/g,''))),schoolName=tagSchool||profileMap[`user_${student.id}`]?.schoolName || '';
+      const saved = status.data() || {},calendarSchools=[...new Set(entries.map(item=>String(item.schoolName||'')).filter(Boolean))],tagSchool=(student.tags||[]).find(tag=>calendarSchools.some(name=>String(name).normalize('NFKC').replace(/\s+/g,'')===String(tag).normalize('NFKC').replace(/\s+/g,''))),schoolName=tagSchool||profileMap[student.key]?.schoolName || '';
       const requiredItems=matchingSubmissionEntries(entries,{grade:student.grade,schoolName},termId);
       const scoreRows=scores.docs.map(doc=>doc.data());
       const projected=projectSubmissionStatus(requiredItems,saved,new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo'}).format(new Date()),scoreRows);
       return {
-        uid:student.id, name:student.realName || student.displayName || '名前未設定', grade:Number(student.grade), schoolName,
+        uid:student.source==='users'?student.id:student.key, name:student.realName || student.name || student.displayName || '名前未設定', grade:Number(student.grade), schoolName,
         examReceived:projected.examReceived, internalReceived:projected.internalReceived, submissionItems:projected.items,
         hasSchedule:projected.hasSchedule, missingCount:projected.missingCount, legacyCount:projected.legacyCount,
         resubmission:saved.resubmission === true, note:String(saved.note || ''),

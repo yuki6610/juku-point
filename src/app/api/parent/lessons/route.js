@@ -32,7 +32,7 @@ export async function GET(request) {
     for(const period of periods){
       const read=collection=>{let query=collection.where(FieldPath.documentId(),'>=',period.start).where(FieldPath.documentId(),'<=',period.end);if(after)query=query.where(FieldPath.documentId(),'<',after);return query.get()};
       const sources=[['public',publicRef],['common',commonRef]];
-      if(!elementary&&grade>=7&&grade<=9)sources.push(['legacy',adminDb.collection('users').doc(id).collection('lessonTerms').doc(period.id).collection('records')]);
+      if(grade>=7&&grade<=9)sources.push(['legacy',adminDb.collection(elementary?'adminStudents':'users').doc(id).collection('lessonTerms').doc(period.id).collection('records')]);
       const snapshots=await Promise.all(sources.map(([,collection])=>read(collection)));
       snapshots.forEach((snapshot,index)=>snapshot.docs.forEach(doc=>entries.push({id:doc.id,data:doc.data(),source:sources[index][0]})));
       if(mergeParentLessons(entries).size>PAGE_SIZE)break;

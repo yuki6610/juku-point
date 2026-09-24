@@ -88,6 +88,12 @@ export async function POST(request) {
       .join('');
     const text = String(outputText || '').trim().slice(0, 2000);
     if (!text) return Response.json({ error: '授業報告を生成できませんでした。' }, { status: 502 });
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+      const month = `${parts.find(part => part.type === 'year').value}-${parts.find(part => part.type === 'month').value}`;
+      const inputTokens = Number(result.usage?.input_tokens || 0), outputTokens = Number(result.usage?.output_tokens || 0);
+      await adminDb.collection('aiUsage').add({ month, feature: 'lessonReport', model: 'gpt-5.6-luna', actorUid: staff.uid, actorRole: staff.role, studentKey, inputTokens, outputTokens, totalTokens: Number(result.usage?.total_tokens || inputTokens + outputTokens), createdAt: new Date() });
+    } catch (usageError) { console.error('AI usage logging failed', usageError); }
     return Response.json({ text, model: 'gpt-5.6-luna' });
   } catch (error) {
     return Response.json({ error: error.message || '授業報告を生成できませんでした。' }, { status: error.status || 400 });

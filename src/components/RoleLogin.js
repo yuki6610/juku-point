@@ -35,8 +35,10 @@ export default function RoleLogin({ mode }) {
       }
       if(result.role==='admin')return router.replace('/admin');
       if(result.role!=='student')await fail(auth,'生徒アカウントではありません。専用のログイン画面をご利用ください。');
-      const userRef=doc(db,'users',user.uid), snapshot=await getDoc(userRef);
-      if(!snapshot.exists())await setDoc(userRef,{realName:'未登録',displayName:user.displayName||'未設定',level:1,points:0,termPoints:0,totalEarnedPoints:0,experience:0,createdAt:serverTimestamp()});
+      const studentKey=result.studentKey||`user_${user.uid}`,elementary=studentKey.startsWith('elementary_');
+      const userRef=doc(db,elementary?'adminStudents':'users',studentKey.slice(elementary?11:5)),snapshot=await getDoc(userRef);
+      if(!snapshot.exists()&&!elementary)await setDoc(userRef,{realName:'未登録',displayName:user.displayName||'未設定',level:1,points:0,termPoints:0,totalEarnedPoints:0,experience:0,createdAt:serverTimestamp()});
+      if(!snapshot.exists()&&elementary)throw new Error('紐付いた生徒情報を確認できません。教室へお問い合わせください。');
       router.replace('/mypage');
     } catch(error){
       console.error('ログインエラー:',error);

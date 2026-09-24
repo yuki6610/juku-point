@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import "./checkin.css";
 import { updateExperience } from "../utils/updateExperience";
 import { getCurrentSeason } from "../utils/season";
+import { studentIdentityForCurrentUser } from '@/lib/studentClientIdentity';
 
 // ---- 今日ID yyyy-mm-dd ----
 const getTodayId = () => {
@@ -80,8 +81,9 @@ export default function CheckinPage() {
       if (!user) return;
 
       const todayId = getTodayId();
-      const active=await getDocs(query(collection(db,`users/${user.uid}/checkins`),where('currentSessionActive','==',true)));
-      const snap=active.docs[0]||await getDoc(doc(db,`users/${user.uid}/checkins/${todayId}`));
+      const identity=await studentIdentityForCurrentUser(),path=`${identity.collectionName}/${identity.studentId}/checkins`;
+      const active=await getDocs(query(collection(db,path),where('currentSessionActive','==',true)));
+      const snap=active.docs[0]||await getDoc(doc(db,path,todayId));
 
       if (snap.exists()) {
         const checkin = snap.data();

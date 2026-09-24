@@ -63,7 +63,8 @@ export async function POST(request) {
     const adminUid = staff.uid;
     const body = await request.json();
     const { uid, date, termId, weekId, record } = body;
-    assertAssigned(staff, `user_${uid}`, date);
+    const studentKey = String(uid || '').startsWith('elementary_') ? String(uid) : `user_${uid}`;
+    assertAssigned(staff, studentKey, date);
     const templates = body.homeworkReview || Array.isArray(body.commentIds) || body.record?.reportFacts ? await homeworkTemplates() : null;
     const settings = await readAcademicSettings();
     let selectedTerm;
@@ -74,7 +75,7 @@ export async function POST(request) {
     } catch (error) { throw new ApiError(error.message, 400); }
     if (selectedTerm.id !== termId) throw new ApiError('授業日と学期が一致しません。画面を再読み込みしてください。', 409);
 
-    if (!/^[A-Za-z0-9_-]{6,128}$/.test(uid || "")) throw new ApiError("生徒IDが正しくありません。", 400);
+    if (!/^[A-Za-z0-9_-]{6,160}$/.test(uid || "")) throw new ApiError("生徒IDが正しくありません。", 400);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) throw new ApiError("授業日が正しくありません。", 400);
     if (!/^\d{4}_[1-3]$/.test(termId || "") || !/^\d{4}-W\d{2}$/.test(weekId || "")) {
       throw new ApiError("学期または週の指定が正しくありません。", 400);
@@ -92,7 +93,7 @@ export async function POST(request) {
     const nextWordRange = record?.wordTest?.nextRange;
     if (nextWordRange && (!Number.isInteger(Number(nextWordRange.start)) || !Number.isInteger(Number(nextWordRange.end)) || Number(nextWordRange.start) < 1 || Number(nextWordRange.end) < Number(nextWordRange.start))) throw new ApiError('次回の単語テスト範囲が正しくありません。', 400);
 
-    const userRef = adminDb.collection("users").doc(uid);
+    const userRef = adminDb.collection(studentKey.startsWith('elementary_') ? 'adminStudents' : 'users').doc(studentKey.replace(/^(user|elementary)_/, ''));
     const eventTimestamp = Timestamp.fromDate(new Date(`${date}T12:00:00+09:00`));
     const recordRef = userRef.collection("lessonTerms").doc(termId).collection("records").doc(date);
     const homeworkRewardRef = userRef.collection("lessonRewards").doc(`${termId}_${date}_homework`);
@@ -119,10 +120,10 @@ export async function POST(request) {
       if (oldRecord.homeworkReview?.assignmentId && oldRecord.homeworkReview.assignmentId !== body.homeworkReview?.assignmentId) throw new ApiError('この日の確認対象の宿題セットは変更できません。元のセットを選択してください。', 409);
       let publication = null;
       if (templates) {
-        try { publication = await prepareHomeworkReview(transaction, { key: `user_${uid}`, date, termId, uid: adminUid, review: body.homeworkReview, comments: body.commentIds, attendance: record.attendance, learningRecord: record, templates }); }
+        try { publication = await prepareHomeworkReview(transaction, { key: studentKey, date, termId, uid: adminUid, review: body.homeworkReview, comments: body.commentIds, attendance: record.attendance, learningRecord: record, templates }); }
         catch (error) { throw new ApiError(error.message, 400); }
       }
-      const memoRef=adminDb.collection('studentProfiles').doc(`user_${uid}`);
+      const memoRef=adminDb.collection('studentProfiles').doc(studentKey);
       const memoProfile=await transaction.get(memoRef);
       const now = FieldValue.serverTimestamp();
       const { reportFacts: rawReportFacts, learningContent: rawLearningContent, ...recordFields } = record;
@@ -142,22 +143,22 @@ export async function POST(request) {
       transaction.set(recordRef, savedRecord, { merge: true });
       const handoffText=String(record.nextLessonNote||'').trim().slice(0,1000);
       const handoffItems=Array.isArray(record.nextLessonItems)?record.nextLessonItems.slice(0,20):[];
-      if(handoffText)transaction.set(adminDb.collection('lessonHandoffs').doc(`user_${uid}`),{text:handoffText,items:handoffItems,sourceDate:date,createdBy:adminUid,createdAt:now});
+      if(handoffText)transaction.set(adminDb.collection('lessonHandoffs').doc(studentKey),{text:handoffText,items:handoffItems,sourceDate:date,createdBy:adminUid,createdAt:now});
       const changes = lessonChanges(oldRecord, savedRecord);
       if (Object.keys(changes).length) transaction.set(
-        adminDb.collection('lessonRecordAudit').doc(`user_${uid}`).collection('entries').doc(),
-        { studentKey:`user_${uid}`, date, termId, action:oldRecordSnap.exists?'update':'create', changes, changedBy:adminUid, changedAt:now }
+        adminDb.collection('lessonRecordAudit').doc(studentKey).collection('entries').doc(),
+        { studentKey, date, termId, action:oldRecordSnap.exists?'update':'create', changes, changedBy:adminUid, changedAt:now }
       );
       const records=termRecords.docs.filter(item=>item.id!==date).map(item=>item.data());
       const [summaryYear,summaryTerm]=termId.split('_');
       transaction.set(userRef.collection('behaviorSummary').doc(termId),{...calculateSummary([...records,savedRecord],summaryYear,summaryTerm),updatedAt:now},{merge:true});
       transaction.set(memoRef.collection('teacherNotes').doc(date),{date,note:String(savedRecord.behaviorNote||'').trim(),updatedBy:adminUid,updatedAt:now},{merge:true});
-      if (date>=String(memoProfile.data()?.teacherMemoDate||'')) transaction.set(adminDb.collection('studentProfiles').doc(`user_${uid}`), {
+      if (date>=String(memoProfile.data()?.teacherMemoDate||'')) transaction.set(adminDb.collection('studentProfiles').doc(studentKey), {
         teacherMemo:String(savedRecord.behaviorNote||'').trim().slice(0,5000), teacherMemoDate:date,
         teacherMemoBy:adminUid, teacherMemoUpdatedAt:now,
       }, { merge:true });
-      transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(`user_${uid}`),{ studentKey:`user_${uid}`,date,grade:Number(studentData.grade),missingFields:requiredLessonFields(savedRecord,studentData.grade),updatedBy:adminUid,updatedAt:now },{ merge:true });
-      transaction.delete(adminDb.collection('lessonDrafts').doc(date).collection('students').doc(`user_${uid}`));
+      transaction.set(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(studentKey),{ studentKey,date,grade:Number(studentData.grade),missingFields:requiredLessonFields(savedRecord,studentData.grade),updatedBy:adminUid,updatedAt:now },{ merge:true });
+      transaction.delete(adminDb.collection('lessonDrafts').doc(date).collection('students').doc(studentKey));
       publication?.commit();
 
       let pointDelta = 0;

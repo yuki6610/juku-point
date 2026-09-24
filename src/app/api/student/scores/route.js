@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 import { readAcademicSettings } from '@/lib/academicCalendarServer';
 import { normalizeTopPercent, schoolDeviationFromTopPercent } from '@/lib/schoolDeviation.mjs';
+import { resolveStudentIdentity } from '@/lib/studentIdentity';
 
 
 const MAIN=['国語','社会','数学','理科','英語'], SUB=['音楽','美術','保体','技家'];
@@ -12,13 +13,13 @@ export async function POST(request) {
   try {
     const header=request.headers.get('authorization')||'';if(!header.startsWith('Bearer '))return Response.json({error:'ログインしてください。'},{status:401});
     const user=await adminAuth.verifyIdToken(header.slice(7),true),body=await request.json(),uid=user.uid;
-    const student=await adminDb.collection('users').doc(uid).get(),profile=student.data()||{};
+    const identity=await resolveStudentIdentity(uid),student=identity.student,profile=student.data()||{};
     if(!student.exists||profile.active===false||profile.enrollmentStatus==='withdrawn'||Number(profile.grade)<7||Number(profile.grade)>9)throw new Error('対象の中学生を確認できません。');
     const grade=Number(body.grade||profile.grade);if(![7,8,9].includes(grade))throw new Error('学年を確認してください。');
     const year=String(body.year||''), term=String(body.term||'');
     if(!/^20\d{2}$/.test(year)||!validTerm(term))throw new Error('年度・学期を確認してください。');
     const settings=await readAcademicSettings();if(!settings.some(item=>String(item.year)===year&&item.terms?.[Number(term[0])]))throw new Error('登録済みの年度・学期を選んでください。');
-    const ref=adminDb.collection('users').doc(uid).collection('scores');
+    const ref=identity.ref.collection('scores');
     await adminDb.runTransaction(async transaction=>{
     const existing=await transaction.get(ref.where('year','==',year).where('term','==',term));
     let data;
