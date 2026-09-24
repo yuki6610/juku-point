@@ -12,7 +12,7 @@ export default function HomeworkAssignmentRow({ item, materials, elementary=fals
     <option value="all">教科を選択</option>{(elementary?ELEMENTARY_SUBJECTS:MIDDLE_SUBJECTS).map(([value,label])=><option key={value} value={value}>{label}</option>)}
   </select>;
   const materialSelect=<select aria-label="宿題の教材" value={item.materialId} onChange={event=>{const selected=materials.find(value=>value.id===event.target.value);patch({materialId:event.target.value,range:'',customLabel:'',difficulty:Number(selected?.difficulty||3),...(materialFirst&&selected?.subject?{subject:selected.subject}:{})})}}>
-      <option value="">教材を選択</option>{options.map(value=><option key={value.id} value={value.id}>{value.label}</option>)}
+      <option value="">教材を選択</option>{options.map(value=><option key={value.id} value={value.id}>{value.id === 'other' ? 'その他' : value.label}</option>)}
   </select>;
   const rangeInput=<input aria-label={material?.rangeType==='number'?'番号範囲':'ページ・範囲・内容'} inputMode="text" placeholder={rangePlaceholder||(material?.rangeType==='number'?'例：101-150':material?.customLabel?'ページがない場合は空欄':'例：10-15、漢字練習')} value={item.range||''} onChange={event=>patch({range:event.target.value})}/>;
   return <div className="homework-assignment-row">

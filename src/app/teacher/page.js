@@ -108,6 +108,8 @@ export default function TeacherPage() {
   const [reportPeriod, setReportPeriod] = useState("period-3");
   const [assignedKeys, setAssignedKeys] = useState([]),
     [assignmentOverrides, setAssignmentOverrides] = useState({ add: [], remove: [] }),
+    [otherSelectedKeys, setOtherSelectedKeys] = useState([]),
+    [selectionBusy, setSelectionBusy] = useState(false),
     [activeTab, setActiveTab] = useState("students");
   const [reviewId, setReviewId] = useState(""),
     [itemResults, setItemResults] = useState({}),
@@ -158,13 +160,16 @@ export default function TeacherPage() {
       ),
     [context, scheduledOnly, gradeFilter],
   );
-  const confirmMove = () =>
-    !dirty ||
-    window.confirm(
-      "この生徒の入力は下書きとして自動保存されています。別の入力へ移動しますか？",
-    );
+  const flushCurrentDraft = () => {
+    if (!dirty || !studentKey || !draftLoadedKey) return;
+    try {
+      const payload = JSON.parse(localStorage.getItem(draftLoadedKey) || 'null');
+      if (payload) api('/api/teacher/context', { method: 'POST', body: JSON.stringify({ date, studentKey, payload }) }).catch(() => {});
+    } catch {}
+  };
   const changeDate = (value) => {
-    if (!value || value === date || !confirmMove()) return;
+    if (!value || value === date) return;
+    flushCurrentDraft();
     const uid = auth.currentUser?.uid;
     if (uid) {
       try {
@@ -174,22 +179,36 @@ export default function TeacherPage() {
     }
     setAssignmentOverrides({ add: [], remove: [] });
     setAssignedKeys([]);
+    setOtherSelectedKeys([]);
     setDate(value);
   };
   const changeStudent = (value) => {
     if (value === studentKey) return;
-    if (confirmMove()) {
-      setStudentKey(value);
-      const nextStudent = context?.students.find(item => item.key === value);
-      if (nextStudent) setReportPeriod(periodForStudent(nextStudent));
-      if (value) setActiveTab("report");
-    }
+    flushCurrentDraft();
+    setStudentKey(value);
+    const nextStudent = context?.students.find(item => item.key === value);
+    if (nextStudent) setReportPeriod(periodForStudent(nextStudent));
+    if (value) setActiveTab("report");
   };
-  const toggleAssigned = (key) => {
+  const toggleAssigned = async (key) => {
+    if (selectionBusy || otherSelectedKeys.includes(key) && !assignedKeys.includes(key)) return;
     const next = assignedKeys.includes(key) ? assignedKeys.filter(value => value !== key) : [...assignedKeys, key];
     const base = context?.suggestedKeys || [];
     setAssignedKeys(next);
     setAssignmentOverrides({ add: next.filter(value => !base.includes(value)), remove: base.filter(value => !next.includes(value)) });
+    if (context?.role === 'admin') return;
+    setSelectionBusy(true);
+    try {
+      const result = await api('/api/teacher/selections', { method: 'POST', body: JSON.stringify({ date, studentKeys: next }) });
+      setOtherSelectedKeys(result.occupiedKeys || []);
+    } catch (error) {
+      setAssignedKeys(assignedKeys);
+      setAssignmentOverrides({ add: assignedKeys.filter(value => !base.includes(value)), remove: base.filter(value => !assignedKeys.includes(value)) });
+      setNotice(error.message);
+      api(`/api/teacher/selections?date=${date}`).then(value => setOtherSelectedKeys(value.occupiedKeys || [])).catch(() => {});
+    } finally {
+      setSelectionBusy(false);
+    }
   };
   const assignedStudents = (context?.students || []).filter((item) =>
     assignedKeys.includes(item.key),
@@ -203,12 +222,13 @@ export default function TeacherPage() {
   const reportPeriodStudents = assignedStudents.filter((item) => periodForStudent(item) === selectedReportPeriod);
   const selectedStudentPeriod = student ? TEACHER_PERIODS.find((period) => period.id === periodForStudent(student))?.label || "講数未設定" : "";
   const changePeriod = value => {
-    if (value === selectedReportPeriod || !confirmMove()) return;
+    if (value === selectedReportPeriod) return;
+    flushCurrentDraft();
     setReportPeriod(value);
     if (studentKey && (!student || periodForStudent(student) !== value)) setStudentKey("");
   };
   const openTab = (value) => {
-    if (!confirmMove()) return;
+    if (value !== activeTab) flushCurrentDraft();
     setActiveTab(value);
     if (value !== "report") setStudentKey("");
   };
@@ -225,8 +245,11 @@ export default function TeacherPage() {
           return location.replace(landing);
         }
       } catch { return location.replace('/teacher/login'); }
-      api(`/api/teacher/context?date=${date}`)
-          .then((value) => {
+      Promise.all([
+        api(`/api/teacher/context?date=${date}`),
+        api(`/api/teacher/selections?date=${date}`),
+      ])
+          .then(([value, selections]) => {
             if (!active) return;
             setContext(value);
             let saved = {};
@@ -236,10 +259,17 @@ export default function TeacherPage() {
               );
             } catch {}
             const base = value.suggestedKeys || [];
-            const overrides = Array.isArray(saved) ? { add: saved.filter(key => !base.includes(key)), remove: [] } : { add: Array.isArray(saved?.add) ? saved.add : [], remove: Array.isArray(saved?.remove) ? saved.remove : [] };
+            const overrides = selections.hasSavedSelection
+              ? { add: selections.mine.filter(key => !base.includes(key)), remove: base.filter(key => !selections.mine.includes(key)) }
+              : Array.isArray(saved) ? { add: saved.filter(key => !base.includes(key)), remove: [] } : { add: Array.isArray(saved?.add) ? saved.add : [], remove: Array.isArray(saved?.remove) ? saved.remove : [] };
             const valid = new Set(value.students.map(item => item.key));
-            setAssignmentOverrides(overrides);
-            setAssignedKeys([...new Set([...base.filter(key => !overrides.remove.includes(key)), ...overrides.add].filter(key => valid.has(key)))]);
+            const selected = [...new Set([...base.filter(key => !overrides.remove.includes(key)), ...overrides.add].filter(key => valid.has(key) && !selections.occupiedKeys.includes(key)))];
+            setAssignmentOverrides({ add: selected.filter(key => !base.includes(key)), remove: base.filter(key => !selected.includes(key)) });
+            setAssignedKeys(selected);
+            setOtherSelectedKeys(selections.occupiedKeys || []);
+            if (value.role !== 'admin' && !selections.hasSavedSelection && selected.length) {
+              api('/api/teacher/selections', { method: 'POST', body: JSON.stringify({ date, studentKeys: selected }) }).catch(() => {});
+            }
           })
           .catch((error) => {
             if (active) setNotice(error.message);
@@ -250,6 +280,14 @@ export default function TeacherPage() {
       unsubscribe();
     };
   }, [date]);
+  useEffect(() => {
+    if (activeTab !== 'students' || context?.role !== 'teacher') return undefined;
+    const refresh = () => api(`/api/teacher/selections?date=${date}`)
+      .then(value => setOtherSelectedKeys(value.occupiedKeys || []))
+      .catch(() => {});
+    const interval = window.setInterval(refresh, 15000);
+    return () => window.clearInterval(interval);
+  }, [activeTab, context?.role, date]);
   useEffect(() => {
     if (!auth.currentUser || context?.date !== date) return;
     try {
@@ -496,16 +534,6 @@ export default function TeacherPage() {
     lessonType,
     dirty,
   ]);
-  useEffect(() => {
-    const warn = (event) => {
-      if (dirty) {
-        event.preventDefault();
-        event.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
   const pending = useMemo(
     () =>
       (homeworkData?.items || []).filter(
@@ -816,23 +844,24 @@ export default function TeacherPage() {
                 ))}
               </select>
             </div>
-            {assignedStudents.length > 0 && <div className="teacher-assigned-students"><span>選択中</span>{assignedStudents.map(item=><button type="button" key={item.key} onClick={()=>toggleAssigned(item.key)}><strong>{item.name}</strong><small>選択を外す</small></button>)}</div>}
+            {assignedStudents.length > 0 && <div className="teacher-assigned-students"><span>選択中</span>{assignedStudents.map(item=><button type="button" key={item.key} disabled={selectionBusy} onClick={()=>toggleAssigned(item.key)}><strong>{item.name}</strong><small>選択を外す</small></button>)}</div>}
             <div className="teacher-assignment-list">
               {filteredStudents.filter(item=>!assignedKeys.includes(item.key)).map((item) => (
                 <label
                   key={item.key}
-                  className=""
+                  className={otherSelectedKeys.includes(item.key) ? 'selected-by-other' : ''}
                 >
                   <input
                     type="checkbox"
                     checked={false}
+                    disabled={selectionBusy || otherSelectedKeys.includes(item.key)}
                     onChange={() => toggleAssigned(item.key)}
                   />
                   <span>
                     <strong>{item.name}</strong>
                     <small>
                       {item.lessonStartTime || "時刻未設定"}・
-                      {gradeLabel(item.grade)}{item.lessonType === 'course' ? '・講習' : item.lessonType === 'makeup' ? '・振替' : ''}
+                      {gradeLabel(item.grade)}{item.lessonType === 'course' ? '・講習' : item.lessonType === 'makeup' ? '・振替' : ''}{otherSelectedKeys.includes(item.key) ? '・他の講師が選択中' : ''}
                     </small>
                   </span>
                 </label>
@@ -1350,7 +1379,7 @@ export default function TeacherPage() {
               {nextLessonItems.map((item,index)=><HomeworkAssignmentRow
                 key={`next-lesson-${index}`}
                 item={item}
-                materials={homeworkData.templates.materials}
+                materials={materials}
                 elementary={isElementary}
                 materialFirst
                 showDifficulty={false}

@@ -33,6 +33,8 @@
 .teacher-assignment-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
 .teacher-assignment-list > label { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px; border: 1px solid #dce4f0; border-radius: 12px; background: #f8fafc; }
 .teacher-assignment-list > label.selected { border-color: #8298dc; background: #eef2ff; }
+.teacher-assignment-list > label.selected-by-other { color: #8a94a3; background: #eceff3; border-color: #d9dee5; cursor: not-allowed; }
+.teacher-assignment-list > label.selected-by-other small { color: #8a94a3; }
 .teacher-assignment-list span { display: grid; }
 .teacher-assignment-list small { color: #728097; }
 .teacher-assignment-list b { color: #64748b; font-size: 11px; }

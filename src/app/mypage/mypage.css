@@ -148,6 +148,24 @@
 .progress-panel strong { color: #4a53be; font-size: 19px; }
 .progress-panel p { margin: 14px 0 0; color: #758096; font-size: 11px; }
 
+.progress-exams {
+  display: grid;
+  gap: 5px;
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.progress-exam {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: #92400e;
+  font-size: 12px;
+}
+
+.progress-exam strong { color: #92400e; font-size: 13px; white-space: nowrap; }
+
 .exp-bar {
   height: 9px;
   margin-top: 16px;

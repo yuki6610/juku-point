@@ -293,6 +293,16 @@ export default function MyPage() {
               <div className="exp-fill" style={{ width: `${expPercent}%` }} />
             </div>
             <p>XPをためてレベルアップ</p>
+            {Number(data.grade) === 9 && visibleExams.length > 0 && (
+              <div className="progress-exams" aria-label="入試までの日数">
+                {visibleExams.map((exam) => (
+                  <div className="progress-exam" key={exam.id}>
+                    <span>{exam.label}</span>
+                    <strong>あと {exam.days}日</strong>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -341,7 +351,6 @@ export default function MyPage() {
 
       <aside className="beta-notice" role="note"><b>BETA</b><span>現在開発中です。仕様・機能・画面は予告なく変更される場合があります。</span></aside>
 
-      {Number(data.grade) === 9 && visibleExams.length>0 && <section className="dashboard-alerts" aria-label="入試までの日数">{visibleExams.map(exam=><div key={exam.id} className="dashboard-alert warning"><strong>{exam.label}まで あと{exam.days}日</strong></div>)}</section>}
       {studentEvents.length>0&&<section className="dashboard-alerts" aria-label="教室からの予定">{studentEvents.slice(0,3).map(event=><div key={event.id} className="dashboard-alert"><strong>{event.name}</strong><span>{event.startDate.replaceAll('-',' / ')}{event.endDate!==event.startDate?`〜${event.endDate.replaceAll('-',' / ')}`:''}{event.startTime?`　${event.startTime}${event.endTime?`〜${event.endTime}`:''}`:''}</span></div>)}</section>}
 
     </main>
