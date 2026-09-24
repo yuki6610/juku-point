@@ -1,6 +1,6 @@
 import RoleSignupRequest from '@/components/RoleSignupRequest';
 import '../../auth.css';
 
-export default function TeacherSignup() {
-  return <RoleSignupRequest role="teacher" />;
+export default function AdminSignup() {
+  return <RoleSignupRequest role="admin" />;
 }

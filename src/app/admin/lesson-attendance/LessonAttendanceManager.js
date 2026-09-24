@@ -245,6 +245,8 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
   useEffect(() => { onBusyChange(busy); }, [busy, onBusyChange]);
   const [notice, setNotice] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
+  const [studentSearch, setStudentSearch] = useState("");
+  const [attentionOnly, setAttentionOnly] = useState(false);
   const [calendarDirty, setCalendarDirty] = useState(false);
   const [scheduleDrafts, setScheduleDrafts] = useState({});
   const [scheduleSlotDrafts, setScheduleSlotDrafts] = useState({});
@@ -563,6 +565,10 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
     });
     return { student, key, planned, accounted, actual, absent: absent.length, makeup, missing: Math.max(0, planned - accounted), pending, terms, lessonStartDate };
   }), [visibleStudents, records, calendar, monthDates, cutoff, selectedCalendarYear, month, termSettings, actualCutoff, academicRecordStart, academicDueEnd]);
+  const searchText = studentSearch.trim().normalize('NFKC').toLocaleLowerCase('ja');
+  const matchesSearch = student => !searchText || String(student.name || student.realName || student.displayName || '').normalize('NFKC').toLocaleLowerCase('ja').includes(searchText);
+  const summaryRows = summaries.filter(item => matchesSearch(item.student) && (!attentionOnly || item.pending > 0 || item.missing > 0 || item.terms.some(term => term.balance > 0)));
+  const recordStudents = visibleStudents.filter(matchesSearch);
 
   const selectedStudent = visibleStudents.find((student) => studentKey(student) === selectedKey);
   const selectedRecords = records[selectedKey] || {};
@@ -870,21 +876,23 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
               {label}
             </button>
           ))}
+          {(tab === 'overview' || tab === 'record') && <label className="attendance-student-search">生徒名で検索<input type="search" value={studentSearch} onChange={event => setStudentSearch(event.target.value)} placeholder="名前を入力" /></label>}
+          {tab === 'overview' && <button type="button" className={attentionOnly ? 'active' : ''} aria-pressed={attentionOnly} onClick={() => setAttentionOnly(value => !value)}>要確認のみ</button>}
         </div>
       )}
 
       {tab === "overview" && (
         <section className="attendance-section">
           <div className="summary-strip">
-            <article><span>対象生徒</span><strong>{summaries.length}</strong></article>
-            <article><span>記録漏れ候補</span><strong>{summaries.reduce((sum, item) => sum + item.missing, 0)}</strong></article>
-            <article><span>振替待ち</span><strong>{summaries.reduce((sum, item) => sum + item.pending, 0)}</strong></article>
-            <article><span>学期別 差分</span><strong>{summaries.reduce((sum, item) => sum + item.terms.reduce((termSum, term) => termSum + Math.max(term.balance, 0), 0), 0)}</strong></article>
+            <article><span>表示中の生徒</span><strong>{summaryRows.length}</strong></article>
+            <article><span>記録漏れ候補</span><strong>{summaryRows.reduce((sum, item) => sum + item.missing, 0)}</strong></article>
+            <article><span>振替待ち</span><strong>{summaryRows.reduce((sum, item) => sum + item.pending, 0)}</strong></article>
+            <article><span>学期別 差分</span><strong>{summaryRows.reduce((sum, item) => sum + item.terms.reduce((termSum, term) => termSum + Math.max(term.balance, 0), 0), 0)}</strong></article>
           </div>
           <div className="attendance-table-wrap">
             <table>
               <thead><tr><th>生徒</th><th>通塾曜日</th><th>学期別（今日まで）予定 / 実施</th><th>学期別の欠席 / 振替</th><th>状態</th><th>学期別（トータル）予定 / 実施</th></tr></thead>
-              <tbody>{summaries.map((item) => (
+              <tbody>{summaryRows.map((item) => (
                 <tr key={item.key} onClick={() => { setSelectedKey(item.key); setTab("record"); }}>
                   <td><strong>{item.student.name || item.student.realName || item.student.displayName}</strong><small>{gradeLabel(item.student.grade)}</small></td>
                   <td>{(item.student.lessonSchedule?.weekdays || item.student.weekdays || []).map((day) => WEEKDAYS[day]).join("・") || "未設定"}</td>
@@ -914,7 +922,7 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
                     </div>
                   </td>
                 </tr>
-              ))}</tbody>
+              ))}{!summaryRows.length && <tr><td colSpan="6" className="attendance-table-empty">条件に合う生徒がいません。検索や絞り込みを確認してください。</td></tr>}</tbody>
             </table>
           </div>
         </section>
@@ -924,13 +932,13 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
         <section className="attendance-section record-layout">
           <aside className="record-students">
             <h2>生徒を選択</h2>
-            {visibleStudents.map((student) => {
+            {recordStudents.map((student) => {
               const key = studentKey(student);
               return <button key={key} className={selectedKey === key ? "active" : ""} onClick={() => { setSelectedKey(key); setEditingDate(""); setNote(""); setOriginalDate(""); }}>
                 <strong>{student.name || student.realName || student.displayName}</strong><span>{gradeLabel(student.grade)}</span>
               </button>;
             })}
-            {visibleStudents.length === 0 && <p className="record-students-note">対象生徒がいません。</p>}
+            {recordStudents.length === 0 && <p className="record-students-note">条件に合う生徒がいません。</p>}
           </aside>
           <div className="attendance-form" onChange={() => onDirtyChange(true)} onClick={event => { if (event.target.closest('.status-choices button')) onDirtyChange(true); }}>
             {!selectedStudent ? <div className="attendance-empty">左から生徒を選択してください。</div> : <>

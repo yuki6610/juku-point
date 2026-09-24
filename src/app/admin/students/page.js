@@ -102,6 +102,7 @@ export default function StudentsPage() {
   const [filterGrade, setFilterGrade] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('active');
   const [sortKey, setSortKey] = useState('grade');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState('');
@@ -180,7 +181,9 @@ export default function StudentsPage() {
   }, [students]);
 
   const filteredStudents = useMemo(() => {
+    const query = searchQuery.trim().normalize('NFKC').toLocaleLowerCase('ja');
     const filtered = students.filter((student) => {
+      if (query && !displayName(student).normalize('NFKC').toLocaleLowerCase('ja').includes(query)) return false;
       if (filterGrade !== 'ALL' && Number(student.grade) !== Number(filterGrade)) return false;
       const isWithdrawn = student.active === false || student.enrollmentStatus === 'withdrawn';
       if (statusFilter === 'active' && isWithdrawn) return false;
@@ -191,7 +194,7 @@ export default function StudentsPage() {
       return true;
     });
     return sortStudents(filtered, sortKey);
-  }, [students, filterGrade, statusFilter, sortKey]);
+  }, [students, filterGrade, statusFilter, sortKey, searchQuery]);
 
   useEffect(() => {
     if (filteredStudents.length === 0) {
@@ -435,6 +438,10 @@ export default function StudentsPage() {
       {studentType === 'elementary' ? <ElementaryStudentManager onNotice={setNotice} /> : <>
 
       <section className="students-toolbar">
+        <label className="students-search">
+          生徒名で検索
+          <input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="名前を入力" aria-label="生徒名で検索" />
+        </label>
         <label>
           学年
           <select value={filterGrade} onChange={(event) => setFilterGrade(event.target.value)}>
@@ -467,7 +474,7 @@ export default function StudentsPage() {
 
           <div className="students-list">
             {filteredStudents.length === 0 ? (
-              <div className="students-empty">条件に合う生徒がいません。</div>
+              <div className="students-empty">条件に合う生徒がいません。名前や絞り込み条件を確認してください。</div>
             ) : filteredStudents.map((student) => (
               <button
                 type="button"

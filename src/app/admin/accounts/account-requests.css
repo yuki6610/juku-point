@@ -1,0 +1,20 @@
+.account-requests { display: grid; gap: 14px; }
+.account-requests > header, .account-request-list article > header { display: flex; justify-content: space-between; align-items: start; gap: 18px; }
+.account-requests h2, .account-requests h3, .account-requests p { margin: 0; }
+.account-requests > header p, .account-request-list article > header p { margin-top: 5px; color: #64748b; font-size: 13px; }
+.account-requests > header > strong { padding: 8px 12px; color: #315aa7; background: #eaf0fb; border-radius: 9px; white-space: nowrap; }
+.account-request-list { display: grid; gap: 12px; }
+.account-request-list article { display: grid; gap: 16px; padding: 18px; background: #fff; border: 1px solid #dce4ef; border-radius: 14px; }
+.account-request-list article > header span { display: inline-block; margin-bottom: 5px; padding: 3px 8px; color: #315aa7; background: #eaf0fb; border-radius: 99px; font-size: 11px; font-weight: 800; }
+.account-request-list article > header small, .account-request-children > small { color: #64748b; font-size: 11px; }
+.account-request-children { display: grid; gap: 10px; padding: 13px; background: #f8fafc; border-radius: 11px; }
+.account-request-children > label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; }
+.account-request-children input[type=search] { min-height: 40px; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
+.account-request-child-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 5px; max-height: 180px; overflow: auto; }
+.account-request-child-list label { display: flex; align-items: center; gap: 7px; padding: 7px; background: #fff; border: 1px solid #e1e7ef; border-radius: 8px; font-size: 12px; }
+.account-request-child-list small { margin-left: auto; color: #64748b; }
+.account-request-list footer { display: flex; gap: 8px; flex-wrap: wrap; }
+.account-request-list footer button { min-height: 42px; padding: 8px 14px; color: #fff; background: #315aa7; border: 0; border-radius: 9px; font-weight: 800; cursor: pointer; }
+.account-request-list footer button.secondary { color: #64748b; background: #eef2f7; }
+.account-request-list footer button:disabled { opacity: .5; cursor: not-allowed; }
+.account-request-empty, .account-request-notice { padding: 15px; background: #f8fafc; border-radius: 10px; }

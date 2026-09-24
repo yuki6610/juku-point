@@ -117,6 +117,27 @@
   border-radius: 22px;
 }
 
+.students-search input {
+  min-width: 0;
+}
+
+.admin-hub-content .students-page {
+  width: 100%;
+  padding: 0;
+}
+
+.admin-hub-content .students-hero {
+  padding: 14px 18px;
+  align-items: center;
+  justify-content: flex-end;
+  background: #fff;
+  box-shadow: none;
+}
+
+.admin-hub-content .students-hero > div:first-child {
+  display: none;
+}
+
 .students-toolbar label,
 .name-editor label {
   display: grid;

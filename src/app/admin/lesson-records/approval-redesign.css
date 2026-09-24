@@ -1,0 +1,27 @@
+.approval-workspace .approval-layout { display: grid; grid-template-columns: minmax(250px, 340px) minmax(0, 1fr); gap: 14px; align-items: start; }
+.approval-workspace .approval-queue, .approval-workspace .approval-editor { min-width: 0; padding: 16px; background: #fff; border: 1px solid #dce4ef; border-radius: 15px; }
+.approval-workspace .approval-search { display: grid; gap: 6px; color: #526178; font-size: 12px; font-weight: 800; }
+.approval-workspace .approval-search input { width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid #ccd6e4; border-radius: 9px; font: inherit; font-size: 14px; }
+.approval-workspace .approval-queue-count { margin: 11px 0 8px; color: #78859a; font-size: 11px; }
+.approval-workspace .approval-queue-list { display: grid; gap: 6px; max-height: min(66vh, 680px); overflow: auto; }
+.approval-workspace .approval-queue-list button { display: grid; gap: 5px; width: 100%; padding: 11px 12px; text-align: left; color: #334155; background: #f8fafc; border: 1px solid #e1e7f0; border-radius: 10px; cursor: pointer; }
+.approval-workspace .approval-queue-list button.active { color: #264b96; background: #edf3ff; border-color: #9db6e9; }
+.approval-workspace .approval-queue-list button span { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.approval-workspace .approval-queue-list button strong { font-size: 14px; }
+.approval-workspace .approval-queue-list button time { color: #64748b; font-size: 11px; white-space: nowrap; }
+.approval-workspace .approval-queue-list button small { overflow: hidden; color: #6b7890; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.approval-workspace .approval-editor { position: sticky; top: 72px; display: grid; gap: 18px; }
+.approval-workspace .approval-editor header { display: flex; justify-content: space-between; gap: 12px; }
+.approval-workspace .approval-editor header small { color: #536fc1; font-size: 11px; font-weight: 900; }
+.approval-workspace .approval-editor h3 { margin: 3px 0; font-size: 22px; }
+.approval-workspace .approval-editor header p { margin: 0; color: #68778b; font-size: 12px; }
+.approval-workspace .approval-editor header > span { align-self: start; padding: 5px 9px; color: #92591d; background: #fff3dd; border-radius: 99px; font-size: 11px; font-weight: 800; }
+.approval-workspace .approval-editor label { display: grid; gap: 7px; font-weight: 800; }
+.approval-workspace .approval-editor textarea { width: 100%; min-height: 260px; padding: 14px; border: 1px solid #cfd9e8; border-radius: 11px; font: inherit; font-size: 15px; line-height: 1.8; resize: vertical; }
+.approval-workspace .approval-editor label > small { text-align: right; color: #8692a4; font-weight: 500; }
+.approval-workspace .approval-editor footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.approval-workspace .approval-editor footer span { color: #748197; font-size: 12px; }
+.approval-workspace .approval-editor footer button { min-height: 46px; padding: 9px 16px; color: #fff; background: var(--staff-primary); border: 0; border-radius: 10px; font-weight: 850; cursor: pointer; }
+.approval-workspace .approval-editor footer button:disabled { opacity: .5; cursor: not-allowed; }
+.approval-workspace .approval-no-match { margin: 0; padding: 20px 8px; color: #748197; text-align: center; font-size: 13px; }
+@media (max-width: 780px) { .approval-workspace .approval-layout { grid-template-columns: 1fr; } .approval-workspace .approval-queue-list { max-height: 210px; } .approval-workspace .approval-editor { position: static; } }
