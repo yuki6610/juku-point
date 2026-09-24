@@ -59,6 +59,6 @@ export default function RoleSignupRequest({ role }) {
       <label className="auth-field"><span className="auth-label">パスワード確認</span><input className="auth-input" type="password" autoComplete="new-password" value={confirm} onChange={event => setConfirm(event.target.value)} minLength={8} required /></label>
       {message && <p className="auth-message error" role="alert">{message}</p>}
       <button className="auth-button primary" disabled={busy}>{busy ? '申請中…' : '登録を申請'}</button>
-    </form></>}
+    </form>{role === 'teacher' && <button type="button" className="auth-link" onClick={() => router.push('/teacher/login')}>登録済みの講師はこちらからログイン</button>}</>}
   </section></main>;
 }

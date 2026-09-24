@@ -29,7 +29,7 @@ export async function GET(request) {
     const settings = await readAcademicSettings();
     const term = resolveAcademicTerm(settings, date);
     const requested = new URL(request.url).searchParams.get('student');
-    let existingRecord = null;
+    let existingRecord = null, deletionRequest = null;
     if (requested) {
       const selected = students.find(item => item.key === requested);
       if (!selected) throw new Error('対象生徒を確認できません。');
@@ -38,6 +38,8 @@ export async function GET(request) {
         const middle = await adminDb.collection(selected.source === 'elementary' ? 'adminStudents' : 'users').doc(selected.id).collection('lessonTerms').doc(term.id).collection('records').doc(date).get();
         existingRecord = middle.exists ? middle.data() : common.data()?.learningRecord || common.data() || null;
       } else existingRecord = common.data()?.learningRecord ? { ...common.data(),...common.data().learningRecord } : common.data() || null;
+      const deletion = await adminDb.collection('lessonDeletionRequests').doc(requested).collection('items').doc(date).get();
+      deletionRequest = deletion.exists ? { status: deletion.data().status } : null;
     }
     const profileMap=new Map(profiles.docs.map(doc=>[doc.id,doc.data()]));
     const selectedProfile = requested ? profileMap.get(requested) : null;
@@ -65,7 +67,7 @@ export async function GET(request) {
     const guidance = publicGuidance(selectedProfile,submissionByStudent[requested]);
     const guidanceByStudent=Object.fromEntries(students.map(item=>[item.key,publicGuidance(profileMap.get(item.key),submissionByStudent[item.key])]).filter(([,value])=>value));
     const existingDraft=requested&&drafts.docs.find(item=>item.id===requested)?.data()?.payload||null;
-    return Response.json({ role: staff.role, displayName: staff.profile?.displayName || '管理者', date, weekday, term, students, shiftConfirmed:confirmedShift, coursePeriod:coursePrograms.docs.some(doc=>doc.data().startDate<=date&&date<=doc.data().endDate), suggestedKeys:visibleEntries.map(item=>item.studentKey), inputStatus, draftStatus, existingRecord, existingDraft, guidance, guidanceByStudent, absenceCandidates,nextLessonNote,academicRecords });
+    return Response.json({ role: staff.role, displayName: staff.profile?.displayName || '管理者', date, weekday, term, students, shiftConfirmed:confirmedShift, coursePeriod:coursePrograms.docs.some(doc=>doc.data().startDate<=date&&date<=doc.data().endDate), suggestedKeys:visibleEntries.map(item=>item.studentKey), inputStatus, draftStatus, existingRecord, existingDraft, deletionRequest, guidance, guidanceByStudent, absenceCandidates,nextLessonNote,academicRecords });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }
 }
 
@@ -93,6 +95,7 @@ export async function POST(request) {
       nextLessonNote: clean(input.nextLessonNote).slice(0, 1000),
       nextLessonItems: Array.isArray(input.nextLessonItems) ? input.nextLessonItems.slice(0, 20).map(item => ({ subject: clean(item?.subject).slice(0, 30), materialId: clean(item?.materialId).slice(0, 128), range: clean(item?.range).slice(0, 300), note: clean(item?.note).slice(0, 300), customLabel: clean(item?.customLabel).slice(0, 100), difficulty: Number(item?.difficulty || 3) })) : [],
       wordCorrect: String(input.wordCorrect ?? '').slice(0, 5), wordTotal: String(input.wordTotal ?? '').slice(0, 5),
+      extraWordTests: Array.isArray(input.extraWordTests) ? input.extraWordTests.slice(0, 10).map(item => ({ correct: String(item?.correct ?? '').slice(0, 5), total: String(item?.total ?? '').slice(0, 5) })) : [],
       ...(grade >= 7 ? {
         wordRange: input.wordRange || null, nextWordRange: input.nextWordRange || null,
         wordRangeMode: ['same', 'next', 'custom'].includes(input.wordRangeMode) ? input.wordRangeMode : 'same',

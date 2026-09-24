@@ -42,7 +42,6 @@ const today = () => {
 
 const gradeLabel = studentGradeLabel;
 const plusDays = (value, days) => { const next = new Date(`${value}T12:00:00`); next.setDate(next.getDate() + days); return next.toISOString().slice(0, 10); };
-const nextLessonDate=(value,weekdays=[])=>{const allowed=weekdays.map(Number);if(!allowed.length)return plusDays(value,7);const next=new Date(`${value}T12:00:00`);for(let days=1;days<=7;days+=1){next.setDate(next.getDate()+1);if(allowed.includes(next.getDay()))return next.toISOString().slice(0,10)}return plusDays(value,7)};
 
 
 export default function LearningRecordForm({ isDirty = false, onDirtyChange = () => {}, onBusyChange = () => {} }) {
@@ -170,7 +169,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     setAssignmentId(crypto.randomUUID());
     setAssignmentVersion(null);
     setNextItems([{ subject:'all', materialId: '', range: '', customLabel:'', difficulty:3 }]);
-    const selected=students.find(item=>item.uid===studentId);setDueDate(date ? nextLessonDate(date,selected?.lessonSchedule?.weekdays||selected?.weekdays||[]) : '');
+    setDueDate(date ? plusDays(date, 7) : '');
     if (!studentId || !date || isHigh) { setAssignmentReady(true); return () => { active = false; }; }
     homeworkApi(`/api/admin/homework?student=${encodeURIComponent(studentId)}&date=${date}`)
       .then(value => {

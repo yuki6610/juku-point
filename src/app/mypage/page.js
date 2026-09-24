@@ -15,6 +15,7 @@ const AvatarCanvas = dynamic(
 );
 import "./mypage.css";
 import { studentIdentityForCurrentUser } from '@/lib/studentClientIdentity';
+import { loginPathForLastRole, rememberRole } from '@/lib/roleNavigation';
 
 /* ---------------- 共通関数 ---------------- */
 
@@ -81,11 +82,26 @@ export default function MyPage() {
 
       if (!currentUser) {
         setLoading(false);
-        router.push("/login");
+        router.replace(loginPathForLastRole());
         return;
       }
 
       setUser(currentUser);
+
+      try {
+        const response = await fetch('/api/auth/role', { headers: { Authorization: `Bearer ${await currentUser.getIdToken()}` } });
+        if (!response.ok) throw new Error('アカウント区分を確認できませんでした。');
+        const { role } = await response.json();
+        if (role === 'teacher') { rememberRole('teacher'); router.replace('/teacher'); return; }
+        if (role === 'parent') { rememberRole('parent'); router.replace('/parent'); return; }
+        if (role !== 'student' && role !== 'admin') { setLoading(false); router.replace(loginPathForLastRole()); return; }
+        if (role === 'student') rememberRole('student');
+      } catch (error) {
+        console.error('アカウント区分の確認に失敗しました:', error);
+        setLoading(false);
+        router.replace(loginPathForLastRole());
+        return;
+      }
 
       let identity;
       try { identity = await studentIdentityForCurrentUser(); } catch (error) { console.error(error); setLoading(false); return; }

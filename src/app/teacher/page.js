@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
+import { rememberRole } from '@/lib/roleNavigation';
 import { japanDateId } from "@/lib/academicCalendar.mjs";
 import {
   aggregateItemResults,
@@ -63,16 +64,6 @@ const plusDays = (value, days) => {
   next.setDate(next.getDate() + days);
   return next.toISOString().slice(0, 10);
 };
-const nextLessonDate = (value, weekdays = []) => {
-  const allowed = weekdays.map(Number);
-  if (!allowed.length) return plusDays(value, 7);
-  const next = new Date(`${value}T12:00:00`);
-  for (let days = 1; days <= 7; days += 1) {
-    next.setDate(next.getDate() + 1);
-    if (allowed.includes(next.getDay())) return next.toISOString().slice(0, 10);
-  }
-  return plusDays(value, 7);
-};
 async function api(url, options) {
   const token = await auth.currentUser?.getIdToken(),
     config = {
@@ -122,6 +113,7 @@ export default function TeacherPage() {
     [nextLessonNote, setNextLessonNote] = useState("");
   const [wordCorrect, setWordCorrect] = useState(""),
     [wordTotal, setWordTotal] = useState(""),
+    [extraWordTests, setExtraWordTests] = useState([]),
     [wordRange, setWordRange] = useState(null),
     [nextWordRange, setNextWordRange] = useState(null),
     [wordRangeMode, setWordRangeMode] = useState("same");
@@ -143,6 +135,8 @@ export default function TeacherPage() {
     [notice, setNotice] = useState(""),
     [saveError, setSaveError] = useState(""),
     [saving, setSaving] = useState(false);
+  const [deletionRequest, setDeletionRequest] = useState(null);
+  const [hasSavedRecord, setHasSavedRecord] = useState(false);
   const [nextLessonItems,setNextLessonItems]=useState([blankHomeworkItem()]);
   const [scoreStudentKey,setScoreStudentKey]=useState("");
   const [draftLoadedKey, setDraftLoadedKey] = useState("");
@@ -245,6 +239,7 @@ export default function TeacherPage() {
           const landing={parent:'/parent',student:'/mypage',admin:'/admin'}[roleData.role]||'/teacher/login';
           return location.replace(landing);
         }
+        if (roleData.role === 'teacher') rememberRole('teacher');
       } catch { return location.replace('/teacher/login'); }
       Promise.all([
         api(`/api/teacher/context?date=${date}`),
@@ -305,6 +300,8 @@ export default function TeacherPage() {
     setNotice("");
     setSaveError("");
     setDirty(false);
+    setHasSavedRecord(false);
+    setDeletionRequest(null);
     if (!studentKey) return;
     const key = `teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`;
     const apply = (value) => {
@@ -322,6 +319,7 @@ export default function TeacherPage() {
       setNextLessonItems(Array.isArray(value.nextLessonItems)&&value.nextLessonItems.length?value.nextLessonItems:[blankHomeworkItem()]);
       setWordCorrect(value.wordCorrect ?? value.wordTest?.correct ?? "");
       setWordTotal(value.wordTotal ?? value.wordTest?.total ?? (Number(student?.grade) <= 6 ? "" : student?.wordTestQuestionCount ?? 20));
+      setExtraWordTests(Array.isArray(value.extraWordTests) ? value.extraWordTests : Array.isArray(value.wordTest?.extraTests) ? value.wordTest.extraTests : []);
       setWordRange(Number(student?.grade) <= 6 ? null :
         value.wordRange ??
           value.wordTest?.range ??
@@ -354,7 +352,7 @@ export default function TeacherPage() {
         ],
       );
       setDueDate(
-        value.dueDate || nextLessonDate(date, student?.weekdays || []),
+        value.dueDate || plusDays(date, 7),
       );
       setHomework(value.homework || "none");
       setAssignmentId(value.nextId || crypto.randomUUID());
@@ -381,6 +379,8 @@ export default function TeacherPage() {
           homeworkValue.items.push(...selected.items);
         }
         if (!active) return;
+        setDeletionRequest(value.deletionRequest || null);
+        setHasSavedRecord(Boolean(value.existingRecord?.attendance || value.existingRecord?.status));
         const assigned = homeworkValue.items.find(
           (item) => item.assignedDate === date,
         );
@@ -433,6 +433,16 @@ export default function TeacherPage() {
       active = false;
     };
   }, [date, studentKey, reload]);
+  const requestDeletion = async () => {
+    if (!student || !window.confirm(`${date}の${student.realName || student.name}さんの授業記録全体について、管理者に削除を申請しますか？`)) return;
+    setSaving(true);
+    try {
+      await api('/api/admin/lesson-deletion-requests', { method: 'POST', body: JSON.stringify({ studentKey, date }) });
+      setDeletionRequest({ status: 'pending' });
+      setNotice('授業記録の削除を管理者に申請しました。');
+    } catch (error) { setNotice(error.message); }
+    finally { setSaving(false); }
+  };
   useEffect(() => {
     if (
       !dirty ||
@@ -452,6 +462,7 @@ export default function TeacherPage() {
           note,
           wordCorrect,
           wordTotal,
+          extraWordTests,
           ...(Number(student?.grade) > 6 ? { wordRange, nextWordRange, wordRangeMode } : {}),
           learningContent,
           reportFacts,
@@ -513,6 +524,7 @@ export default function TeacherPage() {
     nextLessonNote,
     wordCorrect,
     wordTotal,
+    extraWordTests,
     wordRange,
     nextWordRange,
     wordRangeMode,
@@ -628,6 +640,8 @@ export default function TeacherPage() {
           Number(wordCorrect) > Number(wordTotal))
       )
         throw new Error("単語テストの正答数と問題数を確認してください。");
+      if (extraWordTests.length && wordCorrect === "") throw new Error("追加の単語テストを入力する前に、1回目の点数を入力してください。");
+      if (extraWordTests.some(item => item.correct === "" || item.total === "" || !Number.isInteger(Number(item.correct)) || !Number.isInteger(Number(item.total)) || Number(item.correct) < 0 || Number(item.total) < 1 || Number(item.correct) > Number(item.total))) throw new Error("追加した単語テストの正答数と問題数を確認してください。");
       const rawHandoffItems=nextLessonItems.filter(item=>item.materialId||String(item.range||'').trim()||String(item.customLabel||'').trim());
       const normalizedHandoffItems=rawHandoffItems.length
         ? validateAssignment({assignedDate:date,dueDate:date,items:rawHandoffItems},homeworkData.templates).items
@@ -653,6 +667,7 @@ export default function TeacherPage() {
                   status: "completed",
                   correct: wordCorrect,
                   total: wordTotal,
+                  extraTests: extraWordTests.map(item => ({ correct: Number(item.correct), total: Number(item.total) })),
                   ...(isMiddle && wordRange ? { range: wordRange } : {}),
                   ...(isMiddle && nextWordRange ? { nextRange: nextWordRange, nextRangeMode: wordRangeMode } : {}),
                 }
@@ -711,6 +726,7 @@ export default function TeacherPage() {
           }),
         });
       lessonSaved = true;
+      setHasSavedRecord(true);
       if (validItems.length && !unchanged) {
         if (!dueDate)
           throw new Error("新しい宿題の確認予定日を入力してください。");
@@ -1206,6 +1222,15 @@ export default function TeacherPage() {
                       />
                     </label>
                   </div>
+                  {wordCorrect !== "" && extraWordTests.map((item, index) => <div className="teacher-word" key={index}>
+                    <strong>{index + 2}回目</strong>
+                    <label>正答数<input type="number" min="0" inputMode="numeric" value={item.correct} onChange={event => setExtraWordTests(current => current.map((row, rowIndex) => rowIndex === index ? { ...row, correct: event.target.value } : row))}/></label>
+                    <span>/</span>
+                    <label>問題数<input type="number" min="1" inputMode="numeric" value={item.total} onChange={event => setExtraWordTests(current => current.map((row, rowIndex) => rowIndex === index ? { ...row, total: event.target.value } : row))}/></label>
+                    <button type="button" onClick={() => setExtraWordTests(current => current.filter((_, rowIndex) => rowIndex !== index))}>削除</button>
+                  </div>)}
+                  {wordCorrect !== "" && extraWordTests.length < 10 && <button type="button" onClick={() => setExtraWordTests(current => [...current, { correct: "", total: "" }])}>＋単語テストを追加</button>}
+                  {extraWordTests.length > 0 && <small>追加分は保護者に表示します。ポイント・経験値は付与されません。</small>}
                   {!isElementary && wordCorrect !== "" && (
                     <>
                       <div className="teacher-word-range-current">
@@ -1427,6 +1452,7 @@ export default function TeacherPage() {
             >
               {saving ? "送信中…" : "この授業記録を管理者に送信"}
             </button>
+            {hasSavedRecord && (deletionRequest?.status === 'pending' ? <small>この日の授業記録は削除申請中です。</small> : <button type="button" disabled={saving} onClick={requestDeletion}>入力済みの授業記録の削除を申請</button>)}
           </div>
         )}
       </fieldset>

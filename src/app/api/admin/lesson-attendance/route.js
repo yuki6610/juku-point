@@ -81,6 +81,9 @@ export async function POST(request) {
     const legacyHighRef = isHigh ? userRef.collection("classAttendance").doc(date) : null;
     const historyRef = isHigh ? userRef.collection("pointHistory").doc(`classAttendance_${date}`) : null;
 
+    const issuedAssignments = action === 'delete'
+      ? await adminDb.collection('homeworkAssignments').doc(key).collection('items').where('assignedDate', '==', date).get()
+      : { docs: [] };
     const result = await adminDb.runTransaction(async (transaction) => {
       const snapshots = await Promise.all([transaction.get(commonRef), ...(userRef ? [transaction.get(userRef)] : []), ...(legacyHighRef ? [transaction.get(legacyHighRef)] : [])]);
       const commonSnap = snapshots[0];
@@ -144,6 +147,10 @@ export async function POST(request) {
       const assignmentId=action==='delete'?oldLearning.homeworkReview?.assignmentId:null;
       const assignmentRefs=assignmentId?homeworkRefs(key,assignmentId):null;
       const assignmentSnap=assignmentRefs?await transaction.get(assignmentRefs.privateRef):null;
+      const issuedSnaps = action === 'delete' ? await Promise.all(issuedAssignments.docs.map(doc => transaction.get(doc.ref))) : [];
+      if (issuedSnaps.some(snap => snap.exists && snap.data().review && !['pending', 'absent'].includes(snap.data().review.status))) throw new ApiError('後の授業で確認済みの宿題があります。先に宿題の提出記録を確認してください。', 409);
+      const handoffRef = adminDb.collection('lessonHandoffs').doc(key);
+      const handoffSnap = action === 'delete' ? await transaction.get(handoffRef) : null;
 
       let publication = null;
       if (learningRecord && templates) {
@@ -153,17 +160,21 @@ export async function POST(request) {
         learningRecord = { ...learningRecord, homeworkReview: body.homeworkReview || null, commentIds: body.commentIds || [], ...(publication.homework ? { homework: publication.homework } : {}) };
       }
       const memoProfile=await transaction.get(adminDb.collection('studentProfiles').doc(key));
-      if(middleRecords){const rows=middleRecords.docs.filter(item=>item.id!==date).map(item=>item.data());rows.push({...middleSnap?.data(),date,attendance:action==='delete'?null:status});transaction.set(userRef.collection('behaviorSummary').doc(termId),{...calculateSummary(rows,year,selectedTerm.term),updatedAt:now},{merge:true})}
+      if(middleRecords){const rows=middleRecords.docs.filter(item=>item.id!==date).map(item=>item.data());if(action!=='delete')rows.push({...middleSnap?.data(),date,attendance:status});transaction.set(userRef.collection('behaviorSummary').doc(termId),{...calculateSummary(rows,year,selectedTerm.term),updatedAt:now},{merge:true})}
       publication?.commit();
       if (action === "delete") {
         // Keep a dated cancellation marker so older copies cannot resurrect attendance.
-        transaction.set(commonRef, { date, status: null, attendance: null, originalDate: null, originalLessonDate: null, makeupDate: null, makeupCompleted: false, updatedBy: adminUid, updatedAt: now }, { merge: true });
-        if (middleRef) transaction.set(middleRef, { attendance: null, originalLessonDate: null, updatedBy: adminUid, updatedAt: now }, { merge: true });
+        transaction.set(commonRef, { date, status: null, attendance: null, originalDate: null, originalLessonDate: null, makeupDate: null, makeupCompleted: false, updatedBy: adminUid, updatedAt: now });
+        if (middleRef) transaction.delete(middleRef);
         if (legacyHighRef) transaction.delete(legacyHighRef);
         transaction.delete(adminDb.collection('lessonPublic').doc(key).collection('records').doc(date));
+        transaction.delete(adminDb.collection('lessonReportSubmissions').doc(key).collection('items').doc(date));
         transaction.delete(adminDb.collection('dailyLessonInputs').doc(date).collection('students').doc(key));
         transaction.delete(adminDb.collection('lessonDrafts').doc(date).collection('students').doc(key));
         transaction.delete(adminDb.collection('studentProfiles').doc(key).collection('teacherNotes').doc(date));
+        if (memoProfile.data()?.teacherMemoDate === date) transaction.set(adminDb.collection('studentProfiles').doc(key), { teacherMemo: '', teacherMemoDate: null, teacherMemoBy: null, teacherMemoUpdatedAt: now }, { merge: true });
+        if (handoffSnap?.data()?.sourceDate === date) transaction.delete(handoffRef);
+        issuedSnaps.forEach(snap => { if (snap.exists && snap.data().assignedDate === date) { transaction.delete(snap.ref); transaction.delete(adminDb.collection('homeworkPublic').doc(key).collection('items').doc(snap.id)); } });
         if(assignmentSnap?.exists&&assignmentSnap.data().review?.date===date){const next={...assignmentSnap.data(),review:null,laterCompletion:null};transaction.set(assignmentRefs.privateRef,{review:null,laterCompletion:null,version:Number(assignmentSnap.data().version||1)+1,updatedBy:adminUid,updatedAt:now},{merge:true});transaction.set(assignmentRefs.publicRef,publicAssignment(next));}
         rewardRefs.forEach((ref,index)=>{if(rewardSnaps[index]?.exists&&(!rewardSnaps[index].data().sourceDate||rewardSnaps[index].data().sourceDate===date))transaction.delete(ref)});
         if(isMiddle&&termId&&rewardWeekId){transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${date}_homework`));transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${date}_homework_missed`));transaction.delete(userRef.collection('pointHistory').doc(`lesson_${termId}_${rewardWeekId}_wordtest`));}

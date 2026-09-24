@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
+import { authReady } from '@/firebaseConfig';
+import { rememberRole } from '@/lib/roleNavigation';
 
 const COPY = {
   student: { eyebrow: 'STUDENT', title: '生徒ログイン', copy: '生徒用アカウントでログインしてください。' },
@@ -30,6 +32,7 @@ export default function RoleLogin({ mode }) {
     try {
       const auth = getAuth();
       await auth.authStateReady?.();
+      await authReady;
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const user = credential.user;
       const response = await fetch('/api/auth/role', { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
@@ -40,13 +43,15 @@ export default function RoleLogin({ mode }) {
       if (result.role === 'requestRejected') await fail(auth, '登録申請を確認できません。教室へお問い合わせください。');
       if (mode === 'teacher') {
         if (result.role !== 'teacher') await fail(auth, '講師アカウントではありません。講師用のログイン情報を確認してください。');
+        rememberRole('teacher');
         return router.replace('/teacher');
       }
       if (mode === 'parent') {
         if (result.role !== 'parent') await fail(auth, '保護者アカウントではありません。保護者用のログイン情報を確認してください。');
+        rememberRole('parent');
         return router.replace('/parent');
       }
-      if (result.role === 'admin') return router.replace('/admin');
+      if (result.role === 'admin') { rememberRole('admin'); return router.replace('/admin'); }
       if (result.role !== 'student') await fail(auth, '生徒アカウントではありません。専用のログイン画面をご利用ください。');
       const studentKey = result.studentKey || `user_${user.uid}`;
       const elementary = studentKey.startsWith('elementary_');
@@ -54,6 +59,7 @@ export default function RoleLogin({ mode }) {
       const snapshot = await getDoc(userRef);
       if (!snapshot.exists() && !elementary) await setDoc(userRef, { realName: '未登録', displayName: user.displayName || '未設定', level: 1, points: 0, termPoints: 0, totalEarnedPoints: 0, experience: 0, createdAt: serverTimestamp() });
       if (!snapshot.exists() && elementary) throw new Error('紐付いた生徒情報を確認できません。教室へお問い合わせください。');
+      rememberRole('student');
       router.replace('/mypage');
     } catch (error) {
       console.error('ログインエラー:', error);

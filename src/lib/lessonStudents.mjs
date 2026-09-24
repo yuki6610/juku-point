@@ -15,9 +15,11 @@ export function learningFields(record) {
   const completed = ['completed', 'makeup'].includes(status);
   const correct = Number(record.wordTest.correct), total = Number(record.wordTest.total);
   if (completed && (!Number.isInteger(correct) || !Number.isInteger(total) || correct < 0 || total < 1 || correct > total)) throw new Error('単語テストの点数を確認してください。');
+  const extraTests = Array.isArray(record.wordTest.extraTests) ? record.wordTest.extraTests : [];
+  if (extraTests.length > 10 || (extraTests.length && !completed) || extraTests.some(item => item?.correct === '' || item?.total === '' || !Number.isInteger(Number(item?.correct)) || !Number.isInteger(Number(item?.total)) || Number(item.correct) < 0 || Number(item.total) < 1 || Number(item.correct) > Number(item.total))) throw new Error('追加した単語テストの点数を確認してください。');
   const range = record?.wordTest?.range;
   const normalizedRange = range && Number.isInteger(Number(range.start)) && Number.isInteger(Number(range.end)) && Number(range.start) > 0 && Number(range.end) >= Number(range.start)
     ? { start: Number(range.start), end: Number(range.end) } : null;
   const forgotItems=Array.isArray(record.forgotItems)?[...new Set(record.forgotItems.filter(item=>['workbook','stationery','other'].includes(item)))]:record.forgot===true?['other']:[];
-  return { homework, wordTest: { status, correct: completed ? correct : null, total: completed ? total : null, ...(normalizedRange ? { range: normalizedRange } : {}) }, late: record.late === true, forgot: forgotItems.length>0, forgotItems,forgotOther:String(record.forgotOther||'').trim().slice(0,200), behaviorNote: String(record.behaviorNote || '').trim().slice(0, 5000), learningContent: String(record.learningContent || '').trim().slice(0, 500), reportFacts: record.reportFacts && typeof record.reportFacts === 'object' ? record.reportFacts : {} };
+  return { homework, wordTest: { status, correct: completed ? correct : null, total: completed ? total : null, extraTests: extraTests.map(item => ({ correct: Number(item.correct), total: Number(item.total) })), ...(normalizedRange ? { range: normalizedRange } : {}) }, late: record.late === true, forgot: forgotItems.length>0, forgotItems,forgotOther:String(record.forgotOther||'').trim().slice(0,200), behaviorNote: String(record.behaviorNote || '').trim().slice(0, 5000), learningContent: String(record.learningContent || '').trim().slice(0, 500), reportFacts: record.reportFacts && typeof record.reportFacts === 'object' ? record.reportFacts : {} };
 }

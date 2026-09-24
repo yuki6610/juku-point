@@ -13,7 +13,7 @@ export function mergeParentLessons(entries) {
     for(const field of ['late','forgot'])if(has(learning,field))row[field]=learning[field]===true;
     if(source==='public'){row.forgotItems=Array.isArray(data.forgotItems)?data.forgotItems:[];row.forgotOther=String(data.forgotOther||'').slice(0,200)}
     if(['none','submitted','partial','missed','notEvaluated'].includes(learning.homework))row.homework=learning.homework;
-    if(has(learning,'wordTest')){const word=learning.wordTest;row.wordTest=word?{status:word.status,...(['completed','makeup'].includes(word.status)?{correct:Number(word.correct||0),total:Number(word.total||0)}:{})}:null}
+    if(has(learning,'wordTest')){const word=learning.wordTest;row.wordTest=word?{status:word.status,...(['completed','makeup'].includes(word.status)?{correct:Number(word.correct||0),total:Number(word.total||0),extraTests:Array.isArray(word.extraTests)?word.extraTests.slice(0,10).map(item=>({correct:Number(item.correct),total:Number(item.total)})):[]}:{})}:null}
     if(source==='public'){
       row.comments=(data.comments||[]).map(item=>({id:item.id,text:item.text}));
       row.homeworkResult=data.homeworkResult?{status:data.homeworkResult.status,text:data.homeworkResult.text,date:data.homeworkResult.date}:null;

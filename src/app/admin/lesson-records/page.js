@@ -9,6 +9,7 @@ const SharedLessonInput = dynamic(() => import('../../teacher/page'), { loading:
 const Attendance = dynamic(() => import('../lesson-attendance/LessonAttendanceManager'), { loading: () => <p>出欠情報を読み込み中…</p> });
 const LessonInputStatus = dynamic(() => import('./LessonInputStatus'), { loading: () => <p>入力状況を読み込み中…</p> });
 const LessonReportApprovals = dynamic(() => import('./LessonReportApprovals'), { loading: () => <p>未承認報告を読み込み中…</p> });
+const LessonDeletionRequests = dynamic(() => import('./LessonDeletionRequests'), { loading: () => <p>削除申請を読み込み中…</p> });
 export default function LessonRecordsPage() {
   const params = useSearchParams();
   const requestedTab=params.get('tab');
@@ -43,7 +44,7 @@ export default function LessonRecordsPage() {
       <button disabled={busy} aria-pressed={tab === 'attendance'} onClick={() => switchTab('attendance')}>出欠・振替</button>
     </nav>
     {tab === 'learning'&&<><LessonInputStatus/><SharedLessonInput /></>}
-    {tab === 'approval'&&<LessonReportApprovals/>}
+    {tab === 'approval'&&<><LessonDeletionRequests/><LessonReportApprovals/></>}
     {tab === 'attendance'&&<Attendance recordsOnly onDirtyChange={setDirty} onBusyChange={setBusy} />}
   </div>;
 }

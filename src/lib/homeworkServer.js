@@ -103,7 +103,7 @@ export async function prepareHomeworkReview(transaction, { key, date, termId, ui
         forgotItems:attendance==='absent'?[]:(learningRecord.forgotItems||[]),
         forgotOther:attendance==='absent'?'':String(learningRecord.forgotOther||'').slice(0,200),
         wordTest: ['completed', 'makeup'].includes(wordTest.status)
-          ? { status: wordTest.status, correct: Number(wordTest.correct), total: Number(wordTest.total), ...(wordTest.range ? { range: wordTest.range } : {}) }
+          ? { status: wordTest.status, correct: Number(wordTest.correct), total: Number(wordTest.total), extraTests: Array.isArray(wordTest.extraTests) ? wordTest.extraTests.slice(0, 10).map(item => ({ correct: Number(item.correct), total: Number(item.total) })) : [], ...(wordTest.range ? { range: wordTest.range } : {}) }
           : { status: wordTest.status || 'notScheduled' },
         comments: selectedComments,
         homeworkResult: payload?.result || null,

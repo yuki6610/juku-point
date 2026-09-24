@@ -88,6 +88,8 @@ export async function POST(request) {
         (!Number.isInteger(correct) || !Number.isInteger(total) || correct < 0 || total <= 0 || correct > total)) {
       throw new ApiError("単語テストの点数が正しくありません。", 400);
     }
+    const extraTests = Array.isArray(record?.wordTest?.extraTests) ? record.wordTest.extraTests : [];
+    if (extraTests.length > 10 || (extraTests.length && !['completed', 'makeup'].includes(wordStatus)) || extraTests.some(item => item?.correct === '' || item?.total === '' || !Number.isInteger(Number(item?.correct)) || !Number.isInteger(Number(item?.total)) || Number(item.correct) < 0 || Number(item.total) < 1 || Number(item.correct) > Number(item.total))) throw new ApiError('追加した単語テストの点数を確認してください。', 400);
     const wordRange = record?.wordTest?.range;
     if (wordRange && (!Number.isInteger(Number(wordRange.start)) || !Number.isInteger(Number(wordRange.end)) || Number(wordRange.start) < 1 || Number(wordRange.end) < Number(wordRange.start))) throw new ApiError('単語テストの範囲が正しくありません。', 400);
     const nextWordRange = record?.wordTest?.nextRange;
@@ -130,6 +132,7 @@ export async function POST(request) {
       const hasReportInput = Boolean(String(rawLearningContent || '').trim() || Object.keys(rawReportFacts || {}).length);
       const savedRecord = {
         ...recordFields,
+        wordTest: { ...recordFields.wordTest, extraTests: extraTests.map(item => ({ correct: Number(item.correct), total: Number(item.total) })) },
         learningContent:hasReportInput ? String(rawLearningContent||'').trim().slice(0,500) : null,
         reportFacts:hasReportInput ? normalizeReportFacts(rawReportFacts) : null,
         ...(templates ? { homeworkReview: body.homeworkReview || null, commentIds: body.commentIds || [] } : {}),

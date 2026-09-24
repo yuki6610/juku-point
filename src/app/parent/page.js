@@ -1382,6 +1382,7 @@ function LessonCard({ item }) {
               単語テスト {item.wordTest.correct}/{item.wordTest.total}
             </span>
           )}
+        {item.wordTest && Array.isArray(item.wordTest.extraTests) && item.wordTest.extraTests.map((test, index) => <span key={`word-test-${index}`}>単語テスト（{index + 2}回目） {test.correct}/{test.total}</span>)}
       </div>
       {item.learningContent && (
         <div className="parent-record-block">

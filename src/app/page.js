@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import { loginPathForLastRole, rememberRole } from '@/lib/roleNavigation';
 import "./auth.css";
 
 export default function Home() {
@@ -13,10 +14,12 @@ export default function Home() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try { const response=await fetch('/api/auth/role',{headers:{Authorization:`Bearer ${await user.getIdToken()}`}});if(!response.ok)throw new Error();const {role}=await response.json();router.replace(({admin:'/admin',teacher:'/teacher',parent:'/parent',student:'/mypage'})[role]||'/login'); } catch { setCheckingAuth(false); }
+        try { const response=await fetch('/api/auth/role',{headers:{Authorization:`Bearer ${await user.getIdToken()}`}});if(!response.ok)throw new Error();const {role}=await response.json();rememberRole(role);router.replace(({admin:'/admin',teacher:'/teacher',parent:'/parent',student:'/mypage'})[role]||loginPathForLastRole()); } catch { setCheckingAuth(false); }
         return;
       }
 
+      const lastLogin = loginPathForLastRole();
+      if (lastLogin !== '/login') { router.replace(lastLogin); return; }
       setCheckingAuth(false);
     });
 
