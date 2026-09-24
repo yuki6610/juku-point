@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { requireAdmin, requireStaff, assertAssigned, normalizeStudentKey } from '@/lib/staffAccess';
 import { POST as deleteAttendance } from '@/app/api/admin/lesson-attendance/route';
+import { pendingLessonItems } from '@/lib/pendingLessonItems';
 
 export const dynamic = 'force-dynamic';
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
@@ -22,8 +23,7 @@ export async function GET(request) {
       return Response.json({ request: snapshot.exists ? { status: snapshot.data().status } : null });
     }
     if (staff.role !== 'admin') throw new Error('管理者権限がありません。');
-    const groups = await adminDb.collectionGroup('items').get();
-    const pending = groups.docs.filter(doc => doc.ref.parent.parent?.parent.id === 'lessonDeletionRequests' && doc.data().status === 'pending');
+    const pending = await pendingLessonItems('lessonDeletionRequests');
     const items = await Promise.all(pending.map(async doc => {
       const data = doc.data();
       const profile = await studentRef(data.studentKey).get();

@@ -23,5 +23,5 @@ export default function StartSeasonControl(){
     }catch(error){window.alert(error.message||"学期切替に失敗しました。");}
     finally{setBusy(false);}
   };
-  return <section className="admin-season-control"><h2>新学期の開始</h2><p>学期終了時のみ使用します。ランキングを保存し、学期集計をリセットします。この操作は元に戻せません。</p><button type="button" disabled={busy} onClick={start}>{busy?"切り替えています…":"新学期を開始"}</button></section>;
+  return <section className="admin-season-control"><details><summary>学期終了時の操作：新学期を開始</summary><h2>新学期の開始</h2><p>学期終了時のみ使用します。ランキングを保存し、学期集計をリセットします。この操作は元に戻せません。</p><button type="button" disabled={busy} onClick={start}>{busy?"切り替えています…":"新学期を開始"}</button></details></section>;
 }

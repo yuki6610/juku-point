@@ -1,7 +1,7 @@
 {
-  "name": "塾ポイントアプリ",
-  "short_name": "ちどポ！",
-  "description": "来塾チェック・ポイント管理・景品交換アプリ",
+  "name": "千鳥が丘 学習アプリ",
+  "short_name": "千鳥が丘 学習アプリ",
+  "description": "授業・宿題・予定・ポイントを確認できる学習アプリ",
   "id": "/",
   "start_url": "/mypage?source=pwa",
   "scope": "/",

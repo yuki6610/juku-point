@@ -13,19 +13,20 @@ async function readSubjectHistory(studentKey, subject, lessonDate) {
   if (!studentKey || !subject) return [];
   const records = adminDb.collection('lessonPublic').doc(studentKey).collection('records');
   const subjectAliases = studentKey.startsWith('elementary_') && subject === '算数' ? ['算数', '数学'] : [subject];
-  let query = subjectAliases.length > 1 ? records : records.where('lessonReport.facts.subject', '==', subject);
+  // The deployed database has no descending document-name index for records.
+  // Read this student's dated records in the supported ascending order, then
+  // select the newest reports for the subject in memory.
+  let query = records;
   if (validDate(lessonDate)) query = query.where(FieldPath.documentId(), '<', lessonDate);
   let snapshot;
   try {
-    snapshot = await query.orderBy(FieldPath.documentId(), 'desc').limit(subjectAliases.length > 1 ? 60 : 3).get();
+    snapshot = await query.orderBy(FieldPath.documentId(), 'asc').select('lessonReport').get();
   } catch (error) {
-    // 複合インデックスが未準備でも生成を止めず、直近分を安全に絞り込む。
-    let fallback = records;
-    if (validDate(lessonDate)) fallback = fallback.where(FieldPath.documentId(), '<', lessonDate);
-    snapshot = await fallback.orderBy(FieldPath.documentId(), 'desc').limit(60).get();
+    console.warn('Lesson report history unavailable', error.code || error.message);
+    return [];
   }
   const history = [];
-  for (const document of snapshot.docs) {
+  for (const document of [...snapshot.docs].reverse()) {
     const report = document.data()?.lessonReport;
     const facts = normalizeReportFacts(report?.facts || {});
     if (!subjectAliases.includes(facts.subject) || !String(report?.text || '').trim()) continue;

@@ -9,10 +9,12 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' })
 const subjects = [['', '教科未設定'], ['japanese', '国語'], ['math', '数学'], ['english', '英語'], ['science', '理科'], ['social', '社会'], ['other', 'その他']];
 const weekdayNames = ['月', '火', '水', '木', '金', '土'];
 
-export default function ShiftsView({ selectedWeek, onWeekChange = () => {} }) {
+export default function ShiftsView({ selectedWeek, onWeekChange = () => {}, onDirtyChange = () => {} }) {
   const [localWeek, setLocalWeek] = useState(shiftWeekStart(today())), [data, setData] = useState(null), [entries, setEntries] = useState([]), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [studentToAdd, setStudentToAdd] = useState('');
   const week = selectedWeek || localWeek;
-  const setWeek = value => { setLocalWeek(value); onWeekChange(value); };
+  const dirty = Boolean(data?.week && JSON.stringify(entries) !== JSON.stringify(data.week.entries || []));
+  const setWeek = value => { if (dirty && !window.confirm('保存していないシフトの変更があります。破棄して週を変更しますか？')) return; setLocalWeek(value); onWeekChange(value); };
+  useEffect(() => { onDirtyChange(dirty); return () => onDirtyChange(false); }, [dirty, onDirtyChange]);
   const call = async (body, selectedWeek = week) => {
     const token = await auth.currentUser?.getIdToken();
     const response = await fetch(`/api/admin/shifts?week=${selectedWeek}`, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify({ ...body, week: selectedWeek }) } : {}) });
@@ -30,13 +32,14 @@ export default function ShiftsView({ selectedWeek, onWeekChange = () => {} }) {
   const currentPrograms = data?.programs || [];
   const visiblePeriods = (data?.periods || []).filter(period => !period.courseOnly || currentPrograms.length);
   const save = () => action({ action: 'save', entries });
-  return <main className="shifts-page"><header className="shifts-header"><div><small>WEEKLY SHIFT</small><h1>講師シフト</h1><p>初週は通常授業から下書き作成。確定後、次週へコピーして調整します。</p></div><a href="/admin">管理画面へ戻る</a></header>
+  return <main className="shifts-page"><header className="shifts-header"><div><small>週の授業シフト</small><h1>講師シフト</h1><p>初週は通常授業から下書きを作成し、確定後は次週へコピーして調整します。</p></div></header>
     <div className="shifts-toolbar"><button onClick={() => changeWeek(-1)}>← 前週</button><label>週の月曜日<input type="date" value={week} onChange={event => { if (event.target.value) setWeek(shiftWeekStart(event.target.value)); }}/></label><button onClick={() => changeWeek(1)}>次週 →</button><strong>{data?.week?.status === 'confirmed' ? '確定済み' : data?.week ? '下書き' : '未作成'}</strong></div>
     {notice && <p className="shifts-notice" role="status">{notice}</p>}
+    {dirty && <p className="shifts-notice" role="status">表に未保存の変更があります。「編集を保存」を押してから他の操作へ進んでください。</p>}
     <div className="shifts-actions">
       {!data?.week && <><button disabled={busy} onClick={() => action({ action: 'initialize' })}>通常授業から最初の週を作成</button><button disabled={busy} onClick={() => action({ action: 'copy', sourceWeek: shiftDateAt(week, -7) })}>前週の確定シフトをコピー</button></>}
-      {data?.week && <><button disabled={busy} onClick={save}>編集を保存</button><button disabled={busy} onClick={() => action({ action: 'importCourse' })}>確定した講習を反映</button><label>新規生徒を反映<select value={studentToAdd} onChange={event => setStudentToAdd(event.target.value)}><option value="">生徒を選択</option>{(data.students || []).map(item => <option key={item.key} value={item.key}>{item.name}</option>)}</select></label><button disabled={busy || !studentToAdd} onClick={() => action({ action: 'addStudent', studentKey: studentToAdd })}>この生徒を反映</button><button disabled={busy || data.week.status === 'confirmed'} onClick={() => action({ action: 'confirm' })}>シフトを確定</button></>}
-      <a href="/admin/course-lessons">講習日程へ</a><a href="/admin/shift-management?tab=preferences">講師の希望を確認</a>
+      {data?.week && <><button disabled={busy || !dirty} onClick={save}>編集を保存</button><button disabled={busy || dirty} onClick={() => action({ action: 'importCourse' })}>確定した講習を反映</button><label>新規生徒を反映<select value={studentToAdd} onChange={event => setStudentToAdd(event.target.value)}><option value="">生徒を選択</option>{(data.students || []).map(item => <option key={item.key} value={item.key}>{item.name}</option>)}</select></label><button disabled={busy || dirty || !studentToAdd} onClick={() => action({ action: 'addStudent', studentKey: studentToAdd })}>この生徒を反映</button><button disabled={busy || dirty || data.week.status === 'confirmed'} onClick={() => action({ action: 'confirm' })}>シフトを確定</button></>}
+      <a href="/admin/course-lessons">講習日程へ</a>
     </div>
     {data?.week && <div className="shifts-scroll"><table className="shifts-table"><thead><tr><th rowSpan="2">時間帯</th>{weekdayNames.map((label, day) => <th colSpan="3" key={label}>{shiftDateAt(week, day)}（{label}）</th>)}</tr><tr>{weekdayNames.flatMap(label => ['生徒名', '教科', '担当講師'].map((title, index) => <th key={`${label}-${index}`}>{title}</th>))}</tr></thead><tbody>{visiblePeriods.map(period => { const maxRows = Math.max(1, ...weekdayNames.map((_, day) => entries.filter(item => item.date === shiftDateAt(week, day) && item.periodId === period.id).length)); return Array.from({ length: maxRows }, (_, rowIndex) => <tr key={`${period.id}-${rowIndex}`} className={`shift-period-${period.id}`}>
       {rowIndex === 0 && <th rowSpan={maxRows}>{period.label}<small>{period.startTime}〜{period.endTime}</small></th>}

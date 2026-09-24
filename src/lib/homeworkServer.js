@@ -17,10 +17,12 @@ export async function homeworkTemplates() {
   const templates = snapshot.data().templates || {};
   const configuredMaterials = Array.isArray(templates.materials) ? templates.materials : [];
   // 古い校舎設定にも後から追加した標準教材（単語テストなど）を補完する。
-  const materials = [
-    ...configuredMaterials,
-    ...DEFAULT_HOMEWORK_TEMPLATES.materials.filter(fallback => !configuredMaterials.some(item => item.id === fallback.id)),
-  ];
+  const materials = templates.materialsExplicit === true
+    ? configuredMaterials
+    : [
+        ...configuredMaterials,
+        ...DEFAULT_HOMEWORK_TEMPLATES.materials.filter(fallback => !configuredMaterials.some(item => item.id === fallback.id)),
+      ];
   return {
     ...DEFAULT_HOMEWORK_TEMPLATES,
     ...templates,

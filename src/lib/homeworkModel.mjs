@@ -45,7 +45,7 @@ export function homeworkValue(status) {
 }
 export function validateTemplates(value) {
   for (const key of ['materials', 'comments']) {
-    if (!Array.isArray(value?.[key]) || value[key].length > 80 || (key === 'materials' && !value[key].length)) throw new Error('選択肢は教材1〜80件、コメント0〜80件で設定してください。');
+    if (!Array.isArray(value?.[key]) || value[key].length > 80) throw new Error('選択肢は教材・コメントともに0〜80件で設定してください。');
     const ids = new Set();
     for (const item of value[key]) {
       if (!/^[\w-]{1,80}$/.test(item.id) || ids.has(item.id) || !String(item.label || '').trim() || item.label.length > 200) throw new Error('選択肢のID・名称を確認してください。');

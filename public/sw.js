@@ -1,4 +1,4 @@
-const CACHE='juku-point-static-v2';
+const CACHE='juku-point-static-v3';
 const SHELL=['/offline.html','/manifest.json','/manifest-teacher.json','/manifest-parent.json','/icons/icon-192x192.png','/icons/icon-512x512.png','/icons/apple-touch-icon.png','/icons/teacher-icon-192x192.png','/icons/teacher-icon-512x512.png','/icons/teacher-apple-touch-icon.png','/icons/parent-icon-192x192.png','/icons/parent-icon-512x512.png','/icons/parent-apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));

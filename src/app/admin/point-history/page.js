@@ -34,6 +34,7 @@ export default function AdminPointHistoryPage() {
   const [uid,setUid]=useState("");
   useEffect(()=>{const value=new URLSearchParams(window.location.search).get("student");if(value)setUid(value.replace(/^user_/,""))},[]);
   const [grade,setGrade]=useState("all");
+  const [studentQuery,setStudentQuery]=useState("");
   const [items,setItems]=useState([]);
   const [lastDoc,setLastDoc]=useState(null);
   const [hasMore,setHasMore]=useState(false);
@@ -74,7 +75,7 @@ export default function AdminPointHistoryPage() {
     try{const result=await fetchHistory(uid,lastDoc);setItems(v=>[...v,...result.list]);setLastDoc(result.last);setHasMore(result.more);}catch{setError("追加の履歴を取得できませんでした。");}finally{setLoadingHistory(false);}
   };
 
-  const filteredStudents=useMemo(()=>students.filter(s=>grade==="all"||Number(s.grade)===Number(grade)),[students,grade]);
+  const filteredStudents=useMemo(()=>students.filter(s=>s.uid===uid||((grade==="all"||Number(s.grade)===Number(grade))&&`${s.realName||s.displayName||""} ${gradeLabel(s.grade)}`.toLocaleLowerCase('ja').includes(studentQuery.trim().toLocaleLowerCase('ja')))),[students,grade,studentQuery,uid]);
   const availableGrades=useMemo(()=>availableStudentGrades(students),[students]);
   const visibleItems=useMemo(()=>items.filter(item=>filter==="all"||(filter==="earned"?pointValue(item)>0:pointValue(item)<0)),[items,filter]);
   const selected=students.find(s=>s.uid===uid);
@@ -86,6 +87,7 @@ export default function AdminPointHistoryPage() {
     <header><span>POINT AUDIT</span><h1>生徒ポイント履歴</h1><p>生徒ごとの獲得・利用・減点の理由を確認できます。</p></header>
     {error&&<p className="aph-error">{error}</p>}
     <section className="aph-picker">
+      <label>名前で探す<input type="search" value={studentQuery} onChange={e=>setStudentQuery(e.target.value)} placeholder="生徒名を入力" /></label>
       <select value={grade} onChange={e=>setGrade(e.target.value)}><option value="all">全学年</option>{availableGrades.map(g=><option key={g} value={g}>{gradeLabel(g)}</option>)}</select>
       <select value={uid} onChange={e=>setUid(e.target.value)}><option value="">生徒を選択</option>{filteredStudents.map(s=><option key={s.uid} value={s.uid}>{s.realName||s.displayName||"名前未登録"}</option>)}</select>
     </section>

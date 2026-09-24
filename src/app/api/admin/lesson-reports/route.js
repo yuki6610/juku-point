@@ -1,6 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { requireAdmin } from '@/lib/staffAccess';
+import { pendingLessonItems } from '@/lib/pendingLessonItems';
 
 export const dynamic='force-dynamic';
 const validKey=value=>/^(user|elementary)_[A-Za-z0-9_-]{1,128}$/.test(value||'');
@@ -9,12 +10,7 @@ const validDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(value||'');
 export async function GET(request){
   try{
     await requireAdmin(request);
-    // `status` の collection-group index が無効でも動作するよう、対象コレクションを
-    // 読んだ後にサーバー側で pending のみへ絞り込む。
-    const groups=await adminDb.collectionGroup('items').get();
-    const rows=groups.docs
-      .filter(doc=>doc.ref.parent.parent?.parent.id==='lessonReportSubmissions'&&doc.data().status==='pending')
-      .slice(0,100);
+    const rows=(await pendingLessonItems('lessonReportSubmissions')).slice(0,100);
     const keys=[...new Set(rows.map(doc=>doc.data().studentKey).filter(validKey))];
     const profiles=await Promise.all(keys.map(async key=>{
       const elementary=key.startsWith('elementary_'),id=key.replace(/^(user|elementary)_/,'');

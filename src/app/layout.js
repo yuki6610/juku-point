@@ -5,8 +5,8 @@ import PwaRegistration from "../components/PwaRegistration";
 import { AppDialogProvider } from "../components/AppDialogProvider";
 
 export const metadata = {
-  title: "塾ポイントアプリ",
-  description: "学習塾のポイント＆景品管理アプリ",
+  title: "千鳥が丘 学習アプリ",
+  description: "千鳥が丘学習塾の学習アプリ",
   manifest: "/manifest.json",
 };
 
@@ -24,7 +24,7 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#5b64d8" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-title" content="ちどポ！" />
+        <meta name="apple-mobile-web-app-title" content="千鳥が丘 学習アプリ" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body>

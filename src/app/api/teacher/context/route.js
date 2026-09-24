@@ -5,15 +5,37 @@ import { resolveAcademicTerm } from '@/lib/academicCalendar.mjs';
 import { readAbsenceCandidates } from '@/lib/absenceCandidates';
 import { FieldValue } from 'firebase-admin/firestore';
 import { matchingSubmissionEntries, normalizeSchool, projectSubmissionStatus } from '@/lib/scoreSubmissionPlan.mjs';
-import { SHIFT_PERIODS, shiftWeekStart } from '@/lib/weeklyShifts';
+import { shiftWeekStart } from '@/lib/weeklyShifts';
+import { lessonScheduleForDate } from '@/lib/lessonScheduleForDate.mjs';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
     const staff = await requireStaff(request);
-    const date = new URL(request.url).searchParams.get('date');
+    const params = new URL(request.url).searchParams;
+    const date = params.get('date');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) throw new Error('日付が正しくありません。');
+    if (params.get('summary') === '1') {
+      if (staff.role !== 'admin') throw new Error('管理者権限がありません。');
+      const [users, elementary, daily, shift] = await Promise.all([
+        adminDb.collection('users').get(),
+        adminDb.collection('adminStudents').get(),
+        adminDb.collection('dailyLessonInputs').doc(date).collection('students').get(),
+        adminDb.collection('weeklyShifts').doc(shiftWeekStart(date)).get(),
+      ]);
+      const confirmedShift = shift.exists && shift.data().status === 'confirmed';
+      const scheduledKeys = new Set(confirmedShift
+        ? (shift.data().entries || []).filter(item => item.date === date).map(item => item.studentKey)
+        : []);
+      const students = [
+        ...users.docs.map(doc => ({ key: `user_${doc.id}`, ...doc.data() })),
+        ...elementary.docs.map(doc => ({ key: `elementary_${doc.id}`, ...doc.data() })),
+      ].filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn');
+      const scheduled = students.filter(item => lessonScheduleForDate(item,date,confirmedShift && scheduledKeys.has(item.key) ? {studentKey:item.key} : null,confirmedShift).scheduled);
+      const savedKeys = new Set(daily.docs.map(doc => doc.id));
+      return Response.json({ scheduled: scheduled.length, missingInput: scheduled.filter(item => !savedKeys.has(item.key)).length });
+    }
     const [users, elementary, daily,drafts,profiles,shift,coursePrograms] = await Promise.all([adminDb.collection('users').get(), adminDb.collection('adminStudents').get(),adminDb.collection('dailyLessonInputs').doc(date).collection('students').get(),adminDb.collection('lessonDrafts').doc(date).collection('students').get(),adminDb.collection('studentProfiles').get(),adminDb.collection('weeklyShifts').doc(shiftWeekStart(date)).get(),adminDb.collection('coursePrograms').get()]);
     const inputStatus = Object.fromEntries(daily.docs.map(doc => [doc.id,{ updatedAt:doc.data().updatedAt?.toDate?.().toISOString() || null,updatedBy:doc.data().updatedBy || null,missingFields:Array.isArray(doc.data().missingFields)?doc.data().missingFields:[] }]));
     const draftStatus=Object.fromEntries(drafts.docs.map(doc=>[doc.id,{updatedAt:doc.data().updatedAt?.toDate?.().toISOString()||null,updatedBy:doc.data().updatedBy||null,missingFields:doc.data().missingFields||[]}]))
@@ -24,7 +46,7 @@ export async function GET(request) {
     const entryByStudent = new Map(visibleEntries.map(item => [item.studentKey, item]));
     const students = [...users.docs.map(doc => ({ key: `user_${doc.id}`, id: doc.id, source: 'user', ...doc.data() })), ...elementary.docs.map(doc => ({ key: `elementary_${doc.id}`, id: doc.id, source: 'elementary', ...doc.data() }))]
       .filter(item => item.active !== false && item.enrollmentStatus !== 'withdrawn')
-      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || [],slots=data.lessonSchedule?.slots||data.lessonScheduleSlots||{},slot=slots[String(weekday)]||{},entry=entryByStudent.get(data.key),period=entry&&SHIFT_PERIODS.find(item=>item.id===entry.periodId); return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), tags:Array.isArray(data.tags)?data.tags:[], weekdays, scheduled: confirmedShift ? Boolean(entry) : weekdays.map(Number).includes(weekday), lessonStartTime:period?.startTime||slot.startTime||data.lessonSchedule?.startTime||data.lessonStartTime||'',lessonPeriodId:entry?.periodId||slot.periodId||data.lessonSchedule?.periodId||'',lessonSubject:entry?.subject||slot.subject||'',lessonType:entry?.lessonType||null,lessonSourceId:entry?.sourceId||'',lessonSlots:slots, wordTestQuestionCount: Number(data.wordTestQuestionCount || (Number(data.grade) === 7 ? 20 : Number(data.grade) === 8 ? 30 : Number(data.grade) === 9 ? 50 : 20)), wordTestCurrentRange: data.wordTestCurrentRange || null }; })
+      .map(data => { const weekdays = data.lessonSchedule?.weekdays || data.weekdays || [],entry=entryByStudent.get(data.key); return { key: data.key, id: data.id, source: data.source, name: data.realName || data.name || data.displayName || '名前未設定', grade: Number(data.grade), tags:Array.isArray(data.tags)?data.tags:[], weekdays, ...lessonScheduleForDate(data,date,entry,confirmedShift), wordTestQuestionCount: Number(data.wordTestQuestionCount || (Number(data.grade) === 7 ? 20 : Number(data.grade) === 8 ? 30 : Number(data.grade) === 9 ? 50 : 20)), wordTestCurrentRange: data.wordTestCurrentRange || null }; })
       .sort((a, b) => Number(b.scheduled)-Number(a.scheduled)||(a.lessonStartTime||'99:99').localeCompare(b.lessonStartTime||'99:99')||a.grade-b.grade||a.name.localeCompare(b.name,'ja'));
     const settings = await readAcademicSettings();
     const term = resolveAcademicTerm(settings, date);

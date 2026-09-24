@@ -32,7 +32,7 @@ export async function POST(request) {
     const body = await request.json();
     if (body.action === 'templates') {
       if (staff.role !== 'admin') throw new Error('教材・定型文の変更は管理者のみ行えます。');
-      const templates = validateTemplates(body.templates);
+      const templates = { ...validateTemplates(body.templates), materialsExplicit: true };
       await adminDb.collection('admin_data').doc('homeworkTemplates').set({ templates, updatedBy: uid, updatedAt: FieldValue.serverTimestamp() });
       return Response.json({ saved: true });
     }
@@ -42,7 +42,7 @@ export async function POST(request) {
       const candidate = body.action === 'materials'
         ? { ...current, materials: body.materials }
         : { ...current, comments: body.comments, results: body.results };
-      const templates = validateTemplates(candidate);
+      const templates = { ...validateTemplates(candidate), materialsExplicit: body.action === 'materials' || current.materialsExplicit === true };
       await adminDb.collection('admin_data').doc('homeworkTemplates').set({ templates, updatedBy: uid, updatedAt: FieldValue.serverTimestamp() });
       return Response.json({ saved: true, templates });
     }

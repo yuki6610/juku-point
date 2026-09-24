@@ -7,6 +7,8 @@ import HomeworkAssignmentRow from '@/components/HomeworkAssignmentRow';
 import { homeworkValue, validateAssignment } from '@/lib/homeworkModel.mjs';
 import { homeworkApi } from '@/lib/homeworkClient';
 import { availableStudentGrades } from '@/lib/studentFilterOptions.mjs';
+import { lessonScheduleForDate } from '@/lib/lessonScheduleForDate.mjs';
+import { shiftWeekStart } from '@/lib/weeklyShifts';
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from 'next/navigation';
@@ -55,6 +57,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   const [academicYear, setAcademicYear] = useState(currentYear);
   const [term, setTerm] = useState(1);
   const [date, setDate] = useState(today());
+  const [dateShift, setDateShift] = useState(null);
   const [attendance, setAttendance] = useState("present");
   const [originalLessonDate, setOriginalLessonDate] = useState("");
   const [homework, setHomework] = useState("none");
@@ -112,6 +115,16 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   }, [academic.settings, date]);
 
   useEffect(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    let active = true;
+    setDateShift(null);
+    getDoc(doc(db, 'weeklyShifts', shiftWeekStart(date)))
+      .then(snapshot => { if (active) setDateShift({ date, data: snapshot.data() || {} }); })
+      .catch(() => { if (active) setNotice('この日のシフトを取得できませんでした。教科を確認して選択してください。'); });
+    return () => { active = false; };
+  }, [date]);
+
+  useEffect(() => {
     Promise.all([getDocs(collection(db, 'users')), getDocs(collection(db, 'adminStudents'))]).then(([snapshot, elementary]) => {
       const loaded = [...snapshot.docs.map(item => lessonStudent(item.id, item.data())), ...elementary.docs.map(item => lessonStudent(item.id, item.data(), 'elementary'))].filter(Boolean)
           .sort(
@@ -148,6 +161,10 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
   }, [students, grade]);
 
   const selectedStudent = students.find((student) => student.uid === studentId);
+  const shiftData = dateShift?.date === date ? dateShift.data : null;
+  const confirmedShift = shiftData?.status === 'confirmed';
+  const shiftEntry = confirmedShift ? (shiftData.entries || []).find(item => item.date === date && item.studentKey === studentId) : null;
+  const lessonPlan = selectedStudent && shiftData ? lessonScheduleForDate(selectedStudent, date, shiftEntry, confirmedShift) : null;
   const selectedGrade = Number(selectedStudent?.grade || 0);
   const isElementary = selectedGrade >= 1 && selectedGrade <= 6;
   const isHigh = selectedGrade >= 10 && selectedGrade <= 12;
@@ -267,7 +284,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
     if (!studentId || !date) return setNotice("生徒と授業日を選択してください。");
     if (!attendance) return setNotice('出席・欠席・振替出席のいずれかを選択してください。');
     let validNextItems = isHigh ? [] : nextItems.filter(item => item.materialId || item.range.trim());
-    if(wordEnabled&&attendance!=="absent"&&["completed","makeup"].includes(wordStatus)&&nextWordRange&&!validNextItems.some(item=>item.materialId==='words'))validNextItems=[...validNextItems,{subject:'english',materialId:'words',range:`${nextWordRange.start}-${nextWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
+    if(wordEnabled&&attendance!=="absent"&&["completed","makeup"].includes(wordStatus)&&nextWordRange&&assignmentData?.templates?.materials?.some(item=>item.id==='words')&&!validNextItems.some(item=>item.materialId==='words'))validNextItems=[...validNextItems,{subject:'english',materialId:'words',range:`${nextWordRange.start}-${nextWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
     const oldAssignment = assignmentData?.items?.find(item => item.id === assignmentId);
     const signature=items=>JSON.stringify(items.map(item => [item.subject,item.materialId,item.customLabel||'',item.range,item.note||'',Number(item.difficulty||3)]));
     const unchangedAssignment = oldAssignment && oldAssignment.dueDate === dueDate && signature(oldAssignment.items) === signature(validNextItems);
@@ -442,6 +459,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
                 <div>
                   <span>STEP 2　{gradeLabel(selectedStudent.grade)}</span>
                   <h2>{selectedStudent.realName || selectedStudent.displayName}</h2>
+                  {lessonPlan && <small>この日の予定：{lessonPlan.scheduled ? `${lessonPlan.lessonStartTime || '時刻未設定'}／${lessonPlan.lessonSubject || '教科未設定'}` : '登録なし'}（{confirmedShift ? '確定シフト' : '通塾設定'}）</small>}
                 </div>
                 <strong className="selected-date">{date}</strong>
               </div>
@@ -531,7 +549,7 @@ export default function LearningRecordForm({ isDirty = false, onDirtyChange = ()
 
               {!isHigh&&<fieldset><legend>次回授業への引き継ぎ</legend><textarea rows="2" maxLength="1000" value={nextLessonNote} onChange={event=>setNextLessonNote(event.target.value)} placeholder="例：次回P.46から（保護者には表示されません）" /></fieldset>}
 
-              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{grade:gradeLabel(selectedStudent?.grade),subject:(selectedStudent?.lessonSchedule?.slots||selectedStudent?.lessonScheduleSlots||{})[String(new Date(`${date}T12:00:00+09:00`).getDay())]?.subject||''}} studentKey={selectedStudent?.uid || ''} lessonDate={date} /></fieldset>}
+              {!isHigh && <fieldset><LessonReportFields learningContent={learningContent} onLearningContentChange={setLearningContent} value={reportFacts} onChange={setReportFacts} context={{grade:gradeLabel(selectedStudent?.grade),subject:lessonPlan?.lessonSubject||''}} studentKey={selectedStudent?.uid || ''} lessonDate={date} /></fieldset>}
 
               {!isHigh && <fieldset className="next-homework-fieldset" disabled={!assignmentReady || saving}>
                 <legend>今回出した宿題・次回確認</legend>

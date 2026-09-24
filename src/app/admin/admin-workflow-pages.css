@@ -1,0 +1,192 @@
+/* PCで日々使う管理画面の共通作業レイアウト */
+.admin-workflow-page {
+  width: min(100%, 1480px);
+  margin-inline: auto;
+  padding-top: 28px;
+}
+
+.admin-workflow-page .admin-hub-heading {
+  margin-bottom: 18px;
+}
+
+.admin-workflow-page .admin-hub-heading h1 {
+  margin: 3px 0 5px;
+  font-size: clamp(27px, 2.2vw, 34px);
+  line-height: 1.2;
+}
+
+.admin-workflow-page .admin-hub-heading p {
+  max-width: 75ch;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-workflow-page .admin-hub-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 8px;
+  border: 1px solid #d9e1ec;
+  border-radius: 15px;
+  background: rgba(247, 250, 255, .97);
+  box-shadow: 0 8px 20px rgba(31, 48, 75, .06);
+}
+
+.admin-workflow-page .admin-hub-tabs button {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 3px;
+  min-width: 0;
+  min-height: 57px;
+  padding: 9px 13px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.admin-workflow-page .admin-hub-tabs button strong {
+  font-size: 14px;
+}
+
+.admin-workflow-page .admin-hub-tabs button small {
+  color: #728096;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.admin-workflow-page .admin-hub-tabs button.active {
+  color: #163f80;
+  border-color: #9db7e4;
+  background: #eaf2ff;
+  box-shadow: inset 0 0 0 1px rgba(49, 90, 167, .08);
+}
+
+.admin-workflow-page .admin-hub-tabs button.active small {
+  color: #45648e;
+}
+
+.admin-workflow-page .admin-hub-tabs button:focus-visible {
+  outline: 3px solid #6a8fda;
+  outline-offset: 2px;
+}
+
+.admin-workflow-page .admin-hub-content {
+  min-width: 0;
+  padding: clamp(16px, 2vw, 28px);
+  border: 1px solid #dbe3ee;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(31, 48, 75, .05);
+}
+
+.admin-workflow-page .admin-hub-content :is(table, .shifts-scroll, .teacher-pref-scroll, .interview-grid-wrap) {
+  max-width: 100%;
+}
+
+.admin-workflow-page .admin-hub-content :is(button, input, select, textarea):focus-visible {
+  outline: 3px solid #6a8fda;
+  outline-offset: 2px;
+}
+
+.admin-workflow-page .admin-student-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.admin-workflow-page .admin-student-search label {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  color: #42516a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-workflow-page .admin-student-search input,
+.admin-workflow-page .admin-student-search select {
+  min-height: 44px;
+  width: 100%;
+}
+
+.admin-workflow-page .aph-picker label {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  color: #42516a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-workflow-page .aph-picker label input {
+  width: 100%;
+}
+
+.admin-workflow-page .admin-history-container {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+.admin-workflow-page .admin-history-title {
+  margin: 0 0 6px;
+  text-align: left;
+}
+
+.admin-workflow-page .admin-history-table th,
+.admin-workflow-page .admin-history-table td {
+  text-align: left;
+}
+
+.admin-workflow-page .admin-season-control {
+  margin-top: 28px;
+  padding: 13px 17px;
+}
+
+.admin-workflow-page .admin-season-control summary {
+  color: #923d30;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-workflow-page .admin-season-control details[open] > h2 {
+  margin-top: 16px;
+}
+
+.admin-workflow-page .interview-add-period {
+  margin: 16px 0;
+  padding: 13px 16px;
+  border: 1px solid #cbdaf0;
+  border-radius: 12px;
+  background: #f6f9ff;
+}
+
+.admin-workflow-page .interview-add-period summary {
+  color: #244f93;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-workflow-page .interview-add-period form {
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .admin-workflow-page .admin-hub-tabs {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-workflow-page .admin-hub-content { padding: 16px; }
+}
+
+@media print {
+  .admin-workflow-page .admin-hub-content { padding: 0; border: 0; box-shadow: none; }
+}

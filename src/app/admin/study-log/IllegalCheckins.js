@@ -40,22 +40,21 @@ export default function IllegalListPage() {
 
       // 📌 不正コレクション取得
       const snap = await getDocs(collection(db, 'illegal_checkins'))
-      const list = []
-
-      for (const d of snap.docs) {
-        const data = d.data()
-
-        // 🔍 生徒情報の解決
-        const userRef = doc(db, 'users', data.uid)
-        const userSnap = await getDoc(userRef)
-
-        list.push({
-          id: d.id,
+      const uids = [...new Set(snap.docs.map(item => item.data().uid).filter(Boolean))]
+      const profiles = new Map(await Promise.all(uids.map(async uid => {
+        const student = await getDoc(doc(db, 'users', uid))
+        return [uid, student.exists() ? student.data() : null]
+      })))
+      const list = snap.docs.map(item => {
+        const data = item.data()
+        const profile = profiles.get(data.uid)
+        return {
+          id: item.id,
           ...data,
-          name: userSnap.exists() ? userSnap.data().displayName : '不明',
-          grade: userSnap.exists() ? userSnap.data().grade : '-'
-        })
-      }
+          name: profile?.displayName || '不明',
+          grade: profile?.grade ?? '-'
+        }
+      })
 
       // 時間順に並べる（新しい順）
       list.sort((a, b) => new Date(b.time) - new Date(a.time))

@@ -34,7 +34,8 @@ export default function HomeworkTemplates() {
         n === index ? { ...row, ...value } : row,
       ),
     }));
-  const move = (key, index, step) =>
+  const move = (key, index, step) => {
+    edits.markDirty();
     setTemplates((old) => {
       const rows = [...old[key]],
         next = index + step;
@@ -42,6 +43,7 @@ export default function HomeworkTemplates() {
       [rows[index], rows[next]] = [rows[next], rows[index]];
       return { ...old, [key]: rows };
     });
+  };
   const save = async (action) => {
     setBusy(action);
     try {
@@ -73,7 +75,7 @@ export default function HomeworkTemplates() {
   return (
     <section className="homework-panel">
       <h2>教材・宿題表示の設定</h2>
-      <p>授業報告はこの設定を使わず、講師が選択した評価情報からAPIで生成します。</p>
+      <p>削除した教材は「教材を保存」で今後の選択肢から外れます。過去に出した宿題の記録は残ります。</p>
       {notice && <p role="status">{notice}</p>}
       <fieldset disabled={Boolean(busy)}>
         <legend>教材</legend>
@@ -144,12 +146,14 @@ export default function HomeworkTemplates() {
             </button>
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
+                edits.markDirty();
                 setTemplates((old) => ({
                   ...old,
                   materials: old.materials.filter((row) => row.id !== item.id),
-                }))
-              }
+                }));
+                setNotice('一覧から外しました。「教材を保存」を押すと反映されます。');
+              }}
             >
               削除
             </button>
@@ -157,7 +161,8 @@ export default function HomeworkTemplates() {
         ))}
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
+            edits.markDirty();
             setTemplates((old) => ({
               ...old,
               materials: [
@@ -170,8 +175,8 @@ export default function HomeworkTemplates() {
                   difficulty: 3,
                 },
               ],
-            }))
-          }
+            }));
+          }}
         >
           ＋教材を追加
         </button>

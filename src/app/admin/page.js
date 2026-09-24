@@ -28,28 +28,36 @@ export default function AdminPage() {
         return response.json();
       };
       const results = await Promise.allSettled([
-        request(`/api/teacher/context?date=${todayId()}`),
+        request(`/api/teacher/context?date=${todayId()}&summary=1`),
         request(`/api/admin/score-submissions?term=${academic.current.id}`),
         request("/api/admin/lesson-reports"),
-        request("/api/admin/family-services"),
-        request("/api/admin/parent-portal"),
+        request("/api/admin/family-services?summary=1"),
       ]);
       if (!active) return;
-      const [lesson, scores, reports, family, portal] = results.map(result => result.status === "fulfilled" ? result.value : null);
-      const scheduled = (lesson?.students || []).filter(item => item.scheduled);
+      const [lesson, scores, reports, family] = results.map(result => result.status === "fulfilled" ? result.value : null);
       setSummary({
-        scheduled: lesson ? scheduled.length : null,
-        missingInput: lesson ? scheduled.filter(item => !lesson.inputStatus?.[item.key]).length : null,
+        scheduled: lesson?.scheduled ?? null,
+        missingInput: lesson?.missingInput ?? null,
         approvals: reports ? (reports.items || []).length : null,
-        interviews: family ? (family.reservations || []).filter(item => item.status === "pending").length : null,
+        interviews: family?.pendingInterviews ?? null,
         missingScores: scores ? (scores.students || []).filter(item => !item.examReceived || !item.internalReceived).length : null,
-        announcements: portal ? (portal.announcements || []).length : null,
       });
       setErrors(Object.fromEntries(results.map((result, index) => [index, result.status === "rejected"])));
     };
     load().catch(() => { if (active) setErrors({ all: true }); });
     return () => { active = false; };
   }, [academic.current?.id]);
+
+  useEffect(() => {
+    if (tab !== "news" || !auth.currentUser || summary.announcements != null) return;
+    let active = true;
+    auth.currentUser.getIdToken()
+      .then(token => fetch("/api/admin/parent-portal", { headers: { Authorization: `Bearer ${token}` } }))
+      .then(async response => { if (!response.ok) throw new Error("取得できませんでした"); return response.json(); })
+      .then(value => { if (active) setSummary(current => ({ ...current, announcements: (value.announcements || []).length })); })
+      .catch(() => { if (active) setErrors(current => ({ ...current, announcements: true })); });
+    return () => { active = false; };
+  }, [tab, summary.announcements]);
 
   const tasks = [
     { key: "approvals", title: "授業報告の承認待ち", note: "内容を確認して保護者へ公開", path: "/admin/lesson-records?tab=approval" },

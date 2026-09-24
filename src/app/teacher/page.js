@@ -592,7 +592,7 @@ export default function TeacherPage() {
           ? []
           : nextItems.filter((item) => item.materialId || item.range.trim());
       const automaticWordRange=nextWordRange||wordRange||student.wordTestCurrentRange||{start:1,end:Number(wordTotal||20)};
-      if(isMiddle&&wordEnabled&&attendance!=="absent"&&wordCorrect!==""&&!validItems.some(item=>item.materialId==='words'))validItems=[...validItems,{subject:'english',materialId:'words',range:`${automaticWordRange.start}-${automaticWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
+      if(isMiddle&&wordEnabled&&attendance!=="absent"&&wordCorrect!==""&&homeworkData.templates.materials.some(item=>item.id==='words')&&!validItems.some(item=>item.materialId==='words'))validItems=[...validItems,{subject:'english',materialId:'words',range:`${automaticWordRange.start}-${automaticWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
       const oldAssignment = homeworkData.items.find(
         (item) => item.id === assignmentId,
       );

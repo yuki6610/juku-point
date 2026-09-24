@@ -14,5 +14,5 @@ export function useUnsavedChanges(selector) {
     document.addEventListener('change',changed,true);document.addEventListener('input',changed,true);document.addEventListener('click',navigate,true);window.addEventListener('beforeunload',leave);
     return()=>{document.removeEventListener('change',changed,true);document.removeEventListener('input',changed,true);document.removeEventListener('click',navigate,true);window.removeEventListener('beforeunload',leave)};
   },[selector]);
-  return {markSaved:()=>{dirty.current=false},confirmDiscard:()=>!dirty.current||window.confirm('未保存の変更を破棄して再読み込みしますか？')};
+  return {markDirty:()=>{dirty.current=true},markSaved:()=>{dirty.current=false},confirmDiscard:()=>!dirty.current||window.confirm('未保存の変更を破棄して再読み込みしますか？')};
 }
