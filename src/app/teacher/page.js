@@ -19,6 +19,7 @@ import "./workflow-improvements.css";
 import "./mobile-workflow.css";
 import "./phase1-mobile-fixes.css";
 import "./compact-picker.css";
+import "./report-picker-redesign.css";
 
 const getWeek = (value) => {
   const date = new Date(`${value}T12:00:00Z`);
@@ -176,8 +177,11 @@ export default function TeacherPage() {
     setDate(value);
   };
   const changeStudent = (value) => {
+    if (value === studentKey) return;
     if (confirmMove()) {
       setStudentKey(value);
+      const nextStudent = context?.students.find(item => item.key === value);
+      if (nextStudent) setReportPeriod(periodForStudent(nextStudent));
       if (value) setActiveTab("report");
     }
   };
@@ -192,11 +196,17 @@ export default function TeacherPage() {
   );
   const unassignedPeriodStudents = assignedStudents.filter((item) => periodForStudent(item) === "unassigned");
   const reportPeriodOptions = [
-    ...TEACHER_PERIODS,
+    ...TEACHER_PERIODS.filter(period => assignedStudents.some(item => periodForStudent(item) === period.id)),
     ...(unassignedPeriodStudents.length ? [{ id: "unassigned", label: "講数未設定" }] : []),
   ];
-  const reportPeriodStudents = assignedStudents.filter((item) => periodForStudent(item) === reportPeriod);
+  const selectedReportPeriod = reportPeriodOptions.some(period => period.id === reportPeriod) ? reportPeriod : reportPeriodOptions[0]?.id || "";
+  const reportPeriodStudents = assignedStudents.filter((item) => periodForStudent(item) === selectedReportPeriod);
   const selectedStudentPeriod = student ? TEACHER_PERIODS.find((period) => period.id === periodForStudent(student))?.label || "講数未設定" : "";
+  const changePeriod = value => {
+    if (value === selectedReportPeriod || !confirmMove()) return;
+    setReportPeriod(value);
+    if (studentKey && (!student || periodForStudent(student) !== value)) setStudentKey("");
+  };
   const openTab = (value) => {
     if (!confirmMove()) return;
     setActiveTab(value);
@@ -296,7 +306,7 @@ export default function TeacherPage() {
       setReportFacts(value.reportFacts || {});
       setAttendance(value.attendance ?? value.status ?? (student?.lessonType === 'makeup' ? 'makeup' : 'present'));
       setOriginalDate(value.originalDate || value.originalLessonDate || (student?.lessonType === 'makeup' && /^\d{4}-\d{2}-\d{2}$/.test(student.lessonSourceId || '') ? student.lessonSourceId : ''));
-      setLessonType(value.lessonType || student?.lessonType || 'regular');
+      setLessonType(student?.lessonType || value.lessonType || 'regular');
       setNextItems(
         value.nextItems || [
           {
@@ -696,7 +706,7 @@ export default function TeacherPage() {
       } catch {}
       setDraftLoadedKey("");
       setDirty(false);
-      setNotice("授業記録を保存しました。");
+      setNotice("授業記録を管理者に送信しました。");
       setContext((old) => ({
         ...old,
         inputStatus: {
@@ -726,7 +736,7 @@ export default function TeacherPage() {
           {embedded && <p>{context?.displayName || ""}</p>}
         </div>
       </header>
-      <nav className="teacher-work-tabs">
+      <nav className={`teacher-work-tabs${activeTab === "report" ? " report-active" : ""}`}>
         <button
           className={activeTab === "students" ? "active" : ""}
           onClick={() => openTab("students")}
@@ -851,17 +861,12 @@ export default function TeacherPage() {
             </label>
             <label className="teacher-period-select">
               <span>授業時間</span>
-              <select value={reportPeriod} onChange={(event) => setReportPeriod(event.target.value)}>
+              <select value={selectedReportPeriod} onChange={(event) => changePeriod(event.target.value)} disabled={!reportPeriodOptions.length}>
+                {!reportPeriodOptions.length && <option value="">担当生徒がいません</option>}
                 {reportPeriodOptions.map((period) => <option key={period.id} value={period.id}>{period.label}</option>)}
               </select>
             </label>
-            <label className="teacher-student-select">
-              <span>入力する生徒</span>
-              <select value={studentKey} onChange={(event) => changeStudent(event.target.value)}>
-                <option value="">生徒を選択</option>
-                {reportPeriodStudents.map((item) => <option key={item.key} value={item.key}>{item.realName || item.name}{item.lessonStartTime ? `（${item.lessonStartTime}）` : ""}</option>)}
-              </select>
-            </label>
+            {!!reportPeriodStudents.length && <div className="teacher-period-students"><span>この時間の担当生徒</span><div>{reportPeriodStudents.map(item => <button type="button" key={item.key} className={studentKey === item.key ? "selected" : ""} aria-pressed={studentKey === item.key} onClick={() => changeStudent(item.key)}><strong>{item.realName || item.name}</strong><small>{item.lessonStartTime ? `${item.lessonStartTime}開始` : gradeLabel(item.grade)}</small></button>)}</div></div>}
             {!assignedStudents.length && <p className="teacher-empty-students">「担当生徒を選択」から入力対象を選んでください。</p>}
             {assignedStudents.length > 0 && !reportPeriodStudents.length && <p className="teacher-empty-students">この授業時間に担当生徒はいません。</p>}
           </section>
@@ -948,7 +953,6 @@ export default function TeacherPage() {
         )}
         {activeTab === "report" && student && homeworkData && (
           <section className="teacher-attendance-section teacher-input-section teacher-check-section">
-            <div className="teacher-lesson-type"><strong>授業種別</strong>{student.lessonType ? <span>{student.lessonType === 'course' ? '講習授業' : student.lessonType === 'makeup' ? '振替授業' : '通常授業'}（確定シフトから自動判定）</span> : <select value={lessonType} onChange={event => { setLessonType(event.target.value); if (event.target.value === 'makeup') setAttendance('makeup'); }}><option value="regular">通常授業</option>{context?.coursePeriod && <option value="course">講習授業</option>}<option value="makeup">振替授業</option></select>}</div>
             <h2>出席状況</h2>
             <div className="teacher-attendance">
               {[
@@ -960,7 +964,7 @@ export default function TeacherPage() {
                   type="button"
                   key={value}
                   className={attendance === value ? "selected" : ""}
-                  onClick={() => { setAttendance(value); if (value === 'makeup') setLessonType('makeup'); }}
+                  onClick={() => { setAttendance(value); if (!student.lessonType) setLessonType(value === 'makeup' ? 'makeup' : 'regular'); }}
                 >
                   {label}
                 </button>
@@ -1322,17 +1326,6 @@ export default function TeacherPage() {
                 </label>
               </details>
             </section>
-            {student && student.grade < 10 && (
-              <div className="teacher-final-save-action teacher-save-between-sections">
-                <button
-                  className="teacher-save"
-                  disabled={saving || !homeworkData || draftLoadedKey !== `teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`}
-                  onClick={save}
-                >
-                  {saving ? "保存中…" : "この授業記録を保存"}
-                </button>
-              </div>
-            )}
           </>
         )}
         {student && homeworkData && student.grade < 10 && (
@@ -1343,6 +1336,7 @@ export default function TeacherPage() {
               value={reportFacts}
               onChange={setReportFacts}
               teacherView
+              elementary={isElementary}
               context={{
                 grade: gradeLabel(student?.grade),
                 subject: student?.lessonSubject || "",
@@ -1379,22 +1373,6 @@ export default function TeacherPage() {
             </label>
           </section>
         )}
-        {student && student.grade >= 10 && (
-          <div className="teacher-final-save-action">
-            <button
-              className="teacher-save"
-              disabled={
-                saving ||
-                !homeworkData ||
-                draftLoadedKey !==
-                  `teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`
-              }
-              onClick={save}
-            >
-              {saving ? "保存中…" : "この授業記録を保存"}
-            </button>
-          </div>
-        )}
         {student && !homeworkData && (
           <p role="status">
             記録を読み込み中です。
@@ -1404,6 +1382,21 @@ export default function TeacherPage() {
               </button>
             )}
           </p>
+        )}
+        {activeTab === "report" && student && homeworkData && (
+          <div className="teacher-final-save-action">
+            <button
+              className="teacher-save"
+              disabled={
+                saving ||
+                draftLoadedKey !==
+                  `teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`
+              }
+              onClick={save}
+            >
+              {saving ? "送信中…" : "この授業記録を管理者に送信"}
+            </button>
+          </div>
         )}
       </fieldset>
     </main>

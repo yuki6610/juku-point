@@ -8,6 +8,7 @@ import { auth, db } from "../../firebaseConfig";
 import AdminNavigation from "../../components/AdminNavigation";
 import "./admin-pages-modern.css";
 import "./staff-system.css";
+import "./admin-shell-redesign.css";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -68,7 +69,10 @@ export default function AdminLayout({ children }) {
   return (
     <div className="admin-app-shell">
       <AdminNavigation />
-      <div className="admin-app-content">{children}</div>
+      <div className="admin-app-content">
+        <div className="admin-work-topbar"><span>管理者画面</span><span>{new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric", weekday: "short" }).format(new Date())}</span></div>
+        {children}
+      </div>
     </div>
   );
 }

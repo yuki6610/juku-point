@@ -12,11 +12,12 @@ const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
 async function readSubjectHistory(studentKey, subject, lessonDate) {
   if (!studentKey || !subject) return [];
   const records = adminDb.collection('lessonPublic').doc(studentKey).collection('records');
-  let query = records.where('lessonReport.facts.subject', '==', subject);
+  const subjectAliases = studentKey.startsWith('elementary_') && subject === '算数' ? ['算数', '数学'] : [subject];
+  let query = subjectAliases.length > 1 ? records : records.where('lessonReport.facts.subject', '==', subject);
   if (validDate(lessonDate)) query = query.where(FieldPath.documentId(), '<', lessonDate);
   let snapshot;
   try {
-    snapshot = await query.orderBy(FieldPath.documentId(), 'desc').limit(3).get();
+    snapshot = await query.orderBy(FieldPath.documentId(), 'desc').limit(subjectAliases.length > 1 ? 60 : 3).get();
   } catch (error) {
     // 複合インデックスが未準備でも生成を止めず、直近分を安全に絞り込む。
     let fallback = records;
@@ -27,7 +28,7 @@ async function readSubjectHistory(studentKey, subject, lessonDate) {
   for (const document of snapshot.docs) {
     const report = document.data()?.lessonReport;
     const facts = normalizeReportFacts(report?.facts || {});
-    if (facts.subject !== subject || !String(report?.text || '').trim()) continue;
+    if (!subjectAliases.includes(facts.subject) || !String(report?.text || '').trim()) continue;
     const ratings = Object.fromEntries(Object.entries(LESSON_REPORT_RATING_LABELS).map(([key, label]) => [label, facts[key]]));
     history.push({ date: document.id, report: String(report.text).trim().slice(0, 2000), ratings });
     if (history.length === 3) break;

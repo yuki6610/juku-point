@@ -4,29 +4,31 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import "./admin-navigation.css";
 
-const groups = [{
-    label: "管理メニュー",
-    items: [
-      { path: "/admin", icon: "⌂", label: "ダッシュボード", exact: true },
-      { path: "/admin/lesson-records", icon: "✓", label: "学習記録・出欠", keywords: "宿題 単語テスト 出席 欠席 振替 生活態度" },
-      { path: "/admin/course-lessons", icon: "季", label: "講習授業管理", keywords: "夏期 冬期 春期 宿題 単語テスト" },
-      { path: "/admin/settings", icon: "▦", label: "教室・授業設定", keywords: "カレンダー 曜日 学期 年度 入試日 保護者 講師" },
-      { path: "/admin/study-log", icon: "◷", label: "自習管理", keywords: "入室 退出 GPS" },
-      { path: "/admin/students", icon: "◎", label: "生徒管理", keywords: "生徒登録 学年 退塾 ポイント タグ" },
-      { path: "/admin/student-notes", icon: "表", label: "生徒メモ", keywords: "教室内メモ 講師メモ" },
-      { path: "/admin/tags", icon: "#", label: "タグ一括管理" },
-      { path: "/admin/referrals", icon: "紹", label: "友人紹介管理" },
-      { path: "/admin/score", icon: "△", label: "成績・志望校", keywords: "定期テスト 通知表 内申 提出 判定 印刷" },
-      { path: "/admin/mock-scores", icon: "◎", label: "模試成績" },
-      { path: "/admin/schools", icon: "校", label: "高校情報" },
-      { path: "/admin/point-history", icon: "P", label: "ポイント履歴", keywords: "獲得 減点 累計 学期" },
-      { path: "/admin/rewards", icon: "◇", label: "景品・交換管理", keywords: "引き渡し 在庫 食事券" },
-      { path: "/admin/feedback", icon: "!", label: "バグ報告" },
-    ],
-  }];
+const groups = [
+  { label: "毎日の業務", items: [
+    { path: "/admin", icon: "⌂", label: "今日の業務", exact: true },
+    { path: "/admin/lesson-records", icon: "✓", label: "授業・出欠" },
+    { path: "/admin/study-log", icon: "◷", label: "自習管理" },
+  ] },
+  { label: "授業の準備", items: [
+    { path: "/admin/shift-management", icon: "表", label: "シフト管理", related: ["/admin/shifts", "/admin/teacher-preferences"] },
+    { path: "/admin/course-lessons", icon: "季", label: "講習管理" },
+  ] },
+  { label: "生徒・保護者", items: [
+    { path: "/admin/student-management", icon: "◎", label: "生徒管理", related: ["/admin/students", "/admin/student-notes", "/admin/tags"] },
+    { path: "/admin/academics", icon: "△", label: "成績・進路", related: ["/admin/score", "/admin/mock-scores", "/admin/schools"] },
+    { path: "/admin/family", icon: "家", label: "保護者対応", related: ["/admin/referrals"] },
+    { path: "/admin/points", icon: "◇", label: "ポイント・景品", related: ["/admin/rewards", "/admin/point-history"] },
+  ] },
+  { label: "管理設定", items: [
+    { path: "/admin/settings", icon: "▦", label: "教室設定" },
+    { path: "/admin/accounts", icon: "鍵", label: "アカウント管理", related: ["/admin/student-accounts", "/admin/account-recovery"] },
+    { path: "/admin/operations", icon: "!", label: "運用・保守", related: ["/admin/feedback", "/admin/operations-costs"] },
+  ] },
+];
 
 const titles = Object.fromEntries(
-  groups.flatMap((group) => group.items.map((item) => [item.path, item.label])),
+  groups.flatMap((group) => group.items.flatMap((item) => [item.path, ...(item.related || [])].map((path) => [path, item.label]))),
 );
 
 export default function AdminNavigation() {
@@ -65,8 +67,8 @@ export default function AdminNavigation() {
       <div className="admin-brand">
         <span>C</span>
         <div>
-          <strong>Classroom</strong>
-          <small>ADMIN CONSOLE</small>
+          <strong>教室管理</strong>
+          <small>管理者画面</small>
         </div>
       </div>
 
@@ -77,7 +79,7 @@ export default function AdminNavigation() {
             {group.items.map((item) => {
               const active = item.exact
                 ? pathname === item.path
-                : pathname === item.path || pathname.startsWith(`${item.path}/`);
+                : [item.path, ...(item.related || [])].some(path => pathname === path || pathname.startsWith(`${path}/`));
               return (
                 <button
                   type="button"

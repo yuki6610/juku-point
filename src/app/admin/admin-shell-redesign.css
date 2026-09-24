@@ -1,0 +1,19 @@
+.admin-app-shell{grid-template-columns:220px minmax(0,1fr);background:#f4f6fa;color:#202a3a}
+.admin-app-content{min-width:0}
+.admin-work-topbar{height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 28px;background:#fff;border-bottom:1px solid #dbe2ed;color:#617084;font-size:12px}
+.admin-sidebar{padding:22px 12px;background:#1d2940;border-right:0;color:#f1f4fb}
+.admin-brand{padding:0 10px 20px}
+.admin-brand>span{width:32px;height:32px;border-radius:7px;background:#4265a5;box-shadow:none;font-size:15px}
+.admin-brand strong{font-size:17px;font-weight:700;color:#f1f4fb}
+.admin-brand small{color:#b3bfd1;font-size:11px;font-weight:500;letter-spacing:0}
+.admin-nav{gap:15px}
+.admin-nav section>p{margin:0 10px 5px;color:#b3bfd1;font-size:11px;font-weight:600;letter-spacing:0}
+.admin-nav section>button{min-height:35px;gap:8px;padding:6px 10px;color:#e1e8f4;border:0;border-radius:7px}
+.admin-nav section>button>span{display:none}
+.admin-nav section>button>strong{font-size:13px;font-weight:500}
+.admin-nav section>button:hover,.admin-nav section>button.active{color:#fff;background:#ffffff21;border:0}
+.admin-student-switch{background:#ffffff12;border:0;border-radius:8px;color:#f1f4fb}
+.admin-student-switch p,.admin-student-switch small{color:#b3bfd1;letter-spacing:0}
+.admin-student-switch strong{color:#f1f4fb}
+.admin-student-switch button{background:#ffffff1c;border-radius:6px;color:#fff;font-weight:500}
+@media(max-width:850px){.admin-app-shell{display:block}.admin-work-topbar{display:none}.admin-mobile-drawer{background:#1d2940}.admin-mobile-drawer .admin-sidebar{background:#1d2940}}

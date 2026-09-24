@@ -207,7 +207,7 @@ function termIdForDate(id, terms, fallbackYear) {
   return null;
 }
 
-export default function LessonAttendanceManager({ recordsOnly = false, settingsOnly = false, onDirtyChange = () => {}, onBusyChange = () => {} }) {
+export default function LessonAttendanceManager({ recordsOnly = false, settingsOnly = false, fixedTab = null, onDirtyChange = () => {}, onBusyChange = () => {} }) {
   const academic = useAcademicContext();
   const router = useRouter();
   const now = new Date();
@@ -228,7 +228,8 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
     }).catch(() => setNotice('保存済み年度の一覧を取得できませんでした。再読み込みしてください。'));
   }, []);
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [tab, setTab] = useState(settingsOnly ? 'settings' : 'overview');
+  const [tab, setTab] = useState(fixedTab || (settingsOnly ? 'settings' : 'overview'));
+  useEffect(() => { if (fixedTab) setTab(fixedTab); }, [fixedTab]);
   const [students, setStudents] = useState([]);
   const gradeFilters = useMemo(() => [["all", "全学年"], ...availableStudentGrades(students).map((value) => [String(value), gradeLabel(value)])], [students]);
   const [calendar, setCalendar] = useState({});
@@ -849,11 +850,11 @@ export default function LessonAttendanceManager({ recordsOnly = false, settingsO
         </div>
       </header>
 
-      <nav className="attendance-tabs">
+      {!fixedTab && <nav className="attendance-tabs">
         {(settingsOnly ? [["settings", "学期・年間授業日"], ["students", "生徒の通塾曜日・開始日"]] : [["overview", "照合ダッシュボード"], ["record", "出欠の入力・履歴・修正"], ...(!recordsOnly ? [["students", "生徒・曜日設定"], ["settings", "授業設定"]] : [])]).map(([value, label]) =>
           <button key={value} className={tab === value ? "active" : ""} onClick={() => setTab(value)}>{label}</button>
         )}
-      </nav>
+      </nav>}
 
       {notice && <p className="attendance-notice">{notice}</p>}
 

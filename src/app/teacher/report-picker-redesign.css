@@ -1,0 +1,13 @@
+.teacher-shell .teacher-work-tabs.report-active{position:static}
+.teacher-shell .teacher-flow{position:static;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr)}
+.teacher-shell .teacher-period-students{grid-column:1/-1;display:grid;gap:9px}
+.teacher-shell .teacher-period-students>span{color:#536fc1;font-size:12px;font-weight:850}
+.teacher-shell .teacher-period-students>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.teacher-shell .teacher-period-students button{display:grid;gap:3px;min-height:58px;text-align:left;background:#f8faff;border-color:#dce4f0;color:#26344d;cursor:pointer}
+.teacher-shell .teacher-period-students button.selected{background:#edf2ff;border-color:#536fc1;color:#344e9a}
+.teacher-shell .teacher-period-students button strong{font-size:14px}
+.teacher-shell .teacher-period-students button small{font-size:11px;color:#64748b}
+.teacher-shell .teacher-selected-student-sticky{position:sticky;top:0;z-index:9;box-shadow:0 6px 20px #24385420}
+.teacher-shell .teacher-final-save-action{position:static;margin-top:20px;padding:0;background:transparent}
+.teacher-shell .teacher-final-save-action .teacher-save{position:static;box-shadow:none}
+@media(max-width:650px){.teacher-shell .teacher-flow{grid-template-columns:1fr}.teacher-shell .teacher-period-students>div{grid-template-columns:repeat(2,minmax(0,1fr))}.teacher-shell .teacher-selected-student-sticky{top:0}}

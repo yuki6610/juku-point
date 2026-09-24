@@ -9,8 +9,10 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' })
 const subjects = [['', '教科未設定'], ['japanese', '国語'], ['math', '数学'], ['english', '英語'], ['science', '理科'], ['social', '社会'], ['other', 'その他']];
 const weekdayNames = ['月', '火', '水', '木', '金', '土'];
 
-export default function ShiftsPage() {
-  const [week, setWeek] = useState(shiftWeekStart(today())), [data, setData] = useState(null), [entries, setEntries] = useState([]), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [studentToAdd, setStudentToAdd] = useState('');
+export default function ShiftsPage({ selectedWeek, onWeekChange = () => {} }) {
+  const [localWeek, setLocalWeek] = useState(shiftWeekStart(today())), [data, setData] = useState(null), [entries, setEntries] = useState([]), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [studentToAdd, setStudentToAdd] = useState('');
+  const week = selectedWeek || localWeek;
+  const setWeek = value => { setLocalWeek(value); onWeekChange(value); };
   const call = async (body, selectedWeek = week) => {
     const token = await auth.currentUser?.getIdToken();
     const response = await fetch(`/api/admin/shifts?week=${selectedWeek}`, { method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify({ ...body, week: selectedWeek }) } : {}) });
@@ -34,7 +36,7 @@ export default function ShiftsPage() {
     <div className="shifts-actions">
       {!data?.week && <><button disabled={busy} onClick={() => action({ action: 'initialize' })}>通常授業から最初の週を作成</button><button disabled={busy} onClick={() => action({ action: 'copy', sourceWeek: shiftDateAt(week, -7) })}>前週の確定シフトをコピー</button></>}
       {data?.week && <><button disabled={busy} onClick={save}>編集を保存</button><button disabled={busy} onClick={() => action({ action: 'importCourse' })}>確定した講習を反映</button><label>新規生徒を反映<select value={studentToAdd} onChange={event => setStudentToAdd(event.target.value)}><option value="">生徒を選択</option>{(data.students || []).map(item => <option key={item.key} value={item.key}>{item.name}</option>)}</select></label><button disabled={busy || !studentToAdd} onClick={() => action({ action: 'addStudent', studentKey: studentToAdd })}>この生徒を反映</button><button disabled={busy || data.week.status === 'confirmed'} onClick={() => action({ action: 'confirm' })}>シフトを確定</button></>}
-      <a href="/admin/course-lessons">講習日程へ</a><a href="/admin/teacher-preferences">講師の希望を確認</a>
+      <a href="/admin/course-lessons">講習日程へ</a><a href="/admin/shift-management?tab=preferences">講師の希望を確認</a>
     </div>
     {data?.week && <div className="shifts-scroll"><table className="shifts-table"><thead><tr><th rowSpan="2">時間帯</th>{weekdayNames.map((label, day) => <th colSpan="3" key={label}>{shiftDateAt(week, day)}（{label}）</th>)}</tr><tr>{weekdayNames.flatMap(label => ['生徒名', '教科', '担当講師'].map((title, index) => <th key={`${label}-${index}`}>{title}</th>))}</tr></thead><tbody>{visiblePeriods.map(period => { const maxRows = Math.max(1, ...weekdayNames.map((_, day) => entries.filter(item => item.date === shiftDateAt(week, day) && item.periodId === period.id).length)); return Array.from({ length: maxRows }, (_, rowIndex) => <tr key={`${period.id}-${rowIndex}`} className={`shift-period-${period.id}`}>
       {rowIndex === 0 && <th rowSpan={maxRows}>{period.label}<small>{period.startTime}〜{period.endTime}</small></th>}

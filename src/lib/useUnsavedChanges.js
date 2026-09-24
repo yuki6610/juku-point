@@ -8,7 +8,7 @@ export function useUnsavedChanges(selector) {
     const changed=event=>{if(element(event)?.closest(selector))dirty.current=true};
     const leave=event=>{if(dirty.current){event.preventDefault();event.returnValue=''}};
     const navigate=event=>{
-      if(!dirty.current||!element(event)?.closest('a,.admin-nav button,.admin-student-switch button,.attendance-tabs button,.score-hub-tabs button'))return;
+      if(!dirty.current||!element(event)?.closest('a,.admin-nav button,.admin-student-switch button,.attendance-tabs button,.score-hub-tabs button,.admin-hub-tabs button'))return;
       if(!window.confirm('未保存の変更があります。変更を破棄して移動しますか？')){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation()}else dirty.current=false;
     };
     document.addEventListener('change',changed,true);document.addEventListener('input',changed,true);document.addEventListener('click',navigate,true);window.addEventListener('beforeunload',leave);

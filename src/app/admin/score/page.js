@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ScoreManager from './ScoreManager'
 import SchoolJudge from './SchoolJudge'
 import ScoreSubmissions from './ScoreSubmissions'
@@ -13,12 +14,15 @@ const TABS = [
 ]
 
 export default function ScoreHubPage() {
+  const router = useRouter()
   const [tab, setTab] = useState('records')
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get('tab')
+    const student = new URLSearchParams(window.location.search).get('student')
+    router.replace(`/admin/academics?tab=${requested === 'judge' || requested === 'submissions' ? requested : 'records'}${student ? `&student=${encodeURIComponent(student)}` : ''}`)
     if (TABS.some((item) => item.id === requested)) setTab(requested)
-  }, [])
+  }, [router])
 
   const selectTab = (next) => {
     setTab(next)

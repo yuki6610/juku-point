@@ -1,0 +1,5 @@
+.study-hub{width:min(100%,1400px);padding:26px clamp(18px,2.5vw,36px) 72px;margin:0}
+.study-hub-tabs{display:flex;gap:3px;flex-wrap:wrap;padding:0;margin:22px 0 20px;border:0;border-bottom:1px solid #dbe2ed;border-radius:0;background:transparent;box-shadow:none}
+.study-hub-tabs button{padding:9px 15px;border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;color:#617084}
+.study-hub-tabs button.active{border:0;border-bottom:3px solid #315aa7;border-radius:0;background:transparent;color:#202a3a}
+.study-hub-tabs button small{display:none}

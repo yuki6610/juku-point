@@ -5,11 +5,12 @@ import CurrentStudy from './CurrentStudy'
 import StudyHistory from './StudyHistory'
 import IllegalCheckins from './IllegalCheckins'
 import './study-hub.css'
+import './study-hub-redesign.css'
 
 const TABS = [
   { id: 'current', label: '現在自習中', note: '入室状況と強制退出' },
-  { id: 'history', label: '自習履歴', note: '学習時間と入退室記録' },
   { id: 'alerts', label: '要確認', note: '位置情報と不正記録' },
+  { id: 'history', label: '自習履歴', note: '学習時間と入退室記録' },
 ]
 
 export default function StudyManagementPage() {
@@ -26,7 +27,7 @@ export default function StudyManagementPage() {
   }
 
   return <main className="study-hub">
-    <header className="study-hub-header"><span>SELF STUDY OPERATIONS</span><h1>自習管理</h1><p>現在の入室状況、過去の学習時間、位置情報の要確認記録をまとめて確認します。</p></header>
+    <header className="study-hub-header"><span>毎日の業務</span><h1>自習管理</h1><p>現在自習中の生徒と要確認記録を先に確認できます。</p></header>
     <nav className="study-hub-tabs" aria-label="自習管理メニュー">
       {TABS.map((item) => <button type="button" key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => selectTab(item.id)}><strong>{item.label}</strong><small>{item.note}</small></button>)}
     </nav>

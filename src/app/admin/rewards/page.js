@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import RewardCatalog from './RewardCatalog'
 import RewardHistory from './RewardHistory'
 import './rewards-hub.css'
@@ -11,12 +12,14 @@ const TABS = [
 ]
 
 export default function RewardsHubPage() {
+  const router = useRouter()
   const [tab, setTab] = useState('catalog')
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get('tab')
+    router.replace(`/admin/points?tab=${requested === 'catalog' ? 'catalog' : 'exchange'}`)
     if (TABS.some((item) => item.id === requested)) setTab(requested)
-  }, [])
+  }, [router])
 
   const selectTab = (next) => {
     setTab(next)

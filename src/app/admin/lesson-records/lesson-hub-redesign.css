@@ -1,0 +1,7 @@
+.lesson-hub{width:min(100%,1400px);padding:26px clamp(18px,2.5vw,36px) 72px;margin:0;color:#202a3a}
+.lesson-hub>header>span{color:#315aa7;font-size:12px}
+.lesson-hub>header h1{font-size:30px;margin:5px 0 8px}
+.lesson-hub>header p{font-size:13px;color:#617084}
+.lesson-hub-tabs{gap:3px;padding:0;margin:22px 0 20px;border-radius:0;border-bottom:1px solid #dbe2ed;background:transparent}
+.lesson-hub-tabs button{min-height:42px;padding:9px 15px;border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;color:#617084;font-size:13px;font-weight:500}
+.lesson-hub-tabs button[aria-pressed=true]{background:transparent;border:0;border-bottom:3px solid #315aa7;color:#202a3a;font-weight:700}

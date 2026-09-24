@@ -1,0 +1,6 @@
+.course-lessons-page{width:min(100%,1400px);padding:26px clamp(18px,2.5vw,36px) 72px;margin:0}
+.course-lessons-page>header small{font-size:12px;color:#315aa7}
+.course-lessons-page>header h1{font-size:30px;color:#202a3a}
+.course-operation-tabs{display:flex;flex-wrap:wrap;gap:3px;padding:0;margin:20px 0;border-bottom:1px solid #dbe2ed;border-radius:0;background:transparent}
+.course-operation-tabs button{flex:0 1 auto;min-height:42px;padding:9px 15px;border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;color:#617084;font-size:13px;font-weight:500;cursor:pointer}
+.course-operation-tabs button.active{border-bottom-color:#315aa7;background:transparent;color:#202a3a;font-weight:700}

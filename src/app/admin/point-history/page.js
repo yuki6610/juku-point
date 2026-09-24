@@ -32,6 +32,7 @@ const itemDescription = (item) => {
 export default function AdminPointHistoryPage() {
   const [students,setStudents]=useState([]);
   const [uid,setUid]=useState("");
+  useEffect(()=>{const value=new URLSearchParams(window.location.search).get("student");if(value)setUid(value.replace(/^user_/,""))},[]);
   const [grade,setGrade]=useState("all");
   const [items,setItems]=useState([]);
   const [lastDoc,setLastDoc]=useState(null);

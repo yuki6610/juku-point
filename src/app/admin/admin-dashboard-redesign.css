@@ -1,0 +1,24 @@
+.admin-work-home{width:min(100%,1100px);padding:28px clamp(18px,3vw,36px) 60px}
+.admin-work-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:24px}
+.admin-work-heading span{color:#315aa7;font-size:12px}
+.admin-work-heading h1{font-size:29px;font-weight:700;color:#202a3a;margin:4px 0 8px}
+.admin-work-heading p,.admin-work-heading time{color:#617084;font-size:13px}
+.admin-work-heading time{white-space:nowrap;margin-top:13px}
+.admin-work-tabs{display:flex;gap:4px;border-bottom:1px solid #dbe2ed;margin-bottom:20px}
+.admin-work-tabs button{padding:12px 17px;border:0;border-bottom:3px solid transparent;background:transparent;color:#617084;font-size:13px;cursor:pointer}
+.admin-work-tabs button.active{border-color:#315aa7;color:#202a3a;font-weight:700}
+.admin-work-task-list{display:grid;gap:10px}
+.admin-work-task-list>button{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:15px;width:100%;padding:16px;text-align:left;background:#fff;color:#202a3a;border:1px solid #dbe2ed;border-radius:9px;cursor:pointer}
+.admin-work-task-list>button:hover,.admin-work-shortcuts button:hover{border-color:#315aa7}
+.admin-work-count{display:grid;place-items:center;min-height:42px;background:#eaf0fc;color:#315aa7;border-radius:7px;font-size:19px;font-weight:700}
+.admin-work-count.zero{background:#f4f6fa;color:#617084}
+.admin-work-task-list strong,.admin-work-task-list small{display:block}
+.admin-work-task-list strong{font-size:14px}.admin-work-task-list small{margin-top:3px;color:#617084;font-size:12px}
+.admin-work-task-list b{font-size:12px;color:#315aa7;white-space:nowrap}
+.admin-work-task-list [role=alert]{font-size:12px;color:#a34138}
+.admin-work-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
+.admin-work-shortcuts section,.admin-work-simple{padding:20px;background:#fff;border:1px solid #dbe2ed;border-radius:9px}
+.admin-work-shortcuts h2,.admin-work-simple h2{margin:0 0 8px;font-size:16px}.admin-work-shortcuts p,.admin-work-simple p{margin:0;color:#617084;font-size:13px}
+.admin-work-shortcuts button,.admin-work-simple button{margin-top:18px;padding:9px 12px;background:#315aa7;border:1px solid #315aa7;border-radius:6px;color:#fff;font-size:12px;cursor:pointer}
+.admin-work-previews{margin-top:28px;color:#617084;font-size:12px}.admin-work-previews>div{display:flex;gap:8px;margin-top:10px}.admin-work-previews button{background:#fff;border:1px solid #dbe2ed;border-radius:6px;padding:8px 12px;cursor:pointer}
+@media(max-width:700px){.admin-work-heading{display:block}.admin-work-shortcuts{grid-template-columns:1fr}.admin-work-task-list>button{grid-template-columns:44px 1fr}.admin-work-task-list b{grid-column:2}}

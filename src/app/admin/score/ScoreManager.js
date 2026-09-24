@@ -51,6 +51,7 @@ export default function ScoreManager() {
 
   const [students,setStudents]=useState([])
   const [selectedStudentId,setSelectedStudentId]=useState('')
+  useEffect(()=>{const value=new URLSearchParams(window.location.search).get('student');if(value)setSelectedStudentId(value.replace(/^user_/,''))},[])
   const [selectedStudent,setSelectedStudent]=useState(null)
   const [saved,setSaved]=useState([])
 
