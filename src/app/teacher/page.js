@@ -1083,8 +1083,9 @@ export default function TeacherPage() {
         {student&&context?.academicRecords&&<details className="teacher-guidance"><summary>成績・模試・高校判定</summary><div className="teacher-score-summary">{context.academicRecords.scores?.map(item=><article key={item.id}><b>{item.year} {item.term} {item.type==='internal'?'内申':item.testType||'テスト'}</b><span>{item.type==='internal'?`内申換算 ${item.internalTotal??'未登録'}`:`合計 ${item.examTotal??'未登録'}点`}</span></article>)}{context.academicRecords.mockScores?.map(item=><article key={item.id}><b>{item.examName}</b><span>偏差値 {item.overallDeviation??'未登録'}・判定 {item.judgement||'未登録'}</span></article>)}{context.academicRecords.judgments?.map(item=><article key={item.id}><b>{item.name}</b><span>{item.label}（基準差 {item.difference>=0?'+':''}{item.difference}）</span></article>)}{!context.academicRecords.scores?.length&&!context.academicRecords.mockScores?.length&&<p>登録済みの成績はありません。</p>}</div></details>}
         {student && homeworkData && student.grade < 10 && (
           <>
-            <section className="teacher-input-section teacher-check-section">
-              <h2>今日の確認</h2>
+            <details key={`check-${studentKey}`} className="teacher-input-section teacher-check-section teacher-section-fold" open>
+              <summary>今日の確認</summary>
+              <div className="teacher-section-fold-body">
               {pending.length ? (
                 <>
                   <label>
@@ -1299,7 +1300,8 @@ export default function TeacherPage() {
                   {forgotItems.includes('other')&&<input aria-label="その他の忘れ物" placeholder="その他の内容" value={forgotOther} onChange={event=>setForgotOther(event.target.value)}/>}
                 </div>
               )}
-            </section>
+              </div>
+            </details>
             <section className="teacher-input-section teacher-homework-section">
               <h2>次回までの宿題</h2>
               <p className="teacher-help">
@@ -1358,7 +1360,9 @@ export default function TeacherPage() {
           </>
         )}
         {student && homeworkData && student.grade < 10 && (
-          <section className="teacher-report-section">
+          <details key={`report-${studentKey}`} className="teacher-report-section teacher-section-fold">
+            <summary>保護者への授業報告</summary>
+            <div className="teacher-section-fold-body">
             <LessonReportFields
               learningContent={learningContent}
               onLearningContentChange={setLearningContent}
@@ -1400,7 +1404,8 @@ export default function TeacherPage() {
                 placeholder="保護者には表示されません"
               />
             </label>
-          </section>
+            </div>
+          </details>
         )}
         {student && !homeworkData && (
           <p role="status">

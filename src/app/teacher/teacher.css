@@ -24,4 +24,13 @@
 .teacher-shell .homework-range-field span{font-size:12px;color:#64748b}
 .teacher-shell .teacher-save-between-sections{margin:0 0 16px}
 .teacher-shell .teacher-save-between-sections .teacher-save{position:static}
+.teacher-shell .teacher-section-fold{display:block;margin:16px 0;padding:0;border:1px solid #dfe7f2;border-radius:22px;box-shadow:0 12px 30px rgba(44,57,91,.055);overflow:hidden}
+.teacher-shell .teacher-section-fold>summary{cursor:pointer;padding:18px 26px;font-size:20px;font-weight:850;list-style:none}
+.teacher-shell .teacher-section-fold>summary::-webkit-details-marker{display:none}
+.teacher-shell .teacher-section-fold>summary::after{content:'開く';float:right;color:#536fc1;font-size:12px;line-height:28px}
+.teacher-shell .teacher-section-fold[open]>summary::after{content:'閉じる'}
+.teacher-shell .teacher-section-fold[open]>summary{border-bottom:1px solid #dfe7f2}
+.teacher-shell .teacher-section-fold-body{display:grid;gap:16px;padding:18px 26px 26px}
+.teacher-shell .teacher-section-fold .lesson-report-fields>h3{display:none}
+@media(max-width:650px){.teacher-shell .teacher-section-fold>summary{padding:16px 18px;font-size:18px}.teacher-shell .teacher-section-fold-body{padding:16px 18px 20px}}
 @media(max-width:650px){.teacher-shell .teacher-flow{grid-template-columns:1fr}.teacher-shell .homework-range-field{grid-column:auto}}
