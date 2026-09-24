@@ -93,8 +93,10 @@ export async function POST(request) {
       nextLessonNote: clean(input.nextLessonNote).slice(0, 1000),
       nextLessonItems: Array.isArray(input.nextLessonItems) ? input.nextLessonItems.slice(0, 20).map(item => ({ subject: clean(item?.subject).slice(0, 30), materialId: clean(item?.materialId).slice(0, 128), range: clean(item?.range).slice(0, 300), note: clean(item?.note).slice(0, 300), customLabel: clean(item?.customLabel).slice(0, 100), difficulty: Number(item?.difficulty || 3) })) : [],
       wordCorrect: String(input.wordCorrect ?? '').slice(0, 5), wordTotal: String(input.wordTotal ?? '').slice(0, 5),
-      wordRange: input.wordRange || null, nextWordRange: input.nextWordRange || null,
-      wordRangeMode: ['same', 'next', 'custom'].includes(input.wordRangeMode) ? input.wordRangeMode : 'same',
+      ...(grade >= 7 ? {
+        wordRange: input.wordRange || null, nextWordRange: input.nextWordRange || null,
+        wordRangeMode: ['same', 'next', 'custom'].includes(input.wordRangeMode) ? input.wordRangeMode : 'same',
+      } : {}),
       learningContent: clean(input.learningContent).slice(0, 500),
       reportFacts: input.reportFacts && typeof input.reportFacts === 'object' ? input.reportFacts : {},
       nextItems: Array.isArray(input.nextItems) ? input.nextItems.slice(0, 20) : [],

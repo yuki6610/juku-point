@@ -72,14 +72,21 @@ export async function POST(request) {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-      console.error('Lesson report generation failed', response.status, result?.error?.code || 'unknown');
+      const errorCode = result?.error?.code || result?.error?.type || 'unknown';
+      console.error('Lesson report generation failed', response.status, errorCode);
       const message = response.status === 401
         ? '授業報告APIの認証設定を確認してください。'
         : response.status === 429
           ? '授業報告APIの利用枠または請求設定を確認してください。'
           : response.status === 403
             ? '授業報告APIでこのモデルを利用できません。'
-            : '授業報告を生成できませんでした。';
+            : response.status === 404
+              ? '授業報告APIのモデル名または利用権限を確認してください。'
+              : response.status === 400
+                ? '授業報告APIのリクエスト設定を確認してください。'
+                : response.status >= 500
+                  ? '授業報告APIで一時的な障害が発生しました。時間をおいて再試行してください。'
+                  : '授業報告を生成できませんでした。';
       return Response.json({ error: message }, { status: 502 });
     }
     const outputText = result.output_text || result.output
@@ -88,7 +95,7 @@ export async function POST(request) {
       .map(item => item.text || '')
       .join('');
     const text = String(outputText || '').trim().slice(0, 2000);
-    if (!text) return Response.json({ error: '授業報告を生成できませんでした。' }, { status: 502 });
+    if (!text) return Response.json({ error: '生成結果が空でした。出力上限やAPIの応答状態を確認してください。' }, { status: 502 });
     try {
       const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
       const month = `${parts.find(part => part.type === 'year').value}-${parts.find(part => part.type === 'month').value}`;

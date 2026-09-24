@@ -141,6 +141,7 @@ export default function TeacherPage() {
     ]),
     [dueDate, setDueDate] = useState(""),
     [notice, setNotice] = useState(""),
+    [saveError, setSaveError] = useState(""),
     [saving, setSaving] = useState(false);
   const [nextLessonItems,setNextLessonItems]=useState([blankHomeworkItem()]);
   const [scoreStudentKey,setScoreStudentKey]=useState("");
@@ -302,6 +303,7 @@ export default function TeacherPage() {
     setDraftLoadedKey("");
     setHomeworkData(null);
     setNotice("");
+    setSaveError("");
     setDirty(false);
     if (!studentKey) return;
     const key = `teacher-draft:${auth.currentUser?.uid}:${date}:${studentKey}`;
@@ -319,19 +321,16 @@ export default function TeacherPage() {
       setNextLessonNote(value.nextLessonNote || "");
       setNextLessonItems(Array.isArray(value.nextLessonItems)&&value.nextLessonItems.length?value.nextLessonItems:[blankHomeworkItem()]);
       setWordCorrect(value.wordCorrect ?? value.wordTest?.correct ?? "");
-      setWordTotal(
-        value.wordTotal ??
-          value.wordTest?.total ??
-          student?.wordTestQuestionCount ??
-          20,
-      );
-      setWordRange(
+      setWordTotal(Number(student?.grade) <= 6
+        ? student?.wordTestQuestionCount ?? 20
+        : value.wordTotal ?? value.wordTest?.total ?? student?.wordTestQuestionCount ?? 20);
+      setWordRange(Number(student?.grade) <= 6 ? null :
         value.wordRange ??
           value.wordTest?.range ??
           student?.wordTestCurrentRange ??
           null,
       );
-      setNextWordRange(
+      setNextWordRange(Number(student?.grade) <= 6 ? null :
         value.nextWordRange ??
           value.wordTest?.nextRange ??
           value.wordRange ??
@@ -455,9 +454,7 @@ export default function TeacherPage() {
           note,
           wordCorrect,
           wordTotal,
-          wordRange,
-          nextWordRange,
-          wordRangeMode,
+          ...(Number(student?.grade) > 6 ? { wordRange, nextWordRange, wordRangeMode } : {}),
           learningContent,
           reportFacts,
           attendance,
@@ -496,7 +493,7 @@ export default function TeacherPage() {
             : "自動保存しました。",
         );
       } catch (error) {
-        if (active) setNotice(`端末には保存済みですが、共有下書きの保存に失敗しました。${error.message}`);
+        if (active) setSaveError(`端末には保存済みですが、共有下書きの保存に失敗しました。${error.message}`);
       }
     }, 800);
     return () => {
@@ -559,11 +556,13 @@ export default function TeacherPage() {
   );
   const save = async () => {
     if (!student || saving || !draftLoadedKey || !homeworkData) return;
-    if (lessonType === 'course' && !context?.coursePeriod) return setNotice('講習期間外には講習授業を登録できません。');
-    if (student.lessonType && lessonType !== student.lessonType) return setNotice('確定シフトの授業種別と異なります。画面を読み直してください。');
+    const showSaveError = (message) => { setSaveError(message); setNotice(message); };
+    if (lessonType === 'course' && !context?.coursePeriod) return showSaveError('講習期間外には講習授業を登録できません。');
+    if (student.lessonType && lessonType !== student.lessonType) return showSaveError('確定シフトの授業種別と異なります。画面を読み直してください。');
     if (!attendance)
-      return setNotice("出席・欠席・振替出席のいずれかを選択してください。");
+      return showSaveError("出席・欠席・振替出席のいずれかを選択してください。");
     setSaving(true);
+    setSaveError("");
     setNotice("");
     let lessonSaved = false;
     try {
@@ -583,7 +582,7 @@ export default function TeacherPage() {
           ? []
           : nextItems.filter((item) => item.materialId || item.range.trim());
       const automaticWordRange=nextWordRange||wordRange||student.wordTestCurrentRange||{start:1,end:Number(wordTotal||20)};
-      if(wordEnabled&&attendance!=="absent"&&wordCorrect!==""&&!validItems.some(item=>item.materialId==='words'))validItems=[...validItems,{subject:'english',materialId:'words',range:`${automaticWordRange.start}-${automaticWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
+      if(isMiddle&&wordEnabled&&attendance!=="absent"&&wordCorrect!==""&&!validItems.some(item=>item.materialId==='words'))validItems=[...validItems,{subject:'english',materialId:'words',range:`${automaticWordRange.start}-${automaticWordRange.end}`,note:'次回単語テスト予定',difficulty:2}];
       const oldAssignment = homeworkData.items.find(
         (item) => item.id === assignmentId,
       );
@@ -656,8 +655,8 @@ export default function TeacherPage() {
                   status: "completed",
                   correct: wordCorrect,
                   total: wordTotal,
-                  ...(wordRange ? { range: wordRange } : {}),
-                  ...(nextWordRange ? { nextRange: nextWordRange, nextRangeMode: wordRangeMode } : {}),
+                  ...(isMiddle && wordRange ? { range: wordRange } : {}),
+                  ...(isMiddle && nextWordRange ? { nextRange: nextWordRange, nextRangeMode: wordRangeMode } : {}),
                 }
               : { status: "notScheduled" }
           : { status: "notScheduled", correct: null, total: null },
@@ -735,6 +734,7 @@ export default function TeacherPage() {
       setDraftLoadedKey("");
       setDirty(false);
       setNotice("授業記録を管理者に送信しました。");
+      setSaveError("");
       setContext((old) => ({
         ...old,
         inputStatus: {
@@ -748,15 +748,14 @@ export default function TeacherPage() {
       }));
       setReload((value) => value + 1);
     } catch (error) {
-      setNotice(
-        `${lessonSaved ? "授業記録は保存済みですが、新しい宿題を保存できませんでした。 " : ""}${error.message}`,
-      );
+      showSaveError(`${lessonSaved ? "授業記録は保存済みですが、新しい宿題を保存できませんでした。 " : ""}${error.message}`);
     } finally {
       setSaving(false);
     }
   };
   return (
     <main className={`teacher-shell ${embedded ? "teacher-embedded" : ""}`}>
+      {saveError && <div className="teacher-save-error" role="alert"><span>{saveError}</span><button type="button" onClick={() => setSaveError("")} aria-label="エラー表示を閉じる">×</button></div>}
       <header>
         <div>
           <small>{embedded ? "ADMIN LESSON INPUT" : "TEACHER CONSOLE"}</small>
@@ -1185,8 +1184,8 @@ export default function TeacherPage() {
                   className="teacher-word-details"
                   open={wordCorrect !== ""}
                 >
-                  <summary>単語テストを入力{student?.wordTestCurrentRange ? `（No.${student.wordTestCurrentRange.start}〜${student.wordTestCurrentRange.end}）` : ''}</summary>
-                  <div className="teacher-word">
+                  <summary>単語テストを入力{!isElementary && student?.wordTestCurrentRange ? `（No.${student.wordTestCurrentRange.start}〜${student.wordTestCurrentRange.end}）` : ''}</summary>
+                  <div className={`teacher-word ${isElementary ? "elementary" : ""}`}>
                     <label>
                       正答数
                       <input
@@ -1198,7 +1197,7 @@ export default function TeacherPage() {
                       />
                     </label>
                     <span>/</span>
-                    <label>
+                    {isElementary ? <span>{wordTotal}点満点</span> : <label>
                       問題数
                       <input
                         type="number"
@@ -1207,9 +1206,9 @@ export default function TeacherPage() {
                         value={wordTotal}
                         onChange={(e) => setWordTotal(e.target.value)}
                       />
-                    </label>
+                    </label>}
                   </div>
-                  {wordCorrect !== "" && (
+                  {!isElementary && wordCorrect !== "" && (
                     <>
                       <div className="teacher-word-range-current">
                         <b>今回の出題範囲</b>
