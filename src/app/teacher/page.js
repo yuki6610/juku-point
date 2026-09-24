@@ -321,9 +321,7 @@ export default function TeacherPage() {
       setNextLessonNote(value.nextLessonNote || "");
       setNextLessonItems(Array.isArray(value.nextLessonItems)&&value.nextLessonItems.length?value.nextLessonItems:[blankHomeworkItem()]);
       setWordCorrect(value.wordCorrect ?? value.wordTest?.correct ?? "");
-      setWordTotal(Number(student?.grade) <= 6
-        ? student?.wordTestQuestionCount ?? 20
-        : value.wordTotal ?? value.wordTest?.total ?? student?.wordTestQuestionCount ?? 20);
+      setWordTotal(value.wordTotal ?? value.wordTest?.total ?? (Number(student?.grade) <= 6 ? "" : student?.wordTestQuestionCount ?? 20));
       setWordRange(Number(student?.grade) <= 6 ? null :
         value.wordRange ??
           value.wordTest?.range ??
@@ -1197,7 +1195,7 @@ export default function TeacherPage() {
                       />
                     </label>
                     <span>/</span>
-                    {isElementary ? <span>{wordTotal}点満点</span> : <label>
+                    <label>
                       問題数
                       <input
                         type="number"
@@ -1206,7 +1204,7 @@ export default function TeacherPage() {
                         value={wordTotal}
                         onChange={(e) => setWordTotal(e.target.value)}
                       />
-                    </label>}
+                    </label>
                   </div>
                   {!isElementary && wordCorrect !== "" && (
                     <>

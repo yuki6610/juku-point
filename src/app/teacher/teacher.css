@@ -35,6 +35,9 @@
 .teacher-save-error{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;z-index:100;display:flex;align-items:center;gap:16px;width:min(92vw,780px);padding:12px 16px;transform:translateX(-50%);color:#8d2332;background:#fff1f2;border:2px solid #f5a5af;border-radius:14px;box-shadow:0 14px 40px #3b1b2540;font-weight:800}
 .teacher-save-error span{flex:1}
 .teacher-shell .teacher-save-error button{width:38px;min-height:38px;padding:0;color:#8d2332;background:#fff;border-color:#f5a5af;font-size:22px;cursor:pointer}
-.teacher-shell .teacher-word.elementary{grid-template-columns:minmax(0,1fr) auto auto}
+.teacher-shell .teacher-word.elementary{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+.lesson-report-generate-error-toast{position:fixed;top:max(12px,env(safe-area-inset-top));left:50%;z-index:1000;display:flex;align-items:flex-start;gap:12px;width:min(calc(100vw - 24px),720px);max-height:min(50vh,360px);padding:14px 16px;transform:translateX(-50%);box-sizing:border-box;overflow-y:auto;overflow-wrap:anywhere;color:#9f2f3d;background:#fff1f2;border:2px solid #f5a5af;border-radius:14px;box-shadow:0 14px 40px #3b1b2540;font-size:14px;line-height:1.6;font-weight:750}
+.lesson-report-generate-error-toast span{flex:1;min-width:0}
+.lesson-report-generate-error-toast button{flex:none;width:32px;height:32px;padding:0;color:#9f2f3d;background:#fff;border:1px solid #f5a5af;border-radius:8px;font-size:22px;cursor:pointer}
 @media(max-width:650px){.teacher-shell .teacher-section-fold>summary{padding:16px 18px;font-size:18px}.teacher-shell .teacher-section-fold-body{padding:16px 18px 20px}}
 @media(max-width:650px){.teacher-shell .teacher-flow{grid-template-columns:1fr}.teacher-shell .homework-range-field{grid-column:auto}}

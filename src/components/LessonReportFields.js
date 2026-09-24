@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getAuth } from 'firebase/auth';
 import { app } from '@/firebaseApp';
 import { normalizeReportFacts } from '@/lib/lessonReport.mjs';
@@ -58,7 +59,11 @@ export default function LessonReportFields({ learningContent, onLearningContentC
     <p className="report-rating-scale">1 かなり課題がある ／ 2 やや課題がある ／ 3 標準 ／ 4 良好 ／ 5 非常に良好</p>
     <label className="lesson-report-supplement">補足（生成時だけ使用）<textarea rows="3" value={facts.supplement||''} maxLength={500} onChange={event=>onChange({...facts,supplement:event.target.value})} placeholder="例：文章問題で少し時間がかかった" /></label>
     <button type="button" className="report-generate" onClick={generate} disabled={generating}>{generating ? '生成しています…' : '授業報告を生成'}</button>
-    {generateError && <p className="lesson-report-generate-error" role="alert">{generateError}</p>}
+    {generateError && typeof document !== 'undefined' && createPortal(
+      <div className="lesson-report-generate-error-toast" role="alert">
+        <span>{generateError}</span>
+        <button type="button" onClick={() => setGenerateError('')} aria-label="生成エラーを閉じる">×</button>
+      </div>, document.body)}
     <label className="lesson-report-main">{teacherView?'授業報告（管理者の承認後に保護者へ公開）':'授業報告（保護者に送信する文章）'}<textarea rows="10" value={facts.extraNote||''} maxLength={2000} onChange={event=>onChange({...facts,extraNote:event.target.value})} placeholder="「授業報告を生成」を押すと文章が入ります。内容を確認し、必要に応じて修正してください。" /></label>
     <div className="lesson-report-preview"><small>保護者への表示プレビュー</small><p>{facts.extraNote||'文章を生成すると、ここに表示されます。'}</p></div>
   </section>;
