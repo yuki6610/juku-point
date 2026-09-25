@@ -112,6 +112,7 @@ export default function RankingPage() {
       } = await import("firebase/firestore");
       const clientDb = getFirestore(app);
       const usersSnap = await getDocs(collection(clientDb, "users"));
+      const elementarySnap = await getDocs(collection(clientDb, "adminStudents")).catch(() => ({ docs: [] }));
       let adminIds = new Set();
       let hallOfFame = null;
 
@@ -132,21 +133,22 @@ export default function RankingPage() {
         }
       }
 
-      const fallbackUsers = usersSnap.docs
-        .filter((snapshot) => {
+      const fallbackUsers = [...usersSnap.docs.map(snapshot => ({ snapshot, kind: 'user' })), ...elementarySnap.docs.map(snapshot => ({ snapshot, kind: 'elementary' }))]
+        .filter(({ snapshot, kind }) => {
           const source = snapshot.data();
           return (
-            !adminIds.has(snapshot.id) &&
+            (kind !== 'user' || !adminIds.has(snapshot.id)) &&
             source.role !== "admin" && Number(source.grade)>=7 && Number(source.grade)<=9 &&
             source.isAdmin !== true &&
             source.active !== false &&
             source.enrollmentStatus !== 'withdrawn'
           );
         })
-        .map((snapshot) => {
+        .map(({ snapshot, kind }) => {
           const source = snapshot.data();
-          const user = { id: snapshot.id };
+          const user = { id: `${kind}_${snapshot.id}` };
           for (const field of PUBLIC_FIELDS) user[field] = source[field] ?? null;
+          user.displayName ||= source.realName || source.name || '名前未設定';
           return user;
         });
 

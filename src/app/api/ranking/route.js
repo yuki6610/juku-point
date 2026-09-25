@@ -34,20 +34,22 @@ export async function GET(request) {
       return Response.json({ error: "学期情報が正しくありません。" }, { status: 400 });
     }
 
-    const [usersSnap, adminsSnap, hallSnap] = await Promise.all([
+    const [usersSnap, elementarySnap, adminsSnap, hallSnap] = await Promise.all([
       adminDb.collection("users").get(),
+      adminDb.collection("adminStudents").get(),
       adminDb.collection("admins").get(),
       previousSeason
         ? adminDb.collection("hallOfFame").doc(previousSeason).get()
         : Promise.resolve(null),
     ]);
     const adminIds = new Set(adminsSnap.docs.map((snapshot) => snapshot.id));
-    const users = usersSnap.docs
-      .filter((snapshot) => !adminIds.has(snapshot.id) && Number(snapshot.data().grade)>=7 && Number(snapshot.data().grade)<=9 && snapshot.data().active!==false && snapshot.data().enrollmentStatus!=="withdrawn")
-      .map((snapshot) => {
+    const users = [...usersSnap.docs.map(snapshot => ({ snapshot, source: 'user' })), ...elementarySnap.docs.map(snapshot => ({ snapshot, source: 'elementary' }))]
+      .filter(({ snapshot, source }) => (source !== 'user' || !adminIds.has(snapshot.id)) && Number(snapshot.data().grade)>=7 && Number(snapshot.data().grade)<=9 && snapshot.data().active!==false && snapshot.data().enrollmentStatus!=="withdrawn")
+      .map(({ snapshot, source: studentSource }) => {
         const source = snapshot.data();
-        const user = { id: snapshot.id };
+        const user = { id: `${studentSource}_${snapshot.id}` };
         for (const field of PUBLIC_FIELDS) user[field] = source[field] ?? null;
+        user.displayName ||= source.realName || source.name || '名前未設定';
         return user;
       });
 

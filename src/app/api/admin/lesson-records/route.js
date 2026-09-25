@@ -227,29 +227,30 @@ export async function POST(request) {
 
       const wordCompleted = ["completed", "makeup"].includes(wordStatus);
       const requestedWord = wordCompleted ? wordTestReward(correct, total) : 0;
+      const scoreCorrect = wordCompleted ? correct + extraTests.reduce((sum, item) => sum + Number(item.correct), 0) : 0;
       const oldWord = oldWordSnap.exists ? oldWordSnap.data() : null;
       if (oldWord && oldWord.sourceDate !== date && wordCompleted) {
         throw new ApiError("この週の単語テストはすでに別の日付で記録されています。", 409);
       }
       if ((!oldWord && wordCompleted) || oldWord?.sourceDate === date) {
         const previous = Number(oldWord?.amount || 0);
-        const previousCorrect = Number(oldWord?.correct || 0);
+        const previousCorrect = Number(oldWord?.scoreCorrect ?? oldWord?.correct ?? 0);
         const wasCompleted = Boolean(oldWord?.completed);
         pointDelta += requestedWord - previous;
         expDelta += requestedWord - previous;
         earnedDelta += Math.max(requestedWord, 0) - Math.max(previous, 0);
         wordTestCountDelta += Number(wordCompleted) - Number(wasCompleted);
-        wordScoreDelta += (wordCompleted ? correct : 0) - previousCorrect;
+        wordScoreDelta += scoreCorrect - previousCorrect;
         rewards.wordTest = requestedWord;
         transaction.set(wordRewardRef, {
           type: "wordtest", termId, weekId, sourceDate: date, amount: requestedWord,
-          exp: requestedWord, correct: wordCompleted ? correct : 0,
+          exp: requestedWord, correct: wordCompleted ? correct : 0, scoreCorrect,
           total: wordCompleted ? total : 0, accuracy: wordCompleted ? correct / total : 0,
           completed: wordCompleted, updatedAt: now, createdAt: oldWord?.createdAt || now,
         }, { merge: true });
         transaction.set(wordHistoryRef, {
           type: wordCompleted ? "wordtest" : "wordtest_undo", amount: requestedWord,
-          exp: requestedWord, correct: wordCompleted ? correct : 0,
+          exp: requestedWord, correct: wordCompleted ? correct : 0, scoreCorrect,
           total: wordCompleted ? total : 0, week: weekId, termId, sourceDate: date,
           message: wordCompleted && requestedWord === 0 ? "単語テスト（正答率70%未満・ポイントなし）" : "単語テスト",
           createdAt: eventTimestamp, updatedAt: now,

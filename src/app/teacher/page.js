@@ -139,6 +139,7 @@ export default function TeacherPage() {
   const [hasSavedRecord, setHasSavedRecord] = useState(false);
   const [nextLessonItems,setNextLessonItems]=useState([blankHomeworkItem()]);
   const [scoreStudentKey,setScoreStudentKey]=useState("");
+  const [scorePreset,setScorePreset]=useState(null);
   const [draftLoadedKey, setDraftLoadedKey] = useState("");
   const [homework, setHomework] = useState("none"),
     [assignmentId, setAssignmentId] = useState(""),
@@ -933,6 +934,7 @@ export default function TeacherPage() {
                       {info.sharedInfo}
                     </p>
                   )}
+                  {Number(item.grade) >= 7 && Number(item.grade) <= 12 && info.targetSchool && <p><b>志望校</b>{info.targetSchool}</p>}
                   {info.teacherMemo && (
                     <p>
                       <b>直近メモ</b>
@@ -961,7 +963,7 @@ export default function TeacherPage() {
                     <div className="teacher-submission-status">
                       <b>成績資料</b>
                       {info.submissionStatus.items.filter(entry=>entry.status==='missing').map((entry) => (
-                        <span
+                        <button type="button" onClick={()=>{setScoreStudentKey(item.key);setScorePreset({studentKey:item.key,year:context.term.year,term:context.term.term,kind:entry.kind,testType:entry.testType||''});}}
                           key={entry.id}
                           className={
                             entry.status === "missing" ? "missing" : "received"
@@ -971,11 +973,11 @@ export default function TeacherPage() {
                             ? "通知表"
                             : entry.testType}
                           ：{submissionLabel(entry.status)}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   )}
-                  {Number(item.grade) >= 7 && Number(item.grade) <= 9 && <div className="teacher-info-score-action"><button type="button" onClick={()=>setScoreStudentKey(current=>current===item.key?'':item.key)}>{scoreStudentKey===item.key?'成績入力を閉じる':'この生徒の成績を入力'}</button>{scoreStudentKey===item.key&&<StaffScoreEntry studentKey={item.key} students={context?.students||[]}/>}</div>}
+                  {Number(item.grade) >= 7 && Number(item.grade) <= 9 && <div className="teacher-info-score-action"><button type="button" onClick={()=>{setScorePreset(null);setScoreStudentKey(current=>current===item.key?'':item.key);}}>{scoreStudentKey===item.key?'成績入力を閉じる':'この生徒の成績を入力'}</button>{scoreStudentKey===item.key&&<StaffScoreEntry studentKey={item.key} students={context?.students||[]} preset={scorePreset?.studentKey===item.key?scorePreset:null}/>}</div>}
                   {!Object.values(info).some(Boolean) && (
                     <p>登録された共有情報はありません。</p>
                   )}

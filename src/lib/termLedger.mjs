@@ -11,7 +11,7 @@ export function summarizeTermHistory(rows, period) {
     if(row.affectsEarnedPoints===false||row.type==='gacha'||row.type==='homework_undo')continue;
     const amount=Number(row.amount??row.point??0);if(Number.isFinite(amount))summary.termPoints+=amount;
     if(row.type==='homework'&&amount>0)summary.termHomeworkCount++;
-    if(row.type==='wordtest'){summary.termWordScore+=Number(row.correct||0);summary.termWordTestCount++}
+    if(row.type==='wordtest'){summary.termWordScore+=Number(row.scoreCorrect??row.correct??0);summary.termWordTestCount++}
     if(row.type==='selfstudy'){summary.termSelfStudyCount++;summary.termStudyMinutes+=Number(row.minutes??String(row.note||'').match(/自習\s*(\d+)\s*分/)?.[1]??0)}
   }
   return summary;

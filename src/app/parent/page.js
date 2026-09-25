@@ -1012,6 +1012,12 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
     ),
     [notice, setNotice] = useState(""),
     [saving, setSaving] = useState(false);
+  const selectMissing = item => {
+    if (item.status !== 'missing') return;
+    setType(item.kind);
+    if (item.kind === 'exam') setTestType(item.testType || '');
+    document.getElementById('parent-score-entry-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const selected = report?.terms?.find((item) => item.id === term),
     scores = report?.scores || [],
     submissionItems = report?.submissionStatus?.items || [],
@@ -1019,6 +1025,7 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
     internalSubmitted = report?.submissionStatus?.internalReceived === true;
   const submit = async () => {
     if (!selected || saving || busy || !report?.summary) return;
+    if (type === 'exam' && !testType) { setNotice('対象のテストを選択してください。'); return; }
     setSaving(true);
     setNotice("");
     try {
@@ -1093,6 +1100,7 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
                         ? "提出予定"
                         : "未提出"}
                   </b>
+                  {item.status === 'missing' && <button type="button" onClick={() => selectMissing(item)}>この資料を入力</button>}
                 </article>
               ))
             ) : (
@@ -1114,7 +1122,7 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
               <small>{selected?.term}学期の提出状況</small>
             </article>
           </div>
-          <div className="parent-score-form">
+          <div className="parent-score-form" id="parent-score-entry-form">
             <nav>
               <button
                 className={type === "exam" ? "active" : ""}
@@ -1137,7 +1145,8 @@ function ParentScoreEntry({ child, report, term, setTerm, busy, saved }) {
                     value={testType}
                     onChange={(e) => setTestType(e.target.value)}
                   >
-                    {SCORE_TEST_TYPES.map((value) => (
+                    <option value="">選択してください</option>
+                    {[...new Set([...SCORE_TEST_TYPES, ...(testType ? [testType] : [])])].map((value) => (
                       <option key={value}>{value}</option>
                     ))}
                   </select>

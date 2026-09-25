@@ -73,7 +73,7 @@ export async function GET(request) {
     const schoolNames=[...new Set(calendarEntries.map(item=>String(item.schoolName||'')).filter(Boolean))];
     const statusPairs=await Promise.all(statusTargets.map(async item=>{const [scores,saved]=await Promise.all([adminDb.collection(item.source==='elementary'?'adminStudents':'users').doc(item.id).collection('scores').where('year','==',String(term.year)).where('term','==',`${term.term}学期`).get(),adminDb.collection('scoreSubmissionTerms').doc(term.id).collection('students').doc(item.source==='elementary'?item.key:item.id).get()]);const legacySchool=String(profileMap.get(item.key)?.schoolName||''),tagSchool=item.tags.find(tag=>schoolNames.some(name=>normalizeSchool(name)===normalizeSchool(tag))),schoolName=tagSchool||legacySchool;const entries=matchingSubmissionEntries(calendarEntries,{grade:item.grade,schoolName},term.id);return[item.key,projectSubmissionStatus(entries,saved.data()||{},date,scores.docs.map(doc=>doc.data()))] }));
     const submissionByStudent=Object.fromEntries(statusPairs);
-    const publicGuidance=(value,submissionStatus)=>value||submissionStatus ? { policy: String(value?.memo || '').slice(0,2000), materials: String(value?.materials || '').slice(0,1000), courseMaterials: String(value?.courseMaterials || '').slice(0,1000), teacherMemo:String(value?.teacherMemo||'').slice(0,2000), sharedInfo:String(value?.sharedInfo||'').slice(0,3000), submissionStatus:submissionStatus||null } : null;
+    const publicGuidance=(value,submissionStatus,grade)=>value||submissionStatus ? { policy: String(value?.memo || '').slice(0,2000), materials: String(value?.materials || '').slice(0,1000), courseMaterials: String(value?.courseMaterials || '').slice(0,1000), teacherMemo:String(value?.teacherMemo||'').slice(0,2000), sharedInfo:String(value?.sharedInfo||'').slice(0,3000), ...(Number(grade)>=7&&Number(grade)<=12?{targetSchool:String(value?.targetSchool||'').slice(0,200)}:{}), submissionStatus:submissionStatus||null } : null;
     let nextLessonNote=null,academicRecords=null;
     if(selectedStudent){
       const handoffRef=adminDb.collection('lessonHandoffs').doc(requested);
@@ -86,8 +86,8 @@ export async function GET(request) {
         academicRecords={scores:scoreItems,mockScores:mocks.docs.map(doc=>({id:doc.id,...doc.data(),updatedAt:undefined,updatedBy:undefined})),judgments};
       }
     }
-    const guidance = publicGuidance(selectedProfile,submissionByStudent[requested]);
-    const guidanceByStudent=Object.fromEntries(students.map(item=>[item.key,publicGuidance(profileMap.get(item.key),submissionByStudent[item.key])]).filter(([,value])=>value));
+    const guidance = publicGuidance(selectedProfile,submissionByStudent[requested],selectedStudent?.grade);
+    const guidanceByStudent=Object.fromEntries(students.map(item=>[item.key,publicGuidance(profileMap.get(item.key),submissionByStudent[item.key],item.grade)]).filter(([,value])=>value));
     const existingDraft=requested&&drafts.docs.find(item=>item.id===requested)?.data()?.payload||null;
     return Response.json({ role: staff.role, displayName: staff.profile?.displayName || '管理者', date, weekday, term, students, shiftConfirmed:confirmedShift, coursePeriod:coursePrograms.docs.some(doc=>doc.data().startDate<=date&&date<=doc.data().endDate), suggestedKeys:visibleEntries.map(item=>item.studentKey), inputStatus, draftStatus, existingRecord, existingDraft, deletionRequest, guidance, guidanceByStudent, absenceCandidates,nextLessonNote,academicRecords });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }

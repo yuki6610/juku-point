@@ -18,6 +18,7 @@ export default function LessonReportApprovals() {
   const [items, setItems] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [query, setQuery] = useState('');
+  const [sortMode, setSortMode] = useState('date');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
@@ -27,7 +28,7 @@ export default function LessonReportApprovals() {
     setLoading(true);
     setError('');
     return api()
-      .then(data => setItems((data.items || []).sort((a, b) => String(a.date).localeCompare(String(b.date)))))
+      .then(data => setItems((data.items || []).sort((a, b) => String(a.date).localeCompare(String(b.date)) || Number(a.periodOrder || 99) - Number(b.periodOrder || 99))))
       .catch(value => setError(value.message))
       .finally(() => setLoading(false));
   };
@@ -35,8 +36,9 @@ export default function LessonReportApprovals() {
 
   const visible = useMemo(() => {
     const word = query.trim().toLocaleLowerCase('ja');
-    return word ? items.filter(item => `${item.name} ${item.date}`.toLocaleLowerCase('ja').includes(word)) : items;
-  }, [items, query]);
+    const filtered = word ? items.filter(item => `${item.name} ${item.date} ${item.teacherName}`.toLocaleLowerCase('ja').includes(word)) : items;
+    return [...filtered].sort((a,b)=>sortMode==='period' ? Number(a.periodOrder||99)-Number(b.periodOrder||99)||String(a.date).localeCompare(String(b.date)) : String(a.date).localeCompare(String(b.date))||Number(a.periodOrder||99)-Number(b.periodOrder||99));
+  }, [items, query, sortMode]);
   const selected = visible.find(item => itemId(item) === selectedId) || visible[0];
   const update = (id, text) => setItems(old => old.map(item => itemId(item) === id ? { ...item, text } : item));
   const approve = async item => {
@@ -65,15 +67,16 @@ export default function LessonReportApprovals() {
     {!loading && !error && !items.length && <div className="approval-empty"><strong>現在、未承認の授業報告はありません</strong><p>講師が送信すると、ここに表示されます。</p></div>}
     {!loading && items.length > 0 && <div className="approval-layout">
       <section className="approval-queue" aria-label="未承認報告の一覧">
-        <label className="approval-search">生徒名・日付で探す<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="生徒名などを入力" /></label>
-        <p className="approval-queue-count">{query ? `${visible.length}件が該当` : '古い授業日から表示'}</p>
+        <label className="approval-search">生徒名・日付・講師で探す<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="生徒名などを入力" /></label>
+        <label>並び順<select value={sortMode} onChange={event=>setSortMode(event.target.value)}><option value="date">授業日 → 3〜7講</option><option value="period">3〜7講 → 授業日</option></select></label>
+        <p className="approval-queue-count">{query ? `${visible.length}件が該当` : sortMode==='date'?'古い授業日から表示':'3講から表示'}</p>
         <div className="approval-queue-list">
-          {visible.map(item => { const id = itemId(item); return <button type="button" key={id} className={itemId(selected) === id ? 'active' : ''} aria-pressed={itemId(selected) === id} onClick={() => setSelectedId(id)}><span><strong>{item.name}</strong><time dateTime={item.date}>{item.date.replaceAll('-', ' / ')}</time></span><small>{item.text || '本文がありません'}</small></button>; })}
+          {visible.map(item => { const id = itemId(item); return <button type="button" key={id} className={itemId(selected) === id ? 'active' : ''} aria-pressed={itemId(selected) === id} onClick={() => setSelectedId(id)}><span><strong>{item.name}</strong><time dateTime={item.date}>{item.date.replaceAll('-', ' / ')} · {item.periodLabel}</time></span><small>担当：{item.teacherName} · {item.text || '本文がありません'}</small></button>; })}
           {!visible.length && <p className="approval-no-match">該当する報告はありません。</p>}
         </div>
       </section>
       <section className="approval-editor" aria-label="選択した授業報告">
-        {selected ? <><header><div><small>公開前の確認</small><h3>{selected.name}さん</h3><p>{selected.studentKey.startsWith('elementary_') ? '小学生' : '中学生・高校生'} · <time dateTime={selected.date}>{selected.date.replaceAll('-', ' / ')}</time></p></div><span>未承認</span></header><label>保護者へ公開する文章<textarea rows="12" maxLength="2000" value={selected.text || ''} onChange={event => update(itemId(selected), event.target.value)} /><small>{(selected.text || '').length} / 2000文字</small></label><footer><span>必要なら文章を修正できます</span><button type="button" disabled={Boolean(busy) || !selected.text?.trim()} onClick={() => approve(selected)}>{busy === itemId(selected) ? '公開中…' : '承認して保護者へ公開'}</button></footer></> : <p className="approval-no-match">左の一覧から報告を選択してください。</p>}
+        {selected ? <><header><div><small>公開前の確認</small><h3>{selected.name}さん</h3><p>{selected.studentKey.startsWith('elementary_') ? '小学生' : '中学生・高校生'} · <time dateTime={selected.date}>{selected.date.replaceAll('-', ' / ')}</time> · {selected.periodLabel} · 担当：{selected.teacherName}</p></div><span>未承認</span></header><label>保護者へ公開する文章<textarea rows="12" maxLength="2000" value={selected.text || ''} onChange={event => update(itemId(selected), event.target.value)} /><small>{(selected.text || '').length} / 2000文字</small></label><footer><span>必要なら文章を修正できます</span><button type="button" disabled={Boolean(busy) || !selected.text?.trim()} onClick={() => approve(selected)}>{busy === itemId(selected) ? '公開中…' : '承認して保護者へ公開'}</button></footer></> : <p className="approval-no-match">左の一覧から報告を選択してください。</p>}
       </section>
     </div>}
   </section>;

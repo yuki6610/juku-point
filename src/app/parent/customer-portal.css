@@ -16,6 +16,7 @@
 .parent-score-submission-list article.received b,.parent-score-submission-list article.legacy b { color: #257153; background: #e9f8f0; }
 .parent-score-submission-list article.missing b { color: #98601c; background: #fff1d7; }
 .parent-score-submission-list article.upcoming b { color: #496789; background: #eaf1f9; }
+.parent-score-submission-list article.missing button{padding:7px 10px;border:1px solid #d9b574;border-radius:8px;background:#fffaf0;color:#865411;font-weight:700;cursor:pointer}
 .parent-tabs button:focus-visible { outline: 3px solid #a9b4f0; outline-offset: 2px; }
 .parent-tabs a { min-height: 44px; display: grid; place-items: center; }
 .parent-tabs a:focus-visible { outline: 3px solid #a9b4f0; }

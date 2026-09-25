@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { auth } from '@/firebaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import { shiftDateAt, shiftWeekStart } from '@/lib/weeklyShifts';
+import { teacherCanTeach } from '@/lib/teacherSubjects.mjs';
 import './shifts.css';
 
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo' }).format(new Date());
@@ -28,6 +29,7 @@ export default function ShiftsView({ selectedWeek, onWeekChange = () => {}, onDi
   const changeWeek = offset => setWeek(shiftDateAt(week, offset * 7));
   const edit = (id, values) => setEntries(old => old.map(item => item.id === id ? { ...item, ...values } : item));
   const studentNames = useMemo(() => new Map((data?.students || []).map(item => [item.key, item.name])), [data]);
+  const studentGrades = useMemo(() => new Map((data?.students || []).map(item => [item.key, item.grade])), [data]);
   const addRow = (date, periodId) => setEntries(old => [...old, { id: crypto.randomUUID(), date, periodId, studentKey: '', subject: '', subjectCode: '', teacherUid: '', lessonType: 'regular', sourceId: '' }]);
   const currentPrograms = data?.programs || [];
   const visiblePeriods = (data?.periods || []).filter(period => !period.courseOnly || currentPrograms.length);
@@ -57,7 +59,7 @@ export default function ShiftsView({ selectedWeek, onWeekChange = () => {}, onDi
           </td>,
           <td key={`${item.id}-subject`}><select value={item.subjectCode || 'other'} onChange={event => { const code = event.target.value; edit(item.id, { subjectCode: code, subject: subjects.find(([value]) => value === code)?.[1] || '' }); }}>{subjects.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select>{item.subjectCode === 'other' && <input aria-label="教科名" value={item.subject} onChange={event => edit(item.id, { subject: event.target.value })}/>}</td>,
           <td key={`${item.id}-teacher`}>
-            <select value={item.teacherUid} onChange={event => edit(item.id, { teacherUid: event.target.value })}><option value="">未割当</option>{(data.teachers || []).map(teacher => <option key={teacher.uid} value={teacher.uid}>{teacher.name}{(teacher.availability?.[item.date] || []).includes(item.periodId) ? '・希望あり' : ''}</option>)}</select>
+            <select value={item.teacherUid} onChange={event => edit(item.id, { teacherUid: event.target.value })}><option value="">未割当</option>{(data.teachers || []).map(teacher => <option key={teacher.uid} value={teacher.uid}>{teacher.name}{teacherCanTeach(teacher, studentGrades.get(item.studentKey), item.subjectCode) ? '・教科対応' : ''}{(teacher.availability?.[item.date] || []).includes(item.periodId) ? '・希望あり' : ''}</option>)}</select>
             <select aria-label="授業曜日" value={item.date} onChange={event => edit(item.id, { date: event.target.value })}>{weekdayNames.map((label, index) => <option key={label} value={shiftDateAt(week, index)}>{label}</option>)}</select><select aria-label="授業時間帯" value={item.periodId} onChange={event => edit(item.id, { periodId: event.target.value })}>{visiblePeriods.filter(target => !target.courseOnly || currentPrograms.some(program => program.startDate <= item.date && item.date <= program.endDate)).map(target => <option key={target.id} value={target.id}>{target.startTime}</option>)}</select>
             <button className="shift-remove" disabled={importedCourse} title={importedCourse ? '講習日程の削除は講習授業管理から行ってください' : `${studentNames.get(item.studentKey) || '生徒'}を削除`} onClick={() => setEntries(old => old.filter(row => row.id !== item.id))}>×</button>
           </td>,

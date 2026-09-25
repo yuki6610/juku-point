@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebaseAdmin';
 import { requireAdmin } from '@/lib/staffAccess';
 import { SHIFT_PERIODS, shiftDateAt, shiftEntry, shiftPeriodForDate, shiftPeriodForSlot, shiftPeriodForTime, shiftWeekStart, validShiftDate } from '@/lib/weeklyShifts';
+import { emptyTeacherSubjects } from '@/lib/teacherSubjects.mjs';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,7 +48,7 @@ export async function GET(request) {
     const [week, students, teachers, allPrograms, preferences] = await Promise.all([weeks().doc(monday).get(), studentRows(), list('teachers'), list('coursePrograms'), list('teacherShiftPreferences')]);
     const programs = relevantPrograms(allPrograms, monday);
     const preferenceMap = new Map(preferences.map(item => [item.id, item]));
-    return Response.json({ week: week.exists ? { id: week.id, ...week.data() } : null, students: students.map(({ lessonSchedule, lessonScheduleSlots, weekdays, lessonStartTime, ...item }) => item), teachers: teachers.filter(item => item.active !== false).map(item => ({ uid: item.id, name: item.displayName || item.email || item.id, subjects: preferenceMap.get(item.id)?.subjects || [], grades: preferenceMap.get(item.id)?.grades || [], availability: preferenceMap.get(item.id)?.availability || {} })), periods: SHIFT_PERIODS, programs: programs.map(item => ({ id: item.id, name: item.name, startDate: item.startDate, endDate: item.endDate })) });
+    return Response.json({ week: week.exists ? { id: week.id, ...week.data() } : null, students: students.map(({ lessonSchedule, lessonScheduleSlots, weekdays, lessonStartTime, ...item }) => item), teachers: teachers.filter(item => item.active !== false).map(item => ({ uid: item.id, name: item.displayName || item.email || item.id, subjectsByLevel: preferenceMap.get(item.id)?.subjectsByLevel || emptyTeacherSubjects(), availability: preferenceMap.get(item.id)?.availability || {} })), periods: SHIFT_PERIODS, programs: programs.map(item => ({ id: item.id, name: item.name, startDate: item.startDate, endDate: item.endDate })) });
   } catch (error) { return Response.json({ error: error.message }, { status: error.status || 400 }); }
 }
 
