@@ -13,9 +13,9 @@
 .teacher-shell .teacher-period-select,.teacher-shell .teacher-student-select{display:grid;gap:6px}
 .teacher-shell .teacher-period-select span,.teacher-shell .teacher-student-select span{color:#536fc1;font-size:12px;font-weight:850}
 .teacher-shell .teacher-flow{grid-template-columns:minmax(130px,.65fr) minmax(120px,.65fr) minmax(220px,1.5fr)}
-.teacher-shell .teacher-check-section{background:#f0f6ff;border-color:#cfdef7}
-.teacher-shell .teacher-homework-section{background:#f0faf5;border-color:#cce8d8}
-.teacher-shell .teacher-report-section{background:#f6f3ff;border-color:#ddd4fa}
+.teacher-shell .teacher-check-section{background:#e5f0ff;border-color:#a9c6ed}
+.teacher-shell .teacher-homework-section{background:#e4f5eb;border-color:#a6d9ba}
+.teacher-shell .teacher-report-section{background:#eee7ff;border-color:#c4b1ef}
 .teacher-shell .teacher-attendance-section{gap:9px;padding:13px 16px!important}
 .teacher-shell .teacher-attendance-section h2{font-size:15px!important}
 .teacher-shell .teacher-assigned-homework{padding:10px;background:#ffffffa8;border:1px solid #d9e5dd;border-radius:12px}
@@ -25,6 +25,10 @@
 .teacher-shell .teacher-save-between-sections{margin:0 0 16px}
 .teacher-shell .teacher-save-between-sections .teacher-save{position:static}
 .teacher-shell .teacher-section-fold{display:block;margin:16px 0;padding:0;border:1px solid #dfe7f2;border-radius:22px;box-shadow:0 12px 30px rgba(44,57,91,.055);overflow:hidden}
+.teacher-shell .teacher-section-fold.teacher-check-section{border-color:#a9c6ed}
+.teacher-shell .teacher-section-fold.teacher-report-section{border-color:#c4b1ef}
+.teacher-shell .teacher-check-section>summary{background:#d9e9ff}
+.teacher-shell .teacher-report-section>summary{background:#e7dcff}
 .teacher-shell .teacher-section-fold>summary{cursor:pointer;padding:18px 26px;font-size:20px;font-weight:850;list-style:none}
 .teacher-shell .teacher-section-fold>summary::-webkit-details-marker{display:none}
 .teacher-shell .teacher-section-fold>summary::after{content:'開く';float:right;color:#536fc1;font-size:12px;line-height:28px}

@@ -7,6 +7,7 @@ import { adminDb } from '@/lib/firebaseAdmin';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const MODEL = 'gpt-6-luna';
 const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
 
 async function readSubjectHistory(studentKey, subject, lessonDate) {
@@ -63,7 +64,7 @@ export async function POST(request) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-5.6-luna',
+        model: MODEL,
         input: buildLessonReportInput(data),
         reasoning: { effort: 'none' },
         max_output_tokens: 350,
@@ -101,9 +102,9 @@ export async function POST(request) {
       const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
       const month = `${parts.find(part => part.type === 'year').value}-${parts.find(part => part.type === 'month').value}`;
       const inputTokens = Number(result.usage?.input_tokens || 0), outputTokens = Number(result.usage?.output_tokens || 0);
-      await adminDb.collection('aiUsage').add({ month, feature: 'lessonReport', model: 'gpt-5.6-luna', actorUid: staff.uid, actorRole: staff.role, studentKey, inputTokens, outputTokens, totalTokens: Number(result.usage?.total_tokens || inputTokens + outputTokens), createdAt: new Date() });
+      await adminDb.collection('aiUsage').add({ month, feature: 'lessonReport', model: MODEL, actorUid: staff.uid, actorRole: staff.role, studentKey, inputTokens, outputTokens, totalTokens: Number(result.usage?.total_tokens || inputTokens + outputTokens), createdAt: new Date() });
     } catch (usageError) { console.error('AI usage logging failed', usageError); }
-    return Response.json({ text, model: 'gpt-5.6-luna' });
+    return Response.json({ text, model: MODEL });
   } catch (error) {
     return Response.json({ error: error.message || '授業報告を生成できませんでした。' }, { status: error.status || 400 });
   }
